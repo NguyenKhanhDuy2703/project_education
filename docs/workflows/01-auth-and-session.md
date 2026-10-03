@@ -53,7 +53,7 @@ sequenceDiagram
         BE->>BE: Ký Access Token (15 phút) và Refresh Token (7 ngày)
         BE->>DB: Lưu Refresh Token vào bảng users
         BE-->>FE: 200 OK (Access Token và HttpOnly Cookie)
-        FE->>FE: Lưu user vào Redux và chuyển trang Dashboard
+        FE->>FE: Lưu user vào Redux và chuyển hướng về Trang chủ (/) (Dashboard tại /user/dashboard)
     else Sai thông tin
         BE-->>FE: 401 Unauthorized (Sai SĐT hoặc mật khẩu)
         FE-->>User: Hiển thị thông báo lỗi trên Form

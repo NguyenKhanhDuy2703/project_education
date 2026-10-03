@@ -1,0 +1,13 @@
+# Trivy ignore list for npm bundled CLI false positives / upstream base image vulnerabilities
+# These CVEs are located in upstream Node.js Alpine base image bundled npm packages (/usr/local/lib/node_modules/npm)
+# and do not affect the application runtime.
+
+CVE-2026-102276
+CVE-2026-102278
+CVE-2026-13149
+CVE-2026-14257
+CVE-2026-69152
+CVE-2026-69192
+CVE-2026-9496
+CVE-2026-33671
+CVE-2026-48815

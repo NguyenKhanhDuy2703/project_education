@@ -1,0 +1,116 @@
+name: Reusable Playwright E2E Worker
+
+on:
+  workflow_call:
+    inputs:
+      image-tag:
+        description: "Image tag to test (e.g. Git short SHA or staging)"
+        required: true
+        type: string
+      node-version:
+        description: "Node.js version for runner"
+        required: false
+        default: "22"
+        type: string
+      environment:
+        description: "Environment name"
+        required: false
+        default: "staging"
+        type: string
+      be-service-name:
+        description: "Backend service name"
+        required: true
+        type: string
+      fe-service-name:
+        description: "Frontend service name"
+        required: true
+        type: string
+    secrets:
+      DOCKER_USERNAME:
+        required: false
+      DOCKER_PASSWORD:
+        required: false
+
+jobs:
+  e2e-test:
+    name: "Run Playwright E2E on Staging Containers"
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      REGISTRY_PREFIX: "${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME }}"
+      IMAGE_TAG: ${{ inputs.image-tag }}
+      TARGET_ENV: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Login to Docker Hub
+        if: env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != ''
+        uses: docker/login-action@v4
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: Pull or Build Staging Docker Images
+        run: |
+          BE_NAME="${{ inputs.be-service-name }}"
+          FE_NAME="${{ inputs.fe-service-name }}"
+          echo "Attempting to pull staging images with tag ${IMAGE_TAG} ($BE_NAME, $FE_NAME)..."
+          if ! (docker pull ${REGISTRY_PREFIX}/${BE_NAME}:${IMAGE_TAG} && docker pull ${REGISTRY_PREFIX}/${FE_NAME}:${IMAGE_TAG}); then
+            echo "::warning::Staging images not found on registry (cold start). Building locally from source for E2E..."
+            docker compose -f docker-compose.e2e.yml build
+          fi
+
+      - name: Start Staging Stack via Docker Compose
+        run: |
+          docker compose -f docker-compose.e2e.yml up -d
+
+      - name: Wait for Backend Service to be Healthy
+        run: |
+          echo "Waiting for Backend API at http://localhost:3000/api/v1/healthy..."
+          for i in {1..20}; do
+            if curl -s http://localhost:3000/api/v1/healthy | grep -q "healthy"; then
+              echo "Backend is HEALTHY and READY!"
+              break
+            fi
+            echo "Attempt $i: Backend not ready yet, sleeping 2s..."
+            sleep 2
+          done
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: "npm"
+          cache-dependency-path: "tests/e2e/package.json"
+
+      - name: Install E2E Dependencies
+        working-directory: tests/e2e
+        run: npm install
+
+      - name: Install Playwright Chromium & OS Dependencies
+        working-directory: tests/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Execute Playwright E2E Tests
+        working-directory: tests/e2e
+        env:
+          CI: "true"
+          STAGING_URL: "http://localhost:5173"
+        run: npm test
+
+      - name: Upload Playwright Report on Failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-staging-report
+          path: tests/e2e/playwright-report/
+          retention-days: 7
+
+      - name: Teardown Staging Stack
+        if: always()
+        run: |
+          docker compose -f docker-compose.e2e.yml down -v

@@ -1,0 +1,44 @@
+{
+  "lab-001": {
+    "id": "lab-001",
+    "seriesId": "series-001",
+    "slug": "test-case-la-gi",
+    "title": "Test Case là gì? Viết test case đầu tiên",
+    "order": 1,
+    "isProOnly": false,
+    "sandboxType": "js_worker",
+    "estimatedMinutes": 20,
+    "userStatus": "passed",
+    "instructions": "# Test Case là gì?\n\nMột **Test Case** là tập hợp các bước kiểm thử để xác nhận một tính năng hoạt động đúng.\n\n## Cấu trúc Test Case chuẩn\n\n| Trường | Mô tả |\n|---|---|\n| **ID** | Mã định danh duy nhất (TC-001) |\n| **Title** | Mô tả ngắn gọn mục tiêu test |\n| **Precondition** | Điều kiện trước khi chạy test |\n| **Steps** | Các bước thực hiện |\n| **Expected Result** | Kết quả mong đợi |\n\n## Bài tập\n\nViết hàm `isValidEmail(email)` trả về `true` nếu email hợp lệ.\n\n**Điều kiện hợp lệ:**\n- Có ký tự `@`\n- Có tên miền sau `@` (ví dụ: `gmail.com`)\n- Không có khoảng trắng\n\n## Ví dụ\n\n```js\nisValidEmail('user@gmail.com') // true\nisValidEmail('invalid-email')  // false\nisValidEmail('a @b.com')       // false\n```",
+    "initialSnippet": "/**\n * Viết hàm isValidEmail(email) bên dưới.\n * Trả về true nếu email hợp lệ, false nếu không.\n */\nfunction isValidEmail(email) {\n  // TODO: implement\n}\n",
+    "testScript": "assert('Email hợp lệ cơ bản', isValidEmail('user@gmail.com') === true);\nassert('Email thiếu @', isValidEmail('invalidemail') === false);\nassert('Email có khoảng trắng', isValidEmail('a b@gmail.com') === false);\nassert('Email thiếu tên miền', isValidEmail('user@') === false);\nassert('Email trống', isValidEmail('') === false);\n"
+  },
+  "lab-002": {
+    "id": "lab-002",
+    "seriesId": "series-001",
+    "slug": "phan-loai-bug",
+    "title": "Phân loại Bug: Critical, Major, Minor, Trivial",
+    "order": 2,
+    "isProOnly": false,
+    "sandboxType": "js_worker",
+    "estimatedMinutes": 25,
+    "userStatus": "in_progress",
+    "instructions": "# Phân loại mức độ Bug\n\nMỗi bug có mức độ ảnh hưởng khác nhau:\n\n- **Critical** 🔴 — Hệ thống sập, mất tiền, không thể dùng\n- **Major** 🟠 — Tính năng chính bị lỗi nhưng có cách đi vòng\n- **Minor** 🟡 — Tính năng bị ảnh hưởng nhẹ, vẫn dùng được\n- **Trivial** ⚪ — Lỗi UI nhỏ, không ảnh hưởng tính năng\n\n## Bài tập\n\nViết hàm `classifyBug(description)` nhận mô tả bug và trả về mức độ severity.\n\n**Quy tắc đơn giản:**\n- Chứa `'crash'` hoặc `'data loss'` → `'critical'`\n- Chứa `'broken'` hoặc `'error'` → `'major'`\n- Chứa `'slow'` hoặc `'wrong'` → `'minor'`\n- Còn lại → `'trivial'`",
+    "initialSnippet": "/**\n * Phân loại bug dựa theo mô tả.\n * @param {string} description - Mô tả bug\n * @returns {'critical' | 'major' | 'minor' | 'trivial'}\n */\nfunction classifyBug(description) {\n  const desc = description.toLowerCase();\n  // TODO: implement\n}\n",
+    "testScript": "assert('Crash = Critical', classifyBug('App crash on login') === 'critical');\nassert('Data loss = Critical', classifyBug('data loss on submit') === 'critical');\nassert('Broken = Major', classifyBug('Broken checkout flow') === 'major');\nassert('Error = Major', classifyBug('Error 500 on save') === 'major');\nassert('Slow = Minor', classifyBug('slow loading on dashboard') === 'minor');\nassert('Typo = Trivial', classifyBug('typo in footer text') === 'trivial');\n"
+  },
+  "lab-006": {
+    "id": "lab-006",
+    "seriesId": "series-002",
+    "slug": "http-methods-co-ban",
+    "title": "HTTP Methods: GET, POST, PUT, DELETE",
+    "order": 1,
+    "isProOnly": false,
+    "sandboxType": "js_worker",
+    "estimatedMinutes": 20,
+    "userStatus": "not_started",
+    "instructions": "# HTTP Methods cơ bản\n\nCác phương thức HTTP được dùng để thực hiện các thao tác CRUD:\n\n| Method | Mục đích | Idempotent? |\n|---|---|---|\n| **GET** | Lấy dữ liệu | ✅ Có |\n| **POST** | Tạo mới | ❌ Không |\n| **PUT** | Cập nhật toàn bộ | ✅ Có |\n| **PATCH** | Cập nhật một phần | ✅ Có |\n| **DELETE** | Xóa | ✅ Có |\n\n## Bài tập\n\nViết hàm `getHttpMethod(action)` trả về HTTP method phù hợp.\n\n**Mapping:**\n- `'create'` → `'POST'`\n- `'read'` → `'GET'`\n- `'update'` → `'PUT'`\n- `'delete'` → `'DELETE'`",
+    "initialSnippet": "/**\n * Trả về HTTP method phù hợp cho action CRUD.\n * @param {'create'|'read'|'update'|'delete'} action\n * @returns {string}\n */\nfunction getHttpMethod(action) {\n  // TODO: implement\n}\n",
+    "testScript": "assert('create → POST', getHttpMethod('create') === 'POST');\nassert('read → GET', getHttpMethod('read') === 'GET');\nassert('update → PUT', getHttpMethod('update') === 'PUT');\nassert('delete → DELETE', getHttpMethod('delete') === 'DELETE');\n"
+  }
+}

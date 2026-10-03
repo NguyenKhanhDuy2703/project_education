@@ -1,0 +1,80 @@
+name: trivy security scan worker
+on:
+    workflow_call:
+        inputs:
+            image-tag:
+                description: "Image tag to scan"
+                required: true
+                type: string
+            services:
+                description: "JSON array of service names to scan"
+                required: true
+                type: string
+        secrets:
+            DOCKER_USERNAME:
+                required: false
+            DOCKER_PASSWORD:
+                required: false
+jobs:
+    scan-matrix:
+        name: "Scan ${{ matrix.services-json }}"
+        runs-on: ubuntu-latest
+        env:
+            DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME }}
+            DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        strategy:
+            fail-fast: false
+            matrix:
+                services-json: ${{ fromJson(inputs.services) }}
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v7
+
+            - name: Login to Docker Hub
+              if: env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != ''
+              uses: docker/login-action@v4
+              with:
+                username: ${{ secrets.DOCKER_USERNAME }}
+                password: ${{ secrets.DOCKER_PASSWORD }}
+
+            - name: Prepare .trivyignore for scan
+              run: |
+                touch .trivyignore
+                SVC="${{ matrix.services-json }}"
+                if [[ "$SVC" == *"-be" ]] || [[ "$SVC" == *"backend"* ]] || [[ "$SVC" == *"api"* ]]; then
+                  SERVICE_PATH="MODULE_BE"
+                elif [[ "$SVC" == *"-fe" ]] || [[ "$SVC" == *"frontend"* ]] || [[ "$SVC" == *"web"* ]]; then
+                  SERVICE_PATH="MODULE_FE"
+                else
+                  SERVICE_PATH=""
+                fi
+                if [ -n "$SERVICE_PATH" ] && [ -f "$SERVICE_PATH/.trivyignore" ]; then
+                  cat "$SERVICE_PATH/.trivyignore" >> .trivyignore
+                fi
+                echo "Active .trivyignore entries for $SVC (path: $SERVICE_PATH):"
+                cat .trivyignore
+
+            - name: Check if image exists on Docker Hub
+              id: image-check
+              run: |
+                TARGET_IMAGE="${{ env.DOCKER_USERNAME }}/${{ matrix.services-json }}:${{ inputs.image-tag }}"
+                echo "Checking existence of $TARGET_IMAGE ..."
+                if docker manifest inspect "$TARGET_IMAGE" > /dev/null 2>&1; then
+                  echo "Image $TARGET_IMAGE exists on registry."
+                  echo "exists=true" >> "$GITHUB_OUTPUT"
+                else
+                  echo "::warning::Image $TARGET_IMAGE does not exist on registry yet. Skipping Trivy scan."
+                  echo "exists=false" >> "$GITHUB_OUTPUT"
+                fi
+
+            - name: Run Trivy Vulnerability Scan (CRITICAL & HIGH Gate)
+              if: steps.image-check.outputs.exists == 'true'
+              uses: aquasecurity/trivy-action@v0.36.0
+              with:
+                image-ref: "${{ env.DOCKER_USERNAME }}/${{ matrix.services-json }}:${{ inputs.image-tag }}"
+                format: table
+                severity: CRITICAL,HIGH
+                exit-code: "1"
+                ignore-unfixed: true
+                trivyignores: .trivyignore

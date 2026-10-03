@@ -1,0 +1,45 @@
+name: Frontend Test Worker
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: "The version Node.js used for project"
+        required: false
+        default: "22"
+        type: string
+    outputs:
+      status:
+        description: "The status of completion of the Frontend test"
+        value: ${{ jobs.frontend-unit-test.result }}
+
+jobs:
+  frontend-unit-test:
+    name: "Run React/Vite Unit Tests"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./MODULE_FE
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js ${{ inputs.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: "npm"
+          cache-dependency-path: "./MODULE_FE/package-lock.json"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Frontend Type Check (Static Analysis)
+        run: npx tsc -b --noEmit
+
+      - name: Run Frontend Tests
+        run: npm test
+        env:
+          NODE_ENV: test

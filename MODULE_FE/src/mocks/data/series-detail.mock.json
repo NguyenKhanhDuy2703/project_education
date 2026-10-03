@@ -1,0 +1,111 @@
+{
+  "testing-co-ban": {
+    "id": "series-001",
+    "slug": "testing-co-ban",
+    "title": "Testing Cơ Bản cho Người Mới",
+    "description": "Học cách viết Test Case, kiểm thử manual và hiểu quy trình QA từ đầu.",
+    "topic": "testing",
+    "level": "beginner",
+    "isProOnly": false,
+    "totalLabs": 5,
+    "estimatedMinutes": 120,
+    "coverEmoji": "🧪",
+    "createdAt": "2026-09-01T00:00:00.000Z",
+    "updatedAt": "2026-10-01T00:00:00.000Z",
+    "labs": [
+      {
+        "id": "lab-001",
+        "seriesId": "series-001",
+        "slug": "test-case-la-gi",
+        "title": "Test Case là gì? Viết test case đầu tiên",
+        "order": 1,
+        "isProOnly": false,
+        "sandboxType": "js_worker",
+        "estimatedMinutes": 20,
+        "userStatus": "passed"
+      },
+      {
+        "id": "lab-002",
+        "seriesId": "series-001",
+        "slug": "phan-loai-bug",
+        "title": "Phân loại Bug: Critical, Major, Minor, Trivial",
+        "order": 2,
+        "isProOnly": false,
+        "sandboxType": "js_worker",
+        "estimatedMinutes": 25,
+        "userStatus": "in_progress"
+      },
+      {
+        "id": "lab-003",
+        "seriesId": "series-001",
+        "slug": "boundary-value-analysis",
+        "title": "Kỹ thuật Boundary Value Analysis",
+        "order": 3,
+        "isProOnly": false,
+        "sandboxType": "js_worker",
+        "estimatedMinutes": 30,
+        "userStatus": "not_started"
+      },
+      {
+        "id": "lab-004",
+        "seriesId": "series-001",
+        "slug": "equivalence-partitioning",
+        "title": "Equivalence Partitioning trong thực tế",
+        "order": 4,
+        "isProOnly": false,
+        "sandboxType": "js_worker",
+        "estimatedMinutes": 25,
+        "userStatus": "not_started"
+      },
+      {
+        "id": "lab-005",
+        "seriesId": "series-001",
+        "slug": "viet-bug-report",
+        "title": "Viết Bug Report chuyên nghiệp",
+        "order": 5,
+        "isProOnly": false,
+        "sandboxType": "js_worker",
+        "estimatedMinutes": 20,
+        "userStatus": "not_started"
+      }
+    ]
+  },
+  "api-testing-postman": {
+    "id": "series-002",
+    "slug": "api-testing-postman",
+    "title": "API Testing với Postman & Swagger",
+    "description": "Thực hành test REST API thực tế: viết collection, thiết lập environment, kiểm tra response schema và status code.",
+    "topic": "testing",
+    "level": "intermediate",
+    "isProOnly": false,
+    "totalLabs": 6,
+    "estimatedMinutes": 150,
+    "coverEmoji": "📮",
+    "createdAt": "2026-09-05T00:00:00.000Z",
+    "updatedAt": "2026-10-01T00:00:00.000Z",
+    "labs": [
+      {
+        "id": "lab-006",
+        "seriesId": "series-002",
+        "slug": "http-methods-co-ban",
+        "title": "HTTP Methods: GET, POST, PUT, DELETE",
+        "order": 1,
+        "isProOnly": false,
+        "sandboxType": "api_mock",
+        "estimatedMinutes": 20,
+        "userStatus": "not_started"
+      },
+      {
+        "id": "lab-007",
+        "seriesId": "series-002",
+        "slug": "status-codes-y-nghia",
+        "title": "HTTP Status Codes và ý nghĩa thực tế",
+        "order": 2,
+        "isProOnly": false,
+        "sandboxType": "js_worker",
+        "estimatedMinutes": 25,
+        "userStatus": "not_started"
+      }
+    ]
+  }
+}

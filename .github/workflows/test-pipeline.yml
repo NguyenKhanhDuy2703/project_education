@@ -1,0 +1,59 @@
+name: test pipeline
+on:
+    workflow_call:
+        inputs:
+            node-version-be: 
+              type: string
+              required: true
+              default: "24"
+            node-version-fe: 
+              type: string
+              required: true
+              default: "22"
+        outputs:
+            test-status:
+              value: ${{ jobs.test-reporter.outputs.overall-status }}
+
+jobs:
+  orchestrator-init:
+    name: "Main Orchestrator: Init"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Initialize Pipeline
+        run: |
+          echo "🚀 Khởi động ${{ vars.PROJECT_NAME || github.event.repository.name }} Test Orchestrator Pipeline"
+          echo "Triggered by: ${{ github.actor }} on branch: ${{ github.ref_name }}"
+          echo "Commit SHA: ${{ github.sha }}"
+  be-unit-tests:
+    name: "Backend Unit Test Worker"
+    needs: [orchestrator-init]
+    uses: ./.github/workflows/_be-test-worker.yml
+    with:
+      node-version: "24"
+
+  fe-unit-tests:
+    name: "Frontend Unit Test Worker"
+    needs: [orchestrator-init]
+    uses: ./.github/workflows/_fe-test-worker.yml
+    with:
+      node-version: "22"
+  test-reporter:
+    name: "test reporter"
+    needs: [be-unit-tests, fe-unit-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    outputs:
+      overall-status: ${{ steps.test_report.outputs.overall-status }}
+    steps:
+      - name: "test report"
+        id: test_report
+        run: |
+          if [ "${{ needs.be-unit-tests.result }}" = "success" ] && [ "${{ needs.fe-unit-tests.result }}" = "success" ]; then
+            echo "::notice::All unit test is success!"
+            echo "overall-status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Unit test is failure!"
+            echo "overall-status=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+   

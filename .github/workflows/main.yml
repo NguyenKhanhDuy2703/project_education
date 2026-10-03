@@ -1,0 +1,319 @@
+name: StudyIT CI/CD Pipeline
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      sync-jira:
+        description: "Synchronize Jira Backlog"
+        required: false
+        default: false
+        type: boolean
+      jira-sync-mode:
+        description: "Jira sync mode"
+        required: false
+        default: "dry-run"
+        type: choice
+        options:
+          - dry-run
+          - apply
+          
+  pull_request:
+    branches: ["main", "dev", "staging", "feat/**", "ci-cd", "fix/**"]
+    paths:
+      - "MODULE_BE/**"
+      - "MODULE_FE/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".dockerignore"
+      - "docs/backlog/**"
+      - "scripts/**"
+      - ".github/workflows/**"
+  push:
+    branches: ["main", "dev", "staging", "ci-cd"]
+    paths:
+      - "MODULE_BE/**"
+      - "MODULE_FE/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".dockerignore"
+      - "docs/backlog/**"
+      - "scripts/**"
+      - ".github/workflows/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+ 
+  validate-backlog:
+    name: "Validate Jira Backlog Integrity"
+    runs-on: ubuntu-latest
+    if: |
+      contains(toJson(github.event.commits.*.modified), 'docs/backlog/') ||
+      contains(toJson(github.event.commits.*.modified), 'scripts/') ||
+      github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Validate Backlog Structure
+        run: node scripts/jira-sync.mjs
+        env:
+          JIRA_SYNC_MODE: validate
+
+  # sync-jira:
+  #   name: "Sync Jira Backlog"
+  #   if: github.event_name == 'workflow_dispatch' && inputs.sync-jira == true
+  #   needs: [validate-backlog]
+  #   uses: ./.github/workflows/jira-backlog-sync.yml
+  #   with:
+  #     mode: ${{ inputs.jira-sync-mode || 'dry-run' }}
+  #   secrets: inherit
+
+  detect-changes:
+    name: "Detect Modified Services"
+    runs-on: ubuntu-latest
+    outputs:
+      be: ${{ steps.filter.outputs.be }}
+      fe: ${{ steps.filter.outputs.fe }}
+      workflows: ${{ steps.filter.outputs.workflows }}
+      short-sha: ${{ steps.vars.outputs.short-sha }}
+      services-to-scan: ${{ steps.build-scan-matrix.outputs.services }}
+      be-service: ${{ steps.config.outputs.be-service }}
+      fe-service: ${{ steps.config.outputs.fe-service }}
+      all-services: ${{ steps.config.outputs.all-services }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Load Pipeline Configuration
+        id: config
+        run: |
+          PROJECT="${{ vars.PROJECT_NAME }}"
+          if [ -z "$PROJECT" ]; then
+            PROJECT=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+          fi
+          BE_NAME="${{ vars.BE_SERVICE_NAME || '' }}"
+          FE_NAME="${{ vars.FE_SERVICE_NAME || '' }}"
+          if [ -z "$BE_NAME" ]; then BE_NAME="${PROJECT}-be"; fi
+          if [ -z "$FE_NAME" ]; then FE_NAME="${PROJECT}-fe"; fi
+          echo "project-name=$PROJECT" >> "$GITHUB_OUTPUT"
+          echo "be-service=$BE_NAME" >> "$GITHUB_OUTPUT"
+          echo "fe-service=$FE_NAME" >> "$GITHUB_OUTPUT"
+          echo "all-services=[\"$BE_NAME\", \"$FE_NAME\"]" >> "$GITHUB_OUTPUT"
+
+      - name: Set Short SHA
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            COMMIT_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            COMMIT_SHA="${{ github.sha }}"
+          fi
+          echo "short-sha=$(echo $COMMIT_SHA | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      - name: Paths Filter
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            be:
+              - 'MODULE_BE/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.dockerignore'
+            fe:
+              - 'MODULE_FE/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.dockerignore'
+            workflows:
+              - '.github/workflows/**'
+
+      - name: Build Services Scan Matrix
+        id: build-scan-matrix
+        env:
+          BE_SERVICE: ${{ steps.config.outputs.be-service }}
+          FE_SERVICE: ${{ steps.config.outputs.fe-service }}
+        run: |
+          SERVICES=()
+          if [ "${{ steps.filter.outputs.be }}" = "true" ]; then
+            SERVICES+=("$BE_SERVICE")
+          fi
+          if [ "${{ steps.filter.outputs.fe }}" = "true" ]; then
+            SERVICES+=("$FE_SERVICE")
+          fi
+
+          if [ ${#SERVICES[@]} -eq 0 ]; then
+            JSON_SERVICES="[]"
+          else
+            JSON_SERVICES=$(printf '%s\n' "${SERVICES[@]}" | jq -R . | jq -s -c .)
+          fi
+          
+          echo "services=$JSON_SERVICES" >> "$GITHUB_OUTPUT"
+          echo "Services selected for scan: $JSON_SERVICES"
+          
+  test-be:
+    name: "Backend Unit Test"
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.be == 'true'
+    uses: ./.github/workflows/_be-test-worker.yml
+    with:
+      node-version: "22"
+
+  test-fe:
+    name: "Frontend Unit Test"
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.fe == 'true'
+    uses: ./.github/workflows/_fe-test-worker.yml
+    with:
+      node-version: "22"
+
+  report-test-results:
+    name: "Update PR with CI Test Results"
+    needs: [detect-changes, test-be, test-fe]
+    if: always() && github.event_name == 'pull_request' && (needs.detect-changes.outputs.be == 'true' || needs.detect-changes.outputs.fe == 'true')
+    uses: ./.github/workflows/_test-report-worker.yml
+    with:
+      test-results: |
+        [
+          {
+            "name": "Backend Tests (`MODULE_BE`)",
+            "result": "${{ needs.test-be.result }}",
+            "included": ${{ needs.detect-changes.outputs.be == 'true' }}
+          },
+          {
+            "name": "Frontend Tests (`MODULE_FE`)",
+            "result": "${{ needs.test-fe.result }}",
+            "included": ${{ needs.detect-changes.outputs.fe == 'true' }}
+          }
+        ]
+
+  build-be:
+    name: "Build & Push BE Docker"
+    needs: [detect-changes, test-be]
+    if: (github.ref != 'refs/heads/main' && github.ref != 'refs/heads/staging') && needs.detect-changes.outputs.be == 'true'
+    uses: ./.github/workflows/_build-worker.yml
+    with:
+      service-name: ${{ needs.detect-changes.outputs.be-service }}
+      service-path: "MODULE_BE"
+      dockerfile: "Dockerfile"
+      language: "node"
+      push-image: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+    secrets: inherit
+
+  build-fe:
+    name: "Build & Push FE Docker"
+    needs: [detect-changes, test-fe]
+    if: (github.ref != 'refs/heads/main' && github.ref != 'refs/heads/staging') && needs.detect-changes.outputs.fe == 'true'
+    uses: ./.github/workflows/_build-worker.yml
+    with:
+      service-name: ${{ needs.detect-changes.outputs.fe-service }}
+      service-path: "MODULE_FE"
+      dockerfile: "Dockerfile"
+      language: "node"
+      push-image: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+    secrets: inherit
+
+  ci-gate:
+    name: "CI Gate — All Checks Passed"
+    needs: [detect-changes, test-be, test-fe, build-be, build-fe]
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate test and build results
+        env:
+          BE_CHANGED: ${{ needs.detect-changes.outputs.be }}
+          FE_CHANGED: ${{ needs.detect-changes.outputs.fe }}
+          BE_TEST: ${{ needs.test-be.result }}
+          FE_TEST: ${{ needs.test-fe.result }}
+          BE_BUILD: ${{ needs.build-be.result }}
+          FE_BUILD: ${{ needs.build-fe.result }}
+        run: |
+          FAILED=false
+
+          if [ "$BE_CHANGED" = "true" ] && [ "$BE_TEST" != "success" ]; then
+            echo "❌ Backend tests failed (result: $BE_TEST)"
+            FAILED=true
+          fi
+
+          if [ "$FE_CHANGED" = "true" ] && [ "$FE_TEST" != "success" ]; then
+            echo "❌ Frontend tests failed (result: $FE_TEST)"
+            FAILED=true
+          fi
+
+          if [ "$BE_CHANGED" = "true" ] && [ "$BE_BUILD" != "success" ] && [ "$BE_BUILD" != "skipped" ]; then
+            echo "❌ Backend build failed (result: $BE_BUILD)"
+            FAILED=true
+          fi
+
+          if [ "$FE_CHANGED" = "true" ] && [ "$FE_BUILD" != "success" ] && [ "$FE_BUILD" != "skipped" ]; then
+            echo "❌ Frontend build failed (result: $FE_BUILD)"
+            FAILED=true
+          fi
+
+          if [ "$FAILED" = "true" ]; then
+            exit 1
+          fi
+
+          echo "✅ All checks passed"
+          echo "   BE — test: $BE_TEST | build: $BE_BUILD"
+          echo "   FE — test: $FE_TEST | build: $FE_BUILD"
+
+  scan-images:
+    name: "Scan Docker Images (Staging Security Gate)"
+    needs: [detect-changes, build-be, build-fe]
+    if: |
+      always() &&
+      (needs.build-be.result == 'success' || needs.build-be.result == 'skipped') &&
+      (needs.build-fe.result == 'success' || needs.build-fe.result == 'skipped') &&
+      needs.detect-changes.outputs.services-to-scan != '[]' &&
+      ((github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'staging')) ||
+       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')))
+    uses: ./.github/workflows/_trivy-scan-worker.yml
+    with:
+      image-tag: "dev"
+      services: ${{ needs.detect-changes.outputs.services-to-scan }}
+    secrets: inherit
+
+  deploy-staging:
+    name: "Promote & Deploy to Staging"
+    needs: [detect-changes, scan-images]
+    if: |
+      always() &&
+      (needs.scan-images.result == 'success' || needs.scan-images.result == 'skipped') &&
+      (github.event_name == 'push' && github.ref == 'refs/heads/staging')
+    uses: ./.github/workflows/_promote-worker.yml
+    with:
+      source-tag: "dev"
+      target-tag: "staging"
+      environment: "staging"
+      services: ${{ needs.detect-changes.outputs.all-services }}
+    secrets: inherit
+
+  deploy-production:
+    name: "Promote & Deploy to Production"
+    needs: [detect-changes, scan-images]
+    if: |
+      always() &&
+      (needs.scan-images.result == 'success' || needs.scan-images.result == 'skipped') &&
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    uses: ./.github/workflows/_promote-worker.yml
+    with:
+      source-tag: "staging"
+      target-tag: "latest"
+      environment: "production"
+      services: ${{ needs.detect-changes.outputs.all-services }}
+    secrets: inherit
+
+
