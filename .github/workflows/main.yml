@@ -101,7 +101,7 @@ jobs:
         run: |
           PROJECT="${{ vars.PROJECT_NAME }}"
           if [ -z "$PROJECT" ]; then
-            PROJECT=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+            PROJECT="study-web"
           fi
           BE_NAME="${{ vars.BE_SERVICE_NAME || '' }}"
           FE_NAME="${{ vars.FE_SERVICE_NAME || '' }}"
@@ -202,27 +202,27 @@ jobs:
   build-be:
     name: "Build & Push BE Docker"
     needs: [detect-changes, test-be]
-    if: (github.ref != 'refs/heads/main' && github.ref != 'refs/heads/staging') && needs.detect-changes.outputs.be == 'true'
+    if: needs.detect-changes.outputs.be == 'true'
     uses: ./.github/workflows/_build-worker.yml
     with:
       service-name: ${{ needs.detect-changes.outputs.be-service }}
       service-path: "MODULE_BE"
       dockerfile: "Dockerfile"
       language: "node"
-      push-image: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+      push-image: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
     secrets: inherit
 
   build-fe:
     name: "Build & Push FE Docker"
     needs: [detect-changes, test-fe]
-    if: (github.ref != 'refs/heads/main' && github.ref != 'refs/heads/staging') && needs.detect-changes.outputs.fe == 'true'
+    if: needs.detect-changes.outputs.fe == 'true'
     uses: ./.github/workflows/_build-worker.yml
     with:
       service-name: ${{ needs.detect-changes.outputs.fe-service }}
       service-path: "MODULE_FE"
       dockerfile: "Dockerfile"
       language: "node"
-      push-image: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+      push-image: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
     secrets: inherit
 
   ci-gate:
