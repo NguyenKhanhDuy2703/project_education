@@ -37,9 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      REGISTRY_PREFIX: "${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME }}"
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME || 'khanhduysun' }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD || secrets.DOCKER_TOKEN || secrets.DOCKER_PAT }}
+      REGISTRY_PREFIX: "${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME || 'khanhduysun' }}"
       IMAGE_TAG: ${{ inputs.image-tag }}
       TARGET_ENV: ${{ inputs.environment }}
 
