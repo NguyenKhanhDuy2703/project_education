@@ -14,10 +14,7 @@ import {
   Terminal,
   Clock,
   ShieldCheck,
-  FileCode2,
-  Workflow,
   Check,
-  Compass,
 } from 'lucide-react';
 
 export function HomePage() {
