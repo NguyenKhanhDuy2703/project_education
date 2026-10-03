@@ -1,3 +1,4 @@
+# Build target: study-web-fe
 # ── Stage 1: Build ─────────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
 
