@@ -44,7 +44,7 @@ class EnvironmentVariables {
   DATABASE_URL: string;
 
   @IsOptional()
-  @IsUrl({ require_tld: false })
+  @IsString()
   FRONTEND_URL?: string;
 }
 

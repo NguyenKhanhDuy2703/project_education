@@ -98,7 +98,8 @@ export class AuthController {
     const tokens = await this.authService.generateTokens(req.user);
     res.cookie('accessToken', tokens.accessToken, this.cookieOptions);
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const rawFrontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+    const frontendUrl = rawFrontendUrl.split(',')[0].trim().replace(/\/$/, '');
     const redirectUrl = new URL('/auth/callback', frontendUrl);
     redirectUrl.searchParams.set('token', tokens.accessToken);
     return res.redirect(redirectUrl.toString());

@@ -17,8 +17,31 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   // 3. CORS cho phép Cookie
+  const rawOrigins = configService.get<string>('FRONTEND_URL') || '';
+  const configuredOrigins = rawOrigins
+    .split(',')
+    .map((o) => o.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://project-education-red.vercel.app',
+    ...configuredOrigins,
+  ];
+
   app.enableCors({
-    origin: configService.get<string>('FRONTEND_URL'),
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, '');
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        /^https:\/\/project-education-.*\.vercel\.app$/.test(cleanOrigin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
   });
 
