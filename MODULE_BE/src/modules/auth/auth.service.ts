@@ -115,11 +115,11 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync(
       { payload, type: 'ACCESS_TOKEN' },
-      { expiresIn: accessTokenExpiresIn },
+      { expiresIn: accessTokenExpiresIn as any },
     );
     const refreshToken = await this.jwtService.signAsync(
       { payload, type: 'REFRESH_TOKEN' },
-      { expiresIn: refreshTokenExpiresIn },
+      { expiresIn: refreshTokenExpiresIn as any },
     );
 
     await this.usersService.updateRefreshToken(user.id, refreshToken);
