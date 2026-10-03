@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Fill feature name, commits, scope, and test cases
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             // 1. Feature Name: derived from branch name
