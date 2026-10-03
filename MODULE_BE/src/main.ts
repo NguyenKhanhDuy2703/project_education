@@ -17,25 +17,37 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   // 3. CORS cho phép Cookie
-  const rawOrigins = configService.get<string>('FRONTEND_URL') || '';
+  const rawOrigins =
+    configService.get<string>('CORS_ORIGIN') ||
+    configService.get<string>('CORS_ORIGINS') ||
+    configService.get<string>('FRONTEND_URL') ||
+    '';
+
   const configuredOrigins = rawOrigins
     .split(',')
     .map((o) => o.trim().replace(/\/$/, ''))
     .filter(Boolean);
 
-  const allowedOrigins = [
+  const defaultOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
     'https://project-education-red.vercel.app',
     ...configuredOrigins,
   ];
 
+  const isWildcard = configuredOrigins.includes('*');
+
   app.enableCors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
+
+      // If '*' is configured, allow any origin
+      if (isWildcard) return callback(null, true);
+
       const cleanOrigin = origin.replace(/\/$/, '');
       if (
-        allowedOrigins.includes(cleanOrigin) ||
+        defaultOrigins.includes(cleanOrigin) ||
         /^https:\/\/project-education-.*\.vercel\.app$/.test(cleanOrigin)
       ) {
         return callback(null, true);
@@ -43,6 +55,8 @@ async function bootstrap() {
       return callback(null, false);
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
   });
 
   // 4. Validation tự động DTO

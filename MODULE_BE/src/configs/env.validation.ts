@@ -46,6 +46,14 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   FRONTEND_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  CORS_ORIGIN?: string;
+
+  @IsOptional()
+  @IsString()
+  CORS_ORIGINS?: string;
 }
 
 export default function validateEnvironmentVariables(config: Record<string, unknown>) {
