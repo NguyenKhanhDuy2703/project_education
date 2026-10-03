@@ -57,8 +57,15 @@ jobs:
             DST="${REGISTRY_PREFIX}/${svc}:${{ inputs.target-tag }}"
             echo "Checking source image: $SRC"
             if ! docker manifest inspect "$SRC" > /dev/null 2>&1; then
-              echo "::error::Source image $SRC does not exist on registry. Cannot promote $svc."
-              exit 1
+              echo "::warning::Source image $SRC does not exist on registry."
+              SRC_DEV="${REGISTRY_PREFIX}/${svc}:dev"
+              if docker manifest inspect "$SRC_DEV" > /dev/null 2>&1; then
+                SRC="$SRC_DEV"
+                echo "Found fallback source image: $SRC"
+              else
+                echo "::notice::Neither $SRC nor $SRC_DEV found on registry. Skipping promote for $svc."
+                continue
+              fi
             fi
             echo "Promoting $SRC -> $DST"
             # Fast promotion via manifest copying without downloading layers

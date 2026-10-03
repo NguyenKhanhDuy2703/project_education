@@ -94,7 +94,13 @@ jobs:
             exit 1
           fi
           IMAGE_TAG="${REGISTRY_PREFIX}/${{ inputs.service-name }}:${SHORT_SHA}"
-          ENV_TAG="${REGISTRY_PREFIX}/${{ inputs.service-name }}:dev"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            ENV_TAG="${REGISTRY_PREFIX}/${{ inputs.service-name }}:latest"
+          elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
+            ENV_TAG="${REGISTRY_PREFIX}/${{ inputs.service-name }}:staging"
+          else
+            ENV_TAG="${REGISTRY_PREFIX}/${{ inputs.service-name }}:dev"
+          fi
           echo "registry-prefix=${REGISTRY_PREFIX}" >> "$GITHUB_OUTPUT"
           echo "image-tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
           echo "env-tag=${ENV_TAG}" >> "$GITHUB_OUTPUT"
