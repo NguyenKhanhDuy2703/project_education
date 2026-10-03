@@ -41,7 +41,7 @@ export function Navbar() {
     navigate('/login');
   };
 
-  const navLinks = [
+  const navLinks: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string }[] = [
     { name: 'Trang chủ', href: '/', icon: Home, exact: true },
     { name: 'Series Lab', href: '/series', icon: Layers },
     { name: 'Lộ trình', href: '/roadmaps', icon: Compass },
