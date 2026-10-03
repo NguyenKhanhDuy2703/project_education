@@ -122,7 +122,7 @@ export function Navbar() {
         <div className="flex items-center gap-2 sm:gap-3">
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
-              <Link to="/dashboard" className="hidden sm:inline-flex">
+              <Link to="/user/dashboard" className="hidden sm:inline-flex">
                 <Button variant="ghost" size="sm" className="text-xs font-medium">
                   Dashboard
                 </Button>
@@ -168,7 +168,7 @@ export function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/dashboard" className="flex items-center cursor-pointer">
+                    <Link to="/user/dashboard" className="flex items-center cursor-pointer">
                       <LayoutDashboard className="size-4 mr-2 text-muted-foreground" />
                       <span>Trang cá nhân &amp; Tiến độ</span>
                     </Link>

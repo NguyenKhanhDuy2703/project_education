@@ -4,5 +4,5 @@ import { LoginForm } from '@/features/auth/components/LoginForm';
 export function LoginPage() {
   const navigate = useNavigate();
 
-  return <LoginForm onSuccess={() => navigate('/dashboard')} />;
+  return <LoginForm onSuccess={() => navigate('/')} />;
 }

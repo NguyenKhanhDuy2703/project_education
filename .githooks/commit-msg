@@ -1,0 +1,52 @@
+#!/usr/bin/env sh
+
+# Duong dan file commit message duoc Git truyen qua tham so dau tien
+COMMIT_MSG_FILE="$1"
+
+if [ ! -f "$COMMIT_MSG_FILE" ]; then
+  exit 0
+fi
+
+# Lay dong dau tien co noi dung (bo qua dong comment bat dau bang # va dong trong)
+FIRST_LINE=$(grep -v '^#' "$COMMIT_MSG_FILE" | grep -v '^[[:space:]]*$' | head -n 1)
+
+# Cho phep commit trong (se bi git tu dong huy)
+if [ -z "$FIRST_LINE" ]; then
+  exit 0
+fi
+
+# Bo qua kiem tra doi voi merge, revert, fixup/squash/amend commit tu dong cua Git
+if echo "$FIRST_LINE" | grep -qiE '^(merge |revert |(fixup|squash|amend)!)'; then
+  exit 0
+fi
+
+# Quy tac chuan Conventional Commits cho RenderCV:
+# <type>(<scope>): <mo ta> HOAC <type>: <mo ta>
+# Type: feat, fix, docs, refactor, test, ci, chore, perf
+PATTERN="^(feat|fix|docs|refactor|test|ci|chore|perf)(\([-a-zA-Z0-9_/]+\))?!?: .{5,}$"
+
+if ! echo "$FIRST_LINE" | grep -qE "$PATTERN"; then
+  echo ""
+  echo "=================================================================="
+  echo "[LOI] Commit message khong dung quy chuan cua du an RenderCV!"
+  echo "=================================================================="
+  echo "Commit cua ban: \"$FIRST_LINE\""
+  echo ""
+  echo "Cau truc bat buoc:"
+  echo "  <type>(<scope>): <mo ta toi thieu 5 ky tu>"
+  echo ""
+  echo "  * Type hop le   : feat | fix | docs | refactor | test | ci | chore | perf"
+  echo "  * Scope goi y   : be | fe | ci | docs | cv-contracts | ..."
+  echo ""
+  echo "Vi du chuan:"
+  echo "  feat(be): add JWT authentication guard"
+  echo "  feat(cv-contracts): add shared zod validation schemas"
+  echo "  fix(fe): handle undefined avatar on user profile"
+  echo "  ci: update trivy scanner severity threshold"
+  echo "=================================================================="
+  echo "Xem huong dan day du tai: GIT_WORKFLOW_RULES.vi.md (Muc 2)"
+  echo ""
+  exit 1
+fi
+
+exit 0

@@ -4,5 +4,5 @@ import { RegisterForm } from '@/features/auth/components/RegisterForm';
 export function RegisterPage() {
   const navigate = useNavigate();
 
-  return <RegisterForm onSuccess={() => navigate('/dashboard')} />;
+  return <RegisterForm onSuccess={() => navigate('/')} />;
 }

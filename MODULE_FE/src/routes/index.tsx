@@ -1,10 +1,11 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { LabLayout } from '@/layouts/LabLayout';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
+import { GoogleCallbackPage } from '@/pages/auth/GoogleCallbackPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { SeriesHubPage } from '@/pages/lab/SeriesHubPage';
 import { SeriesDetailPage } from '@/pages/lab/SeriesDetailPage';
@@ -28,7 +29,9 @@ export const router = createBrowserRouter([
       {
         element: <ProtectedRoute />,
         children: [
-          { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'user/dashboard', element: <DashboardPage /> },
+          { path: 'user', element: <Navigate to="/user/dashboard" replace /> },
+          { path: 'dashboard', element: <Navigate to="/user/dashboard" replace /> },
         ],
       },
 
@@ -58,5 +61,11 @@ export const router = createBrowserRouter([
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
     ],
+  },
+
+  // ── Google OAuth callback (standalone — no layout) ─────────────────────
+  {
+    path: '/auth/callback',
+    element: <GoogleCallbackPage />,
   },
 ]);

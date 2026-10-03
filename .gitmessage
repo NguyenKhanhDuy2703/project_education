@@ -1,0 +1,30 @@
+# <type>(<scope>): <Mô tả ngắn gọn về thay đổi>
+#
+# [Nội dung chi tiết (Body) - Tùy chọn]
+# - Tại sao có sự thay đổi này?
+# - Thay đổi này giải quyết vấn đề gì?
+#
+# [Footer - Tùy chọn: Mã task Jira hoặc Breaking Changes]
+# - Ref: RENDER-123 / Closes #45
+# -----------------------------------------------------------------
+# CÁC TYPE HỢP LỆ:
+#   feat     : Tính năng mới
+#   fix      : Sửa lỗi (Bug fix)
+#   docs     : Cập nhật tài liệu (README, docs/...)
+#   refactor : Tái cấu trúc mã nguồn (không đổi tính năng, không sửa bug)
+#   test     : Viết thêm hoặc sửa đổi test (Unit/E2E test)
+#   ci       : Chỉnh sửa cấu hình CI/CD, GitHub Actions, Docker, Trivy
+#   chore    : Cập nhật phụ thuộc, linter, config, build tool
+#   perf     : Tối ưu hiệu năng
+#
+# CÁC SCOPE KHUYẾN NGHỊ (Monorepo):
+#   be       : Backend (MODULE_BE)
+#   fe       : Frontend (MODULE_FE)
+#   ci       : Hạ tầng DevOps, CI/CD, Docker
+#   docs     : Tài liệu hệ thống
+#
+# VÍ DỤ CHUẨN:
+#   feat(be): add JWT authentication guard and strategy
+#   fix(fe): handle undefined avatar on user profile
+#   ci: add pull-requests read permission for paths-filter
+# -----------------------------------------------------------------
