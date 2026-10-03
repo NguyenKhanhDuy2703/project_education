@@ -44,8 +44,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   };
 
   const handleGoogle = () => {
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-    window.location.href = `${base}/auth/google`;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+    window.location.href = `${apiUrl}/auth/google`;
   };
 
   return (
