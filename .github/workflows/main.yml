@@ -99,15 +99,21 @@ jobs:
       - name: Load Pipeline Configuration
         id: config
         run: |
-          PROJECT="${{ secrets.PROJECT_NAME || vars.PROJECT_NAME || 'study-web' }}"
-          BE_NAME="${{ secrets.BE_SERVICE_NAME || vars.BE_SERVICE_NAME || '' }}"
-          FE_NAME="${{ secrets.FE_SERVICE_NAME || vars.FE_SERVICE_NAME || '' }}"
+          # Project name: prefer vars, then hardcoded default
+          PROJECT="${{ vars.PROJECT_NAME || 'study-web' }}"
+          # Service names: prefer vars overrides, then derive from project name
+          BE_NAME="${{ vars.BE_SERVICE_NAME || '' }}"
+          FE_NAME="${{ vars.FE_SERVICE_NAME || '' }}"
           if [ -z "$BE_NAME" ]; then BE_NAME="${PROJECT}-be"; fi
           if [ -z "$FE_NAME" ]; then FE_NAME="${PROJECT}-fe"; fi
           echo "project-name=$PROJECT" >> "$GITHUB_OUTPUT"
           echo "be-service=$BE_NAME" >> "$GITHUB_OUTPUT"
           echo "fe-service=$FE_NAME" >> "$GITHUB_OUTPUT"
           echo "all-services=[\"$BE_NAME\", \"$FE_NAME\"]" >> "$GITHUB_OUTPUT"
+          echo "--- Pipeline Config ---"
+          echo "  PROJECT   = $PROJECT"
+          echo "  BE_NAME   = $BE_NAME"
+          echo "  FE_NAME   = $FE_NAME"
 
       - name: Set Short SHA
         id: vars
@@ -210,7 +216,6 @@ jobs:
       dockerfile: "Dockerfile"
       language: "node"
       push-image: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
-      docker-username: ${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME || 'khanhduysun' }}
     secrets: inherit
 
   build-fe:
@@ -227,7 +232,6 @@ jobs:
       dockerfile: "Dockerfile"
       language: "node"
       push-image: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
-      docker-username: ${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME || 'khanhduysun' }}
     secrets: inherit
 
   ci-gate:
