@@ -84,8 +84,8 @@ jobs:
     name: "Detect Modified Services"
     runs-on: ubuntu-latest
     outputs:
-      be: ${{ steps.filter.outputs.be }}
-      fe: ${{ steps.filter.outputs.fe }}
+      be: ${{ steps.filter.outputs.be == 'true' || steps.filter.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch' }}
+      fe: ${{ steps.filter.outputs.fe == 'true' || steps.filter.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch' }}
       workflows: ${{ steps.filter.outputs.workflows }}
       short-sha: ${{ steps.vars.outputs.short-sha }}
       services-to-scan: ${{ steps.build-scan-matrix.outputs.services }}
@@ -99,12 +99,9 @@ jobs:
       - name: Load Pipeline Configuration
         id: config
         run: |
-          PROJECT="${{ vars.PROJECT_NAME }}"
-          if [ -z "$PROJECT" ]; then
-            PROJECT="study-web"
-          fi
-          BE_NAME="${{ vars.BE_SERVICE_NAME || '' }}"
-          FE_NAME="${{ vars.FE_SERVICE_NAME || '' }}"
+          PROJECT="${{ secrets.PROJECT_NAME || vars.PROJECT_NAME || 'study-web' }}"
+          BE_NAME="${{ secrets.BE_SERVICE_NAME || vars.BE_SERVICE_NAME || '' }}"
+          FE_NAME="${{ secrets.FE_SERVICE_NAME || vars.FE_SERVICE_NAME || '' }}"
           if [ -z "$BE_NAME" ]; then BE_NAME="${PROJECT}-be"; fi
           if [ -z "$FE_NAME" ]; then FE_NAME="${PROJECT}-fe"; fi
           echo "project-name=$PROJECT" >> "$GITHUB_OUTPUT"
@@ -147,10 +144,10 @@ jobs:
           FE_SERVICE: ${{ steps.config.outputs.fe-service }}
         run: |
           SERVICES=()
-          if [ "${{ steps.filter.outputs.be }}" = "true" ]; then
+          if [ "${{ steps.filter.outputs.be }}" = "true" ] || [ "${{ steps.filter.outputs.workflows }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             SERVICES+=("$BE_SERVICE")
           fi
-          if [ "${{ steps.filter.outputs.fe }}" = "true" ]; then
+          if [ "${{ steps.filter.outputs.fe }}" = "true" ] || [ "${{ steps.filter.outputs.workflows }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             SERVICES+=("$FE_SERVICE")
           fi
 
@@ -202,27 +199,35 @@ jobs:
   build-be:
     name: "Build & Push BE Docker"
     needs: [detect-changes, test-be]
-    if: needs.detect-changes.outputs.be == 'true'
+    if: |
+      always() &&
+      needs.detect-changes.outputs.be == 'true' &&
+      (needs.test-be.result == 'success' || needs.test-be.result == 'skipped')
     uses: ./.github/workflows/_build-worker.yml
     with:
       service-name: ${{ needs.detect-changes.outputs.be-service }}
       service-path: "MODULE_BE"
       dockerfile: "Dockerfile"
       language: "node"
-      push-image: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
+      push-image: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
+      docker-username: ${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME || 'khanhduysun' }}
     secrets: inherit
 
   build-fe:
     name: "Build & Push FE Docker"
     needs: [detect-changes, test-fe]
-    if: needs.detect-changes.outputs.fe == 'true'
+    if: |
+      always() &&
+      needs.detect-changes.outputs.fe == 'true' &&
+      (needs.test-fe.result == 'success' || needs.test-fe.result == 'skipped')
     uses: ./.github/workflows/_build-worker.yml
     with:
       service-name: ${{ needs.detect-changes.outputs.fe-service }}
       service-path: "MODULE_FE"
       dockerfile: "Dockerfile"
       language: "node"
-      push-image: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
+      push-image: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}
+      docker-username: ${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME || 'khanhduysun' }}
     secrets: inherit
 
   ci-gate:
@@ -282,7 +287,7 @@ jobs:
        (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')))
     uses: ./.github/workflows/_trivy-scan-worker.yml
     with:
-      image-tag: "dev"
+      image-tag: ${{ github.ref == 'refs/heads/main' && 'latest' || (github.ref == 'refs/heads/staging' && 'staging' || 'dev') }}
       services: ${{ needs.detect-changes.outputs.services-to-scan }}
     secrets: inherit
 
@@ -303,9 +308,11 @@ jobs:
 
   deploy-production:
     name: "Promote & Deploy to Production"
-    needs: [detect-changes, scan-images]
+    needs: [detect-changes, scan-images, build-be, build-fe]
     if: |
       always() &&
+      needs.build-be.result == 'skipped' &&
+      needs.build-fe.result == 'skipped' &&
       (needs.scan-images.result == 'success' || needs.scan-images.result == 'skipped') &&
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     uses: ./.github/workflows/_promote-worker.yml

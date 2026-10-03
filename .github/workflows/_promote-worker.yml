@@ -31,8 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME || 'khanhduysun' }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD || secrets.DOCKER_TOKEN || secrets.DOCKER_PAT }}
     steps:
       - name: Login to Docker Hub
         if: env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != ''
@@ -43,7 +43,7 @@ jobs:
 
       - name: Retag and Push Images
         run: |
-          REGISTRY_PREFIX="${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME }}"
+          REGISTRY_PREFIX="${{ env.DOCKER_USERNAME }}"
           if [ -z "$REGISTRY_PREFIX" ]; then
             echo "::error::Missing DOCKER_USERNAME secret or variable."
             exit 1
