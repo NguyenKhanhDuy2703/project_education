@@ -4,6 +4,7 @@ import { UsersModule } from '../users/users.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { GoogleStrategy } from './google.strategy';
 import { BcryptService } from '../../utils/bcrypt.util';
 
 @Module({
@@ -12,7 +13,7 @@ import { BcryptService } from '../../utils/bcrypt.util';
     PassportModule.register({ defaultStrategy: 'jwt' }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, BcryptService],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, BcryptService],
   exports: [AuthService, PassportModule],
 })
 export class AuthModule {}

@@ -1,0 +1,203 @@
+name: Reusable Build Worker
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: "Name of the target service"
+        required: true
+        type: string
+      service-path:
+        description: "Context directory of the service"
+        required: true
+        type: string
+      dockerfile:
+        description: "Path to Dockerfile relative to service-path"
+        required: false
+        default: "Dockerfile"
+        type: string
+      language:
+        description: "Runtime language/ecosystem of the service (node, python, etc.)"
+        required: true
+        type: string
+      push-image:
+        description: "Whether to push the built container image to registry"
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      DOCKER_USERNAME:
+        required: false
+      DOCKER_PASSWORD:
+        required: false
+    outputs:
+      image-tag:
+        description: "Built image tag"
+        value: ${{ jobs.build.outputs.image-tag }}
+
+jobs:
+  build:
+    name: "Build Container (${{ inputs.service-name }} / ${{ inputs.language }})"
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.image-tag }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Check Dockerfile Existence
+        id: check-dockerfile
+        run: |
+          if [ -f "${{ inputs.service-path }}/${{ inputs.dockerfile }}" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Dockerfile ${{ inputs.service-path }}/${{ inputs.dockerfile }} not found. Skipping container build."
+          fi
+
+      - name: Set up Docker Buildx
+        id: buildx
+        if: steps.check-dockerfile.outputs.exists == 'true'
+        continue-on-error: true
+        uses: docker/setup-buildx-action@v4
+
+      - name: Retry Set up Docker Buildx if failed
+        if: steps.check-dockerfile.outputs.exists == 'true' && steps.buildx.outcome == 'failure'
+        uses: docker/setup-buildx-action@v4
+
+      - name: Determine Docker Hub Credentials
+        id: auth-check
+        if: steps.check-dockerfile.outputs.exists == 'true'
+        run: |
+          if [ -n "${{ secrets.DOCKER_USERNAME }}" ] && [ -n "${{ secrets.DOCKER_PASSWORD }}" ]; then
+            echo "has_auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_auth=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to Docker Hub
+        if: steps.check-dockerfile.outputs.exists == 'true' && inputs.push-image && steps.auth-check.outputs.has_auth == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Generate Metadata & Tags
+        id: meta
+        if: steps.check-dockerfile.outputs.exists == 'true'
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          REGISTRY_PREFIX="${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME }}"
+          if [ -z "$REGISTRY_PREFIX" ]; then
+            echo "::error::Missing DOCKER_USERNAME secret or variable."
+            exit 1
+          fi
+          IMAGE_TAG="${REGISTRY_PREFIX}/${{ inputs.service-name }}:${SHORT_SHA}"
+          ENV_TAG="${REGISTRY_PREFIX}/${{ inputs.service-name }}:dev"
+          echo "registry-prefix=${REGISTRY_PREFIX}" >> "$GITHUB_OUTPUT"
+          echo "image-tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "env-tag=${ENV_TAG}" >> "$GITHUB_OUTPUT"
+          echo "short-sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and Push Docker Image
+        if: steps.check-dockerfile.outputs.exists == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ inputs.language == 'node' && '.' || inputs.service-path }}
+          file: ${{ inputs.service-path }}/${{ inputs.dockerfile }}
+          push: false
+          load: true
+          tags: |
+            ${{ steps.meta.outputs.image-tag }}
+            ${{ steps.meta.outputs.env-tag }}
+          labels: |
+            org.opencontainers.image.title=${{ inputs.service-name }}
+            org.opencontainers.image.language=${{ inputs.language }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ inputs.service-name }}-${{ inputs.language }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.service-name }}-${{ inputs.language }}
+
+      - name: Prepare .trivyignore for scan
+        if: steps.check-dockerfile.outputs.exists == 'true'
+        run: |
+          touch .trivyignore
+          if [ -f "${{ inputs.service-path }}/.trivyignore" ]; then
+            cat "${{ inputs.service-path }}/.trivyignore" >> .trivyignore
+          fi
+          echo "Active .trivyignore entries for ${{ inputs.service-name }}:"
+          cat .trivyignore
+
+      - name: Run Trivy Vulnerability Scan (Critical & High)
+        if: steps.check-dockerfile.outputs.exists == 'true'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ steps.meta.outputs.image-tag }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+
+      - name: Ensure Docker Hub repository exists
+        if: steps.check-dockerfile.outputs.exists == 'true' && inputs.push-image && steps.auth-check.outputs.has_auth == 'true'
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASS: ${{ secrets.DOCKER_PASSWORD }}
+          REGISTRY_PREFIX: ${{ steps.meta.outputs.registry-prefix }}
+          SERVICE_NAME: ${{ inputs.service-name }}
+        run: |
+          LOGIN_PAYLOAD=$(jq -n --arg user "$DOCKER_USER" --arg pass "$DOCKER_PASS" '{"username": $user, "password": $pass}')
+          LOGIN_RESP=$(curl -s -X POST -H "Content-Type: application/json" \
+            -d "$LOGIN_PAYLOAD" \
+            https://hub.docker.com/v2/users/login/)
+          HUB_TOKEN=$(echo "$LOGIN_RESP" | jq -r '.token // empty')
+
+          if [ -z "$HUB_TOKEN" ]; then
+            AUTH_PAYLOAD=$(jq -n --arg id "$DOCKER_USER" --arg sec "$DOCKER_PASS" '{"identifier": $id, "secret": $sec}')
+            AUTH_RESP=$(curl -s -X POST -H "Content-Type: application/json" \
+              -d "$AUTH_PAYLOAD" \
+              https://hub.docker.com/v2/auth/token)
+            HUB_TOKEN=$(echo "$AUTH_RESP" | jq -r '.access_token // empty')
+          fi
+
+          if [ -n "$HUB_TOKEN" ]; then
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $HUB_TOKEN" \
+              "https://hub.docker.com/v2/repositories/${REGISTRY_PREFIX}/${SERVICE_NAME}/")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Repository ${REGISTRY_PREFIX}/${SERVICE_NAME} already exists (HTTP 200)."
+            elif [ "$HTTP_STATUS" = "404" ]; then
+              echo "Repository ${REGISTRY_PREFIX}/${SERVICE_NAME} not found on Docker Hub. Creating repository..."
+              CREATE_PAYLOAD=$(jq -n --arg name "$SERVICE_NAME" --arg ns "$REGISTRY_PREFIX" \
+                '{"name": $name, "namespace": $ns, "is_private": false, "description": "\($name) container repository"}')
+              CREATE_RESP=$(curl -s -w "\n%{http_code}" -X POST \
+                -H "Authorization: Bearer $HUB_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$CREATE_PAYLOAD" \
+                "https://hub.docker.com/v2/repositories/")
+
+              CREATE_CODE=$(echo "$CREATE_RESP" | tail -n1)
+              if [ "$CREATE_CODE" = "201" ] || [ "$CREATE_CODE" = "200" ]; then
+                echo "Successfully created repository ${REGISTRY_PREFIX}/${SERVICE_NAME} on Docker Hub."
+              else
+                echo "::warning::Could not automatically create repository (HTTP $CREATE_CODE). If push fails, please create repository '${SERVICE_NAME}' manually at https://hub.docker.com/repositories."
+              fi
+            elif [ "$HTTP_STATUS" = "401" ] || [ "$HTTP_STATUS" = "403" ]; then
+              echo "::warning::Permission denied when checking repository ${REGISTRY_PREFIX}/${SERVICE_NAME} (HTTP ${HTTP_STATUS}). Token may lack repository view permissions."
+            elif [ "$HTTP_STATUS" = "429" ]; then
+              echo "::warning::Rate limited by Docker Hub API (HTTP 429) when checking repository ${REGISTRY_PREFIX}/${SERVICE_NAME}."
+            else
+              echo "::warning::Docker Hub API returned unexpected status (HTTP ${HTTP_STATUS}) when checking repository ${REGISTRY_PREFIX}/${SERVICE_NAME}."
+            fi
+          else
+            echo "::warning::Unable to obtain Docker Hub API token. Proceeding to push step..."
+          fi
+
+      - name: push docker image to registry
+        if: steps.check-dockerfile.outputs.exists == 'true' && inputs.push-image && steps.auth-check.outputs.has_auth == 'true'
+        run: |
+          docker push ${{ steps.meta.outputs.image-tag }}
+          docker push ${{ steps.meta.outputs.env-tag }}
+

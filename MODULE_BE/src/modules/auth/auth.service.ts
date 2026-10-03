@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { BcryptService } from '../../utils/bcrypt.util';
 import { LoginDto, RegisterDto } from './auth.dto';
@@ -15,6 +16,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly bcryptService: BcryptService,
+    private readonly configService: ConfigService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -108,13 +110,16 @@ export class AuthService {
       role: user.role,
     };
 
+    const accessTokenExpiresIn = this.configService.get<string>('jwt.accessTokenExpiresIn') ?? '15m';
+    const refreshTokenExpiresIn = this.configService.get<string>('jwt.refreshTokenExpiresIn') ?? '7d';
+
     const accessToken = await this.jwtService.signAsync(
       { payload, type: 'ACCESS_TOKEN' },
-      { expiresIn: '15m' },
+      { expiresIn: accessTokenExpiresIn },
     );
     const refreshToken = await this.jwtService.signAsync(
       { payload, type: 'REFRESH_TOKEN' },
-      { expiresIn: '7d' },
+      { expiresIn: refreshTokenExpiresIn },
     );
 
     await this.usersService.updateRefreshToken(user.id, refreshToken);

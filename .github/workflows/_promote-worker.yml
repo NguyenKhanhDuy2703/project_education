@@ -1,0 +1,72 @@
+name: Reusable Image Promote Worker
+
+on:
+  workflow_call:
+    inputs:
+      source-tag:
+        description: "Source tag to promote from (e.g. Git Short SHA)"
+        required: true
+        type: string
+      target-tag:
+        description: "Target tag to apply (e.g. staging, latest)"
+        required: true
+        type: string
+      environment:
+        description: "Deployment environment (e.g. staging, production)"
+        required: false
+        type: string
+      services:
+        description: "JSON array of service names"
+        required: true
+        type: string
+    secrets:
+      DOCKER_USERNAME:
+        required: false
+      DOCKER_PASSWORD:
+        required: false
+
+jobs:
+  promote:
+    name: "Promote to ${{ inputs.target-tag }}"
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+    steps:
+      - name: Login to Docker Hub
+        if: env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != ''
+        uses: docker/login-action@v4
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: Retag and Push Images
+        run: |
+          REGISTRY_PREFIX="${{ secrets.DOCKER_USERNAME || vars.DOCKER_USERNAME }}"
+          if [ -z "$REGISTRY_PREFIX" ]; then
+            echo "::error::Missing DOCKER_USERNAME secret or variable."
+            exit 1
+          fi
+          
+          SERVICES='${{ inputs.services }}'
+          echo "Promoting services from ${{ inputs.source-tag }} to ${{ inputs.target-tag }}..."
+          
+          for svc in $(echo "$SERVICES" | jq -r '.[]'); do
+            SRC="${REGISTRY_PREFIX}/${svc}:${{ inputs.source-tag }}"
+            DST="${REGISTRY_PREFIX}/${svc}:${{ inputs.target-tag }}"
+            echo "Checking source image: $SRC"
+            if ! docker manifest inspect "$SRC" > /dev/null 2>&1; then
+              echo "::error::Source image $SRC does not exist on registry. Cannot promote $svc."
+              exit 1
+            fi
+            echo "Promoting $SRC -> $DST"
+            # Fast promotion via manifest copying without downloading layers
+            if ! docker buildx imagetools create --tag "$DST" "$SRC"; then
+              echo "Fast promote failed, falling back to docker pull/tag/push..."
+              docker pull "$SRC"
+              docker tag "$SRC" "$DST"
+              docker push "$DST"
+            fi
+          done
+          echo "Successfully promoted all services to ${{ inputs.target-tag }}!"

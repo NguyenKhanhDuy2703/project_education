@@ -6,6 +6,7 @@ import jwtConfig from './configs/jwt.config';
 import appConfig from './configs/app.config';
 import databaseConfig from './configs/database.config';
 import swaggerConfig from './configs/swagger.config';
+import googleConfig from './configs/google.config';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
@@ -17,7 +18,7 @@ import validateEnvironmentVariables  from "./configs/env.validation"
       isGlobal: true,
       envFilePath: '.env',
       validate: validateEnvironmentVariables,
-      load: [jwtConfig, appConfig, databaseConfig, swaggerConfig],
+      load: [jwtConfig, appConfig, databaseConfig, swaggerConfig, googleConfig],
     }),
     JwtModule.registerAsync({
       global: true,
@@ -25,9 +26,9 @@ import validateEnvironmentVariables  from "./configs/env.validation"
       useFactory: (config: ConfigService) => {
         const jwt = config.get('jwt');
         return {
-          secret: jwt?.secret || process.env.JWT_SECRET,
+          secret: jwt?.secret,
           signOptions: {
-            expiresIn: jwt?.expiresIn || '7d',
+            expiresIn: jwt?.expiresIn ?? '7d',
           },
         };
       },

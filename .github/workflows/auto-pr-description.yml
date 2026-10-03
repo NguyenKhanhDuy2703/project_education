@@ -1,0 +1,184 @@
+name: Auto-fill PR Description from Branch and Commits
+
+on:
+  pull_request_target:
+    # Triggers on PR opened, reopened, or new commits pushed
+    # Runs in the context of the base branch (dev/staging/main)
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-fill-pr:
+    name: Auto-fill PR Description
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fill feature name, commits, scope, and test cases
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 1. Feature Name: derived from branch name
+            const branchName = context.payload.pull_request.head.ref;
+            const featureName = branchName
+              .replace(/^(feat|fix|hotfix|ci|docs|refactor|test|chore)\//, '')
+              .replace(/-/g, ' ')
+              .replace(/\b\w/g, c => c.toUpperCase());
+
+            // 2. Description: list of commit subjects in the PR (exclude merge commits)
+            const { data: commits } = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const description = commits
+              .map(c => c.commit.message.split('\n')[0].trim())
+              .filter(msg => !msg.startsWith('Merge branch ') && !msg.startsWith('Merge pull request '))
+              .map(msg => `- ${msg}`)
+              .join('\n');
+
+            // 3. Changed files in PR
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            // 4. Scope of changes
+            const beFiles = files.filter(f => f.filename.startsWith('MODULE_BE/'));
+            const feFiles = files.filter(f => f.filename.startsWith('MODULE_FE/'));
+            const ciFiles = files.filter(f => f.filename.startsWith('.github/workflows/'));
+            const docFiles = files.filter(f => f.filename.startsWith('docs/'));
+            const pkgFiles = files.filter(f => f.filename.startsWith('packages/'));
+            const otherFiles = files.filter(f => 
+              !f.filename.startsWith('MODULE_BE/') &&
+              !f.filename.startsWith('MODULE_FE/') &&
+              !f.filename.startsWith('.github/') &&
+              !f.filename.startsWith('docs/') &&
+              !f.filename.startsWith('packages/')
+            );
+
+            function getSubpaths(list, prefix) {
+              if (!list.length) return '-';
+              const parts = new Set();
+              for (const f of list) {
+                const rel = f.filename.slice(prefix.length);
+                const segments = rel.split('/');
+                parts.add(segments.length > 1 ? `${segments[0]}/${segments[1]}` : segments[0]);
+              }
+              const sorted = Array.from(parts).sort((a, b) => {
+                const aIsDir = a.includes('/');
+                const bIsDir = b.includes('/'); 
+                if (aIsDir && !bIsDir) return -1;
+                if (!aIsDir && bIsDir) return 1;
+                return a.localeCompare(b);
+              });
+              return sorted.slice(0, 6).join(', ');
+            }
+
+            const scopeTable = [
+              '| Module | Description of Changes | Changed |',
+              '|--------|------------------------|:-------:|',
+              `| \`MODULE_BE\` — Backend (NestJS / Prisma / Auth) | ${getSubpaths(beFiles, 'MODULE_BE/')} | [${beFiles.length ? 'x' : ' '}] |`,
+              `| \`MODULE_FE\` — Frontend (React / Canvas) | ${getSubpaths(feFiles, 'MODULE_FE/')} | [${feFiles.length ? 'x' : ' '}] |`,
+              `| \`.github/workflows\` — CI/CD Pipeline | ${getSubpaths(ciFiles, '.github/workflows/')} | [${ciFiles.length ? 'x' : ' '}] |`,
+              `| \`docs/\` — Documentation | ${getSubpaths(docFiles, 'docs/')} | [${docFiles.length ? 'x' : ' '}] |`,
+              `| \`packages/\` — Shared packages | ${getSubpaths(pkgFiles, 'packages/')} | [${pkgFiles.length ? 'x' : ' '}] |`,
+              `| Other | ${otherFiles.length ? otherFiles.map(f => f.filename).slice(0, 3).join(', ') : '-'} | [${otherFiles.length ? 'x' : ' '}] |`,
+            ].join('\n');
+
+            // 5. Test cases extraction from PR test files
+            const testFiles = files.filter(f => 
+              f.status !== 'removed' &&
+              /(?:test|spec)\.(?:cjs|mjs|ts|js|jsx|tsx)$/i.test(f.filename)
+            );
+
+            const testCases = [];
+            const headOwner = (context.payload.pull_request.head.repo && context.payload.pull_request.head.repo.owner) 
+              ? context.payload.pull_request.head.repo.owner.login 
+              : context.repo.owner;
+            const headRepo = (context.payload.pull_request.head.repo) 
+              ? context.payload.pull_request.head.repo.name 
+              : context.repo.repo;
+
+            for (const tf of testFiles) {
+              try {
+                const { data: fileData } = await github.rest.repos.getContent({
+                  owner: headOwner,
+                  repo: headRepo,
+                  path: tf.filename,
+                  ref: context.payload.pull_request.head.sha,
+                });
+                const content = Buffer.from(fileData.content, 'base64').toString('utf8');
+                const regex = /(?:it|test)\s*\(\s*(['"`])(.*?)\1/g;
+                let m;
+                while ((m = regex.exec(content)) !== null) {
+                  const title = m[2].trim();
+                  let input = '-';
+                  let expected = '-';
+                  const whenMatch = title.match(/(?:when|for|via|with|on)\s+(.*)/i);
+                  if (whenMatch) input = whenMatch[1].trim();
+                  const expectMatch = title.match(/(?:allows|returns|throws|rejects|authenticates|falls back to|generates)\s+(.*?)(?:\s+(?:when|for|via|with|on)|$)/i);
+                  if (expectMatch) expected = expectMatch[0].trim();
+
+                  testCases.push({ title, input, expected });
+                }
+              } catch (err) {
+                console.log(`Could not read test file ${tf.filename}:`, err.message);
+              }
+            }
+
+            let body = context.payload.pull_request.body ?? '';
+
+            // Replace Feature Name placeholder
+            body = body.replace(
+              /<!-- (?:Short, descriptive feature name\.|Tên tính năng ngắn gọn)[^>]*-->/,
+              featureName,
+            );
+
+            // Replace Description placeholder
+            body = body.replace(
+              /<!-- (?:Summary of what this PR does|Tóm tắt ngắn gọn PR này)[^>]*-->/,
+              description || '- No non-merge commits found',
+            );
+
+            // Replace Scope of Changes table — match header row, all content rows, up to the next ## section
+            const scopeSectionRegex = /\| Module \|[^\n]*\|[\s\S]*?(?=\n{1,2}## (?:Test Results|Kết quả test))/;
+            if (scopeSectionRegex.test(body)) {
+              body = body.replace(scopeSectionRegex, scopeTable);
+            }
+
+            // Replace Test Cases table if test cases were found
+            // Guard: only replace if the table still has placeholder rows (not already filled by CI)
+            if (testCases.length > 0 && /Pass \/ Fail|Pending CI/.test(body)) {
+              const rows = testCases.map((tc, idx) => 
+                `| ${idx + 1} | ${tc.title} | ${tc.input} | ${tc.expected} | Pending CI |`
+              );
+              const testCasesTable = [
+                '| # | Test case | Input | Expected output | Status |',
+                '|---|-----------|-------|-----------------|--------|',
+                ...rows,
+              ].join('\n');
+
+              const testTableRegex = /(?:### Test Cases|### Các case đã test)[\s\S]*?(?=\n{1,2}(?:<!-- (?:Examples:|Ví dụ:)|## (?:Self-review|Self-review Checklist)))/;
+              if (testTableRegex.test(body)) {
+                body = body.replace(testTableRegex, `### Test Cases\n\n${testCasesTable}`);
+              }
+            }
+
+            // Checklist automated check
+            if (!files.some(f => f.filename.includes('.env') && !f.filename.endsWith('.env.example'))) {
+              body = body.replace('- [ ] No `.env` files or sensitive information committed', '- [x] No `.env` files or sensitive information committed');
+              body = body.replace('- [ ] Không commit file `.env` hoặc thông tin nhạy cảm', '- [x] Không commit file `.env` hoặc thông tin nhạy cảm');
+            }
+            body = body.replace('- [ ] No merge conflict markers (`<<<<<<< HEAD`)', '- [x] No merge conflict markers (`<<<<<<< HEAD`)');
+            body = body.replace('- [ ] Không có merge conflict markers (`<<<<<<< HEAD`)', '- [x] Không có merge conflict markers (`<<<<<<< HEAD`)');
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body,
+            });

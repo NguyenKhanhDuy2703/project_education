@@ -1,0 +1,85 @@
+name: Reusable PR Test Report Worker
+
+on:
+  workflow_call:
+    inputs:
+      test-results:
+        description: "JSON array of test suites: [{ name, result, included }]"
+        required: true
+        type: string
+
+jobs:
+  report:
+    name: "Update PR Description with Test Results"
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Update PR Description
+        uses: actions/github-script@v7
+        env:
+          TEST_RESULTS_JSON: ${{ inputs.test-results }}
+        with:
+          script: |
+            let suites = [];
+            try {
+              suites = JSON.parse(process.env.TEST_RESULTS_JSON || '[]');
+            } catch (e) {
+              console.error('Failed to parse test-results input:', e);
+              suites = [];
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            let body = pr.body || '';
+            console.log(`PR body length: ${body.length} chars`);
+
+            // 1. Dynamic test result table
+            const rows = suites.map(s => {
+              const status = s.result === 'success' 
+                ? 'Pass' 
+                : (s.result === 'failure' ? 'Fail' : (s.included ? 'Skipped' : 'No changes'));
+              const tag = s.result === 'success' ? 'Pass' : (s.result === 'failure' ? 'Fail' : '-');
+              return `| ${s.name} | ${status} | ${tag} |`;
+            });
+
+            const resultTable = [
+              '| Suite | CI Result | Status |',
+              '|---|:---:|:---:|',
+              ...rows,
+            ].join('\n');
+
+            const resultRegex = /(?:### Execution Results|### Kết quả)[^\n]*\n[\s\S]*?(?=(?:### Test Cases|### Các case đã test))/;
+            const matched = resultRegex.test(body);
+            console.log(`resultRegex matched: ${matched}`);
+            if (!matched) {
+              // Print the section around "### " headings for debugging
+              const headings = body.match(/^#{1,4} .+/gm) || [];
+              console.log('Headings found in PR body:', JSON.stringify(headings));
+            }
+            if (matched) {
+              body = body.replace(resultRegex, `### Execution Results\n\n${resultTable}\n\n`);
+            }
+
+            // 2. Update test case status
+            const allPassed = suites.length > 0 && suites.every(s => !s.included || s.result === 'success');
+            const anyFailed = suites.some(s => s.result === 'failure');
+
+            if (allPassed) {
+              body = body.replace(/Pending CI/g, 'Pass');
+              body = body.replace('- [ ] Local tests passed successfully (`npm test`)', '- [x] Local tests passed successfully (`npm test`)');
+              body = body.replace('- [ ] Đã chạy test local thành công (`npm test`)', '- [x] Đã chạy test local thành công (`npm test`)');
+            } else if (anyFailed) {
+              body = body.replace(/Pending CI/g, 'Fail');
+            }
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body,
+            });

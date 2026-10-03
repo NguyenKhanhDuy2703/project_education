@@ -13,12 +13,12 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // 2. Tiền tố API
-  const apiPrefix = configService.get<string>('app.prefix') || 'api/v1';
+  const apiPrefix = configService.get<string>('app.prefix');
   app.setGlobalPrefix(apiPrefix);
 
   // 3. CORS cho phép Cookie
   app.enableCors({
-    origin: configService.get<string>('FRONTEND_URL') || 'http://localhost:5173',
+    origin: configService.get<string>('FRONTEND_URL'),
     credentials: true,
   });
 
@@ -35,21 +35,21 @@ async function bootstrap() {
   const swaggerConfig = configService.get('swagger');
   if (swaggerConfig?.enabled) {
     const documentBuilder = new DocumentBuilder()
-      .setTitle(swaggerConfig.title || 'Study Web API')
-      .setDescription(swaggerConfig.description || 'Authentication & Authorization API')
-      .setVersion(swaggerConfig.version || '1.0')
+      .setTitle(swaggerConfig.title)
+      .setDescription(swaggerConfig.description)
+      .setVersion(swaggerConfig.version)
       .addBearerAuth()
+      .addCookieAuth('accessToken')
       .build();
     const document = SwaggerModule.createDocument(app, documentBuilder);
-    const swaggerPath = swaggerConfig.prefix || 'api/docs';
-    SwaggerModule.setup(swaggerPath, app, document);
+    SwaggerModule.setup(swaggerConfig.prefix, app, document);
   }
 
-  const port = configService.get<number>('PORT') || 3000;
+  const port = configService.get<number>('app.port');
   await app.listen(port);
   console.log(`🚀 Server running on: http://localhost:${port}/${apiPrefix}`);
   if (swaggerConfig?.enabled) {
-    console.log(`📚 Swagger documentation at: http://localhost:${port}/${swaggerConfig.prefix || 'api/docs'}`);
+    console.log(`📚 Swagger documentation at: http://localhost:${port}/${swaggerConfig.prefix}`);
   }
 }
 

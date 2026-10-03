@@ -1,18 +1,26 @@
 import { plainToInstance } from 'class-transformer';
-
-import { IsEnum, IsNumber, IsString, IsNotEmpty, validateSync } from 'class-validator';
+import {
+  IsEnum,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  IsNotEmpty,
+  IsUrl,
+  validateSync,
+} from 'class-validator';
 
 enum Environment {
   Development = 'development',
   Production = 'production',
   Test = 'test',
-} 
-class EnvironmentVariables  {
+}
+
+class EnvironmentVariables {
   @IsEnum(Environment)
   NODE_ENV: Environment = Environment.Development;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumberString()
   PORT: string;
 
   @IsNotEmpty()
@@ -23,10 +31,21 @@ class EnvironmentVariables  {
   @IsString()
   JWT_EXPIRES_IN: string;
 
+  @IsOptional()
+  @IsString()
+  ACCESS_TOKEN_EXPIRES_IN?: string;
+
+  @IsOptional()
+  @IsString()
+  REFRESH_TOKEN_EXPIRES_IN?: string;
+
   @IsNotEmpty()
   @IsString()
   DATABASE_URL: string;
-  
+
+  @IsOptional()
+  @IsUrl({ require_tld: false })
+  FRONTEND_URL?: string;
 }
 
 export default function validateEnvironmentVariables(config: Record<string, unknown>) {
@@ -36,4 +55,4 @@ export default function validateEnvironmentVariables(config: Record<string, unkn
     throw new Error(errors.toString());
   }
   return validatedEnv;
-}
+}

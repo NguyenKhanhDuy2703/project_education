@@ -1,0 +1,60 @@
+name: Jira backlog sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Preview changes first, then run again with apply
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - apply
+  workflow_call:
+    inputs:
+      mode:
+        description: Preview changes first, then run again with apply
+        required: false
+        default: dry-run
+        type: string
+    secrets:
+      JIRA_USER_EMAIL:
+        required: false
+      JIRA_API_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jira-backlog-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out backlog source
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Validate backlog without credentials
+        run: node scripts/jira-sync.mjs
+        env:
+          JIRA_SYNC_MODE: validate
+
+      - name: Synchronize existing Jira issues
+        run: node scripts/jira-sync.mjs
+        env:
+          JIRA_SYNC_MODE: ${{ inputs.mode }}
+          JIRA_BASE_URL: https://tnkiet0512.atlassian.net
+          JIRA_FALLBACK_BASE_URL: https://api.atlassian.com/ex/jira/3ce9a31e-dc69-4822-a82f-1bebf80d0988
+          JIRA_PROJECT_KEY: KIET3004
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}

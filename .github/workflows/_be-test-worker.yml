@@ -1,0 +1,48 @@
+name: Backend Test Worker
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: "The version Node.js used for project"
+        required: false
+        default: "22"
+        type: string
+    outputs:
+      status:
+        description: "The status of completion of the Backend test"
+        value: ${{ jobs.backend-unit-test.result }}
+
+jobs:
+  backend-unit-test:
+    name: "Run NestJS Unit Tests"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./MODULE_BE
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js ${{ inputs.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: "npm"
+          cache-dependency-path: "./MODULE_BE/package-lock.json"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Backend Type Check (Static Analysis)
+        run: npx tsc --noEmit
+
+      - name: Run Backend Tests
+        run: npm run test
+        env:
+          NODE_ENV: test

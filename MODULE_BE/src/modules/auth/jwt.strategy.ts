@@ -21,8 +21,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       ]),
       // 2. Không bỏ qua token hết hạn (hết hạn sẽ tự động bắn 401 Unauthorized)
       ignoreExpiration: false,
-      // 3. Secret key dùng để giải mã và kiểm tra chữ ký
-      secretOrKey: configService.get<string>('jwt.secret') || configService.get<string>('JWT_SECRET') || 'your_super_secret_jwt_key_2026_change_in_production',
+      // 3. Secret key dùng để giải mã và kiểm tra chữ ký — bắt buộc từ env
+      secretOrKey: configService.get<string>('jwt.secret') ?? configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 

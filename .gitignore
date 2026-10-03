@@ -20,3 +20,10 @@ yarn-error.log*
 Thumbs.db
 .idea/
 .vscode/
+
+# AI Agent & Skills configs (Local only)
+.claude/
+.kiro/
+skills-lock.json
+.agents/skills/supabase*/
+.agents/skills/supabase/
