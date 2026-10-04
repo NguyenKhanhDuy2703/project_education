@@ -17,7 +17,7 @@ import { Lock, ArrowRight, BookOpen, Clock } from 'lucide-react';
 export function SeriesHubPage() {
   const { data: seriesList, isLoading, isError } = useQuery({
     queryKey: ['series'],
-    queryFn: seriesApi.getAll,
+    queryFn: () => seriesApi.getAll(),
   });
 
   return (

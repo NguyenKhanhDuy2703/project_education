@@ -10,17 +10,52 @@ export interface LabSeries {
   slug: string;
   title: string;
   description: string;
-  topic: string;        // e.g. "testing", "backend", "docker"
+  category?: string;
+  topic?: string;        // e.g. "testing", "backend", "docker"
   level: 'beginner' | 'intermediate' | 'advanced';
   isProOnly: boolean;
-  totalLabs: number;
-  estimatedMinutes: number;
+  totalLabs?: number;
+  estimatedMinutes?: number;
   coverEmoji?: string;
+  orderIndex?: number;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
   // FE-joined fields
   labs?: LabSummary[];
   userProgress?: SeriesProgress;
+  _count?: { labs: number };
+}
+
+export interface CreateSeriesInput {
+  title: string;
+  slug?: string;
+  category: string;
+  description: string;
+  level?: string;
+  coverEmoji?: string;
+  repoUrl?: string;
+  swaggerUrl?: string;
+  orderIndex?: number;
+  isProOnly?: boolean;
+  isActive?: boolean;
+}
+
+export interface CreateLabInput {
+  seriesId: string;
+  title: string;
+  slug?: string;
+  sandboxType?: string;
+  objective?: string;
+  instructions: string;
+  initialSnippet?: string;
+  testScript?: string;
+  solution?: string;
+  durationMinutes?: number;
+  isFreePreview?: boolean;
+  isProOnly?: boolean;
+  orderIndex?: number;
+  isActive?: boolean;
 }
 
 // ─── Lab summary (card view, no heavy content) ───────────────────────────────

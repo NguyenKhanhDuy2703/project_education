@@ -10,6 +10,7 @@ import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { SeriesHubPage } from '@/pages/lab/SeriesHubPage';
 import { SeriesDetailPage } from '@/pages/lab/SeriesDetailPage';
 import { LabWorkspacePage } from '@/pages/lab/LabWorkspacePage';
+import { AdminContentPage } from '@/pages/admin/AdminContentPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
@@ -32,6 +33,15 @@ export const router = createBrowserRouter([
           { path: 'user/dashboard', element: <DashboardPage /> },
           { path: 'user', element: <Navigate to="/user/dashboard" replace /> },
           { path: 'dashboard', element: <Navigate to="/user/dashboard" replace /> },
+        ],
+      },
+
+      // Admin routes (must have role: 'admin')
+      {
+        element: <ProtectedRoute allowedRoles={['admin']} />,
+        children: [
+          { path: 'admin', element: <AdminContentPage /> },
+          { path: 'admin/content', element: <AdminContentPage /> },
         ],
       },
 

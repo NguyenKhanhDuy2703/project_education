@@ -11,6 +11,8 @@ import googleConfig from './configs/google.config';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { SeriesModule } from './modules/series/series.module';
+import { LabsModule } from './modules/labs/labs.module';
 import validateEnvironmentVariables  from "./configs/env.validation"
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import validateEnvironmentVariables  from "./configs/env.validation"
     PrismaModule,
     AuthModule,
     UsersModule,
+    SeriesModule,
+    LabsModule,
   ],
 })
 export class AppModule {}

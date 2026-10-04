@@ -30,3 +30,49 @@ model User {
 
   @@map("users")
 }
+
+model LabSeries {
+  id               String   @id @default(uuid())
+  title            String
+  slug             String   @unique
+  category         String   @default("testing")
+  repoUrl          String?
+  swaggerUrl       String?
+  description      String   @db.Text
+  level            String   @default("beginner")
+  coverEmoji       String?  @default("🧪")
+  orderIndex       Int      @default(0)
+  isProOnly        Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  labs             Lab[]
+
+  @@map("lab_series")
+}
+
+model Lab {
+  id               String     @id @default(uuid())
+  seriesId         String
+  title            String
+  slug             String     @unique
+  sandboxType      String     @default("js_worker")
+  objective        String?    @db.Text
+  instructions     String     @db.Text
+  initialSnippet   String?    @db.Text
+  testScript       String?    @db.Text
+  solution         String?    @db.Text
+  durationMinutes  Int        @default(20)
+  isFreePreview    Boolean    @default(true)
+  isProOnly        Boolean    @default(false)
+  orderIndex       Int        @default(0)
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  series           LabSeries  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@map("labs")
+}
+

@@ -55,5 +55,8 @@
   },
   "overrides": {
     "deepmerge-ts": "^8.0.0"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   }
 }
