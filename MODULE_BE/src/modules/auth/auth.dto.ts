@@ -31,10 +31,15 @@ export class RegisterDto {
 }
 
 export class LoginDto {
-  @ApiProperty({ example: 'john.doe@example.com', description: 'Email or phone' })
+  @ApiPropertyOptional({ example: 'john.doe@example.com', description: 'Email or phone' })
   @IsString()
-  @IsNotEmpty()
-  identifier: string;
+  @IsOptional()
+  identifier?: string;
+
+  @ApiPropertyOptional({ example: 'john.doe@example.com', description: 'Email or phone' })
+  @IsString()
+  @IsOptional()
+  phoneOrEmail?: string;
 
   @ApiProperty({ example: 'Password@123', description: 'Password', minLength: 8 })
   @IsString()

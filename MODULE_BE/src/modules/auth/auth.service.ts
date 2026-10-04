@@ -50,7 +50,11 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByEmailOrPhone(loginDto.identifier, true);
+    const rawIdentifier = (loginDto.identifier || loginDto.phoneOrEmail)?.trim();
+    if (!rawIdentifier) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const user = await this.usersService.findByEmailOrPhone(rawIdentifier, true);
     if (!user || !user.password) {
       throw new UnauthorizedException('Invalid credentials');
     }

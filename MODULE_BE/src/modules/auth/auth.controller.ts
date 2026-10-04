@@ -4,6 +4,7 @@ import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
 import { LoginDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 import { User } from '@prisma/client';
 
@@ -14,6 +15,7 @@ export class AuthController {
 
   constructor(
     private readonly authService: AuthService,
+    private readonly usersService: UsersService,
     private readonly configService: ConfigService,
   ) {
     this.cookieOptions = {
@@ -77,6 +79,24 @@ export class AuthController {
     const result = await this.authService.logout(refreshTokenDto.refreshToken);
     res.clearCookie('accessToken');
     return result;
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get current logged in user profile' })
+  async getProfile(@Req() req: Request & { user: any }) {
+    const user = await this.usersService.findById(req.user.userId);
+    return {
+      user: {
+        id: user.id,
+        _id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+      },
+    };
   }
 
   // ── Google OAuth ──────────────────────────────────────────────────────────
