@@ -52,7 +52,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   };
 
   const handleGoogle = () => {
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
     window.location.href = `${base}/auth/google`;
   };
 

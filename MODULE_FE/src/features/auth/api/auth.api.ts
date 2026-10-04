@@ -14,8 +14,11 @@ export const authApi = {
       const result = mockLogin(credentials.phoneOrEmail, credentials.password ?? '');
       return result;
     }
-    const res = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
-    return res.data.data;
+    const res = await apiClient.post<any>('/auth/login', {
+      identifier: credentials.phoneOrEmail,
+      password: credentials.password,
+    });
+    return res.data?.data ?? res.data;
   },
 
   register: async (credentials: RegisterCredentials): Promise<AuthResponse> => {
@@ -23,8 +26,8 @@ export const authApi = {
       await new Promise((r) => setTimeout(r, 400));
       throw new Error('[Mock] Chức năng đăng ký chưa hỗ trợ mock. Dùng tài khoản test sẵn có.');
     }
-    const res = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', credentials);
-    return res.data.data;
+    const res = await apiClient.post<any>('/auth/register', credentials);
+    return res.data?.data ?? res.data;
   },
 
   getCurrentUser: async (): Promise<User> => {
