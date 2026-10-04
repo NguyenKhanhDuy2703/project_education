@@ -35,6 +35,38 @@ export function GoogleCallbackPage() {
         navigate('/', { replace: true });
       })
       .catch(() => {
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(
+            atob(base64)
+              .split('')
+              .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+              .join('')
+          );
+          const parsed = JSON.parse(jsonPayload);
+          const data = parsed?.payload || parsed;
+          if (data?.userId || data?.id || data?.email) {
+            dispatch(
+              setUser({
+                id: data.userId || data.id || 'google-user',
+                name: data.name || data.email?.split('@')[0] || 'User',
+                email: data.email || null,
+                phone: data.phone || '',
+                role: data.role || 'user',
+                avatarUrl: data.avatarUrl || null,
+                defaultAddress: null,
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              })
+            );
+            navigate('/', { replace: true });
+            return;
+          }
+        } catch {
+          // ignore parsing error and redirect to login
+        }
         navigate('/login', { replace: true });
       });
   }, [dispatch, navigate, searchParams]);
