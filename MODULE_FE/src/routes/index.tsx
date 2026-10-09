@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { LabLayout } from '@/layouts/LabLayout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
@@ -10,7 +11,11 @@ import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { SeriesHubPage } from '@/pages/lab/SeriesHubPage';
 import { SeriesDetailPage } from '@/pages/lab/SeriesDetailPage';
 import { LabWorkspacePage } from '@/pages/lab/LabWorkspacePage';
+import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
 import { AdminContentPage } from '@/pages/admin/AdminContentPage';
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import { AdminPlansPage } from '@/pages/admin/AdminPlansPage';
+import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
@@ -36,16 +41,25 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // Admin routes (must have role: 'admin')
+      { path: '*', element: <NotFoundPage /> },
+    ],
+  },
+
+  // ── Admin Studio routes (Dedicated layout with Sidebar, no public Navbar/Footer) ──
+  {
+    path: '/admin',
+    element: <ProtectedRoute allowedRoles={['admin']} />,
+    children: [
       {
-        element: <ProtectedRoute allowedRoles={['admin']} />,
+        element: <AdminLayout />,
         children: [
-          { path: 'admin', element: <AdminContentPage /> },
-          { path: 'admin/content', element: <AdminContentPage /> },
+          { index: true, element: <AdminDashboardPage /> },
+          { path: 'content', element: <AdminContentPage /> },
+          { path: 'users', element: <AdminUsersPage /> },
+          { path: 'plans', element: <AdminPlansPage /> },
+          { path: 'audit', element: <AdminAuditPage /> },
         ],
       },
-
-      { path: '*', element: <NotFoundPage /> },
     ],
   },
 

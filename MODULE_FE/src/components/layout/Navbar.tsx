@@ -41,11 +41,23 @@ export function Navbar() {
     navigate('/login');
   };
 
-  const navLinks: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string }[] = [
+  interface NavLinkItem {
+    name: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    exact?: boolean;
+    badge?: string;
+  }
+
+  const baseNavLinks: NavLinkItem[] = [
     { name: 'Trang chủ', href: '/', icon: Home, exact: true },
     { name: 'Series Lab', href: '/series', icon: Layers },
     { name: 'Lộ trình', href: '/roadmaps', icon: Compass },
   ];
+
+  const navLinks: NavLinkItem[] = user?.role === 'admin'
+    ? [...baseNavLinks, { name: 'Admin Studio', href: '/admin', icon: Shield, badge: 'ADMIN' }]
+    : baseNavLinks;
 
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -127,6 +139,18 @@ export function Navbar() {
                   Dashboard
                 </Button>
               </Link>
+
+              {user?.role === 'admin' && (
+                <Link to="/admin" className="hidden sm:inline-flex">
+                  <Button
+                    size="sm"
+                    className="gap-1.5 text-xs font-bold bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
+                  >
+                    <Shield className="size-3.5" />
+                    <span>Admin Studio</span>
+                  </Button>
+                </Link>
+              )}
 
               <button
                 type="button"
