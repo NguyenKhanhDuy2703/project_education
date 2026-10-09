@@ -33,28 +33,33 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       return done(new Error('Google account has no email'), false);
     }
 
-    // Look up user by googleId first, fallback to email
-    let user = await this.usersService.findByGoogleId(googleId);
+    try {
+      // Look up user by googleId first, fallback to email
+      let user = await this.usersService.findByGoogleId(googleId);
 
-    if (!user) {
-      // Check if user already registered with this email via local credentials
-      const existingByEmail = await this.usersService.findByEmail(email);
-      if (existingByEmail) {
-        // Link googleId to the existing user account
-        user = await this.usersService.update(existingByEmail.id, { googleId, avatarUrl });
-      } else {
-        // Create new user account via Google OAuth
-        user = await this.usersService.create({
-          name,
-          email,
-          googleId,
-          avatarUrl,
-          role: UserRole.user,
-          phone: `google_${googleId}`, // Placeholder to satisfy unique phone constraint
-        });
+      if (!user) {
+        // Check if user already registered with this email via local credentials
+        const existingByEmail = await this.usersService.findByEmail(email);
+        if (existingByEmail) {
+          // Link googleId to the existing user account
+          user = await this.usersService.update(existingByEmail.id, { googleId, avatarUrl });
+        } else {
+          // Create new user account via Google OAuth
+          user = await this.usersService.create({
+            name,
+            email,
+            googleId,
+            avatarUrl,
+            role: UserRole.user,
+            phone: `google_${googleId}`, // Placeholder to satisfy unique phone constraint
+          });
+        }
       }
-    }
 
-    done(null, user);
+      done(null, user);
+    } catch (err) {
+      console.error('[GoogleStrategy] OAuth validation error:', err);
+      done(err as Error, false);
+    }
   }
 }

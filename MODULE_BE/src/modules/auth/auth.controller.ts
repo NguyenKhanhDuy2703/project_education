@@ -115,24 +115,34 @@ export class AuthController {
     @Req() req: Request & { user: User },
     @Res() res: Response,
   ) {
-    const tokens = await this.authService.generateTokens(req.user);
-    res.cookie('accessToken', tokens.accessToken, this.cookieOptions);
+    try {
+      const tokens = await this.authService.generateTokens(req.user);
+      res.cookie('accessToken', tokens.accessToken, this.cookieOptions);
 
-    // Determine target frontend URL dynamically based on request host
-    const host = (req.headers.host || '').toLowerCase();
-    let frontendUrl = 'http://localhost:5173';
+      // Determine target frontend URL dynamically based on request host
+      const host = (req.headers.host || '').toLowerCase();
+      let frontendUrl = 'http://localhost:5173';
 
-    if (host.includes('onrender.com')) {
-      frontendUrl = 'https://project-education-red.vercel.app';
-    } else if (host.includes('localhost') || host.includes('127.0.0.1')) {
-      frontendUrl = 'http://localhost:5173';
-    } else {
-      const rawFrontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
-      frontendUrl = rawFrontendUrl.split(',')[0].trim().replace(/\/$/, '');
+      if (host.includes('onrender.com')) {
+        frontendUrl = 'https://project-education-red.vercel.app';
+      } else if (host.includes('localhost') || host.includes('127.0.0.1')) {
+        frontendUrl = 'http://localhost:5173';
+      } else {
+        const rawFrontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+        let candidate = rawFrontendUrl.split(',')[0].trim().replace(/\/$/, '');
+        if (!candidate.startsWith('http://') && !candidate.startsWith('https://')) {
+          candidate = `https://${candidate}`;
+        }
+        frontendUrl = candidate;
+      }
+
+      const redirectUrl = new URL('/auth/callback', frontendUrl);
+      redirectUrl.searchParams.set('token', tokens.accessToken);
+      return res.redirect(redirectUrl.toString());
+    } catch (error) {
+      console.error('[AuthController] googleCallback failed:', error);
+      const fallbackUrl = 'https://project-education-red.vercel.app/login?error=oauth_failed';
+      return res.redirect(fallbackUrl);
     }
-
-    const redirectUrl = new URL('/auth/callback', frontendUrl);
-    redirectUrl.searchParams.set('token', tokens.accessToken);
-    return res.redirect(redirectUrl.toString());
   }
 }
