@@ -5,11 +5,16 @@ import { UpdateLabDto } from './dto/update-lab.dto';
 import { slugify } from '../../utils/slug.util';
 import { UserRole } from '@prisma/client';
 
+import { EntitlementsService } from '../entitlements/entitlements.service';
+
 @Injectable()
 export class LabsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly entitlementsService: EntitlementsService,
+  ) {}
 
-  async findBySlug(slug: string, role?: UserRole) {
+  async findBySlug(slug: string, currentUser?: { userId: string; role: UserRole }) {
     const lab = await this.prisma.lab.findUnique({
       where: { slug },
       include: {
@@ -28,13 +33,41 @@ export class LabsService {
       throw new NotFoundException(`Practice Lab with slug "${slug}" not found`);
     }
 
-    // Solution chỉ hiển thị cho admin hoặc userPro
-    const isPrivileged = role === UserRole.admin || role === UserRole.userPro;
+    // Dynamic Entitlement Resolution: Check VIEW_SOLUTION feature
+    let canViewSolution = false;
+    if (currentUser) {
+      if (currentUser.role === UserRole.admin) {
+        canViewSolution = true;
+      } else {
+        const evaluation = await this.entitlementsService.checkUserFeature(
+          currentUser.userId,
+          'VIEW_SOLUTION',
+        );
+        canViewSolution = evaluation.hasAccess && !evaluation.isBanned;
+      }
+    }
+
     const { solution, ...publicFields } = lab;
 
     return {
       ...publicFields,
-      solution: isPrivileged ? solution : null,
+      solution: canViewSolution ? solution : null,
+    };
+  }
+
+  async submit(
+    labId: string,
+    userId: string,
+    payload: { submittedCode: string; status: string; timeMs: number },
+  ) {
+    const lab = await this.findById(labId);
+    return {
+      message: 'Lab attempt submitted successfully',
+      labId: lab.id,
+      userId,
+      status: payload.status,
+      timeMs: payload.timeMs,
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -54,7 +87,7 @@ export class LabsService {
   }
 
   async create(dto: CreateLabDto) {
-    // 1. Kiểm tra Topic cha có tồn tại không
+    // 1. Verify parent topic existence
     const series = await this.prisma.labSeries.findUnique({
       where: { id: dto.seriesId },
     });
@@ -62,7 +95,7 @@ export class LabsService {
       throw new NotFoundException(`Topic (Series) with ID "${dto.seriesId}" does not exist.`);
     }
 
-    // 2. Tạo slug chuẩn
+    // 2. Generate normalized slug
     const targetSlug = dto.slug ? slugify(dto.slug) : slugify(dto.title);
 
     const existing = await this.prisma.lab.findUnique({

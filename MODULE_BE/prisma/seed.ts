@@ -104,7 +104,141 @@ async function main() {
     },
   });
 
-  console.log('✅ Seed completed successfully!');
+  // 3. Seed Platform Features
+  const fRunWorker = await prisma.feature.upsert({
+    where: { code: 'RUN_JS_WORKER' },
+    update: {},
+    create: {
+      code: 'RUN_JS_WORKER',
+      name: 'Run Code In Browser',
+      description: 'Execute JavaScript code within secure in-browser Web Workers',
+      category: 'lab_execution',
+      isActive: true,
+    },
+  });
+
+  const fSubmitLab = await prisma.feature.upsert({
+    where: { code: 'SUBMIT_LAB' },
+    update: {},
+    create: {
+      code: 'SUBMIT_LAB',
+      name: 'Submit Practice Lab',
+      description: 'Submit lab attempts and record score on user progress dashboard',
+      category: 'lab_execution',
+      isActive: true,
+    },
+  });
+
+  const fViewSolution = await prisma.feature.upsert({
+    where: { code: 'VIEW_SOLUTION' },
+    update: {},
+    create: {
+      code: 'VIEW_SOLUTION',
+      name: 'View Practice Solution',
+      description: 'Unlock and view official verified solution code for practice labs',
+      category: 'content_access',
+      isActive: true,
+    },
+  });
+
+  const fAiMentor = await prisma.feature.upsert({
+    where: { code: 'AI_CODE_REVIEW' },
+    update: {},
+    create: {
+      code: 'AI_CODE_REVIEW',
+      name: 'AI Code Mentor',
+      description: 'Get automated AI hints and code review feedback when tests fail',
+      category: 'ai_assistant',
+      isActive: true,
+    },
+  });
+
+  const fDownloadRepo = await prisma.feature.upsert({
+    where: { code: 'DOWNLOAD_REPO' },
+    update: {},
+    create: {
+      code: 'DOWNLOAD_REPO',
+      name: 'Download Source Code',
+      description: 'Export and download complete project repository codebases',
+      category: 'system_operation',
+      isActive: true,
+    },
+  });
+
+  // 4. Seed Subscription Plans
+  const planFree = await prisma.subscriptionPlan.upsert({
+    where: { code: 'FREE' },
+    update: {},
+    create: {
+      code: 'FREE',
+      name: 'Free Tier',
+      description: 'Standard free access for beginners to practice basic labs',
+      price: 0,
+      billingCycle: 'FREE',
+      isDefault: true,
+      isActive: true,
+    },
+  });
+
+  const planProMonthly = await prisma.subscriptionPlan.upsert({
+    where: { code: 'PRO_MONTHLY' },
+    update: {},
+    create: {
+      code: 'PRO_MONTHLY',
+      name: 'Pro Student (Monthly)',
+      description: 'Full access to solutions, AI review, and premium practice labs',
+      price: 199000,
+      billingCycle: 'MONTHLY',
+      isDefault: false,
+      isActive: true,
+    },
+  });
+
+  const planProYearly = await prisma.subscriptionPlan.upsert({
+    where: { code: 'PRO_YEARLY' },
+    update: {},
+    create: {
+      code: 'PRO_YEARLY',
+      name: 'Pro Student (Yearly)',
+      description: 'Annual VIP membership with full access and priority support',
+      price: 1990000,
+      billingCycle: 'YEARLY',
+      isDefault: false,
+      isActive: true,
+    },
+  });
+
+  // 5. Map Features to Plans
+  const freeFeatureIds = [fRunWorker.id, fSubmitLab.id];
+  for (const featureId of freeFeatureIds) {
+    await prisma.planFeature.upsert({
+      where: { planId_featureId: { planId: planFree.id, featureId } },
+      update: {},
+      create: { planId: planFree.id, featureId },
+    });
+  }
+
+  const proFeatureIds = [
+    fRunWorker.id,
+    fSubmitLab.id,
+    fViewSolution.id,
+    fAiMentor.id,
+    fDownloadRepo.id,
+  ];
+  for (const featureId of proFeatureIds) {
+    await prisma.planFeature.upsert({
+      where: { planId_featureId: { planId: planProMonthly.id, featureId } },
+      update: {},
+      create: { planId: planProMonthly.id, featureId },
+    });
+    await prisma.planFeature.upsert({
+      where: { planId_featureId: { planId: planProYearly.id, featureId } },
+      update: {},
+      create: { planId: planProYearly.id, featureId },
+    });
+  }
+
+  console.log('✅ Seed completed successfully with Features & Plans!');
 }
 
 main()

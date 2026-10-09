@@ -12,21 +12,26 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private readonly usersService: UsersService,
   ) {
     super({
-      // 1. Trích xuất token từ Cookie HOẶC từ Header Authorization: Bearer <token>
+      // 1. Extract token from HttpOnly Cookie OR from Authorization: Bearer <token> Header
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
           return request?.cookies?.accessToken;
         },
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
-      // 2. Không bỏ qua token hết hạn (hết hạn sẽ tự động bắn 401 Unauthorized)
+      // 2. Reject expired tokens (automatically emits 401 Unauthorized)
       ignoreExpiration: false,
-      // 3. Secret key dùng để giải mã và kiểm tra chữ ký — bắt buộc từ env
+      // 3. Secret key used for verification and decoding — read from env
       secretOrKey: configService.get<string>('jwt.secret') ?? configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 
   async validate(payload: any) {
+    // 1. Strict token type check: reject if not ACCESS_TOKEN
+    if (payload.type !== 'ACCESS_TOKEN') {
+      throw new UnauthorizedException('Invalid token type: expected ACCESS_TOKEN');
+    }
+
     const userId = payload.sub || payload.payload?.userId || payload.userId;
 
     const user = await this.usersService.findById(userId);
@@ -38,7 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('User account has been deactivated');
     }
 
-    // Trả về thông tin gắn vào req.user
+    // Attach sanitized user payload to req.user
     return {
       userId: user.id,
       email: user.email,

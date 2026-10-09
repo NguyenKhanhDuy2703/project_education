@@ -23,11 +23,6 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   phone: string;
-
-  @ApiPropertyOptional({ enum: UserRole, default: UserRole.user })
-  @IsEnum(UserRole)
-  @IsOptional()
-  role?: UserRole;
 }
 
 export class LoginDto {

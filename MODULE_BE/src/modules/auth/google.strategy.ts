@@ -33,24 +33,24 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       return done(new Error('Google account has no email'), false);
     }
 
-    // Tìm user theo googleId trước, sau đó theo email
+    // Look up user by googleId first, fallback to email
     let user = await this.usersService.findByGoogleId(googleId);
 
     if (!user) {
-      // Thử tìm theo email (user đã đăng ký bằng tài khoản thường)
+      // Check if user already registered with this email via local credentials
       const existingByEmail = await this.usersService.findByEmail(email);
       if (existingByEmail) {
-        // Liên kết googleId vào tài khoản hiện có
+        // Link googleId to the existing user account
         user = await this.usersService.update(existingByEmail.id, { googleId, avatarUrl });
       } else {
-        // Tạo tài khoản mới qua Google (phone để trống — unique constraint cần xử lý)
+        // Create new user account via Google OAuth
         user = await this.usersService.create({
           name,
           email,
           googleId,
           avatarUrl,
           role: UserRole.user,
-          phone: `google_${googleId}`, // placeholder cho unique constraint
+          phone: `google_${googleId}`, // Placeholder to satisfy unique phone constraint
         });
       }
     }
