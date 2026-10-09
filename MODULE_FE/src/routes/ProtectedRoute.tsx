@@ -13,8 +13,9 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+  const currentRole = user?.role || 'user';
+  if (allowedRoles && !allowedRoles.includes(currentRole)) {
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;
