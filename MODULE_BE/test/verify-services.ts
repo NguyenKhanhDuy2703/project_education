@@ -83,21 +83,20 @@ async function runTests() {
     console.log('\n--- 5. Testing RBAC Solution Masking ---');
     const labFromDb = await prisma.lab.findUnique({ where: { slug: testLabSlug } });
     
+    // Helper to evaluate privileged status without triggering literal narrowing errors
+    const isRolePrivileged = (role: UserRole) => role === UserRole.admin || role === UserRole.userPro;
+
     // Simulate non-admin reading lab: solution must be null
-    const regularUserRole: UserRole = UserRole.user;
-    const isRegularPrivileged = regularUserRole === UserRole.admin || regularUserRole === UserRole.userPro;
     const regularUserView = {
       ...labFromDb,
-      solution: isRegularPrivileged ? labFromDb?.solution : null,
+      solution: isRolePrivileged(UserRole.user) ? labFromDb?.solution : null,
     };
     assert('Regular user view: Solution is HIDDEN', regularUserView.solution === null);
 
     // Simulate admin reading lab: solution must be visible
-    const adminUserRole: UserRole = UserRole.admin;
-    const isAdminPrivileged = adminUserRole === UserRole.admin || adminUserRole === UserRole.userPro;
     const adminUserView = {
       ...labFromDb,
-      solution: isAdminPrivileged ? labFromDb?.solution : null,
+      solution: isRolePrivileged(UserRole.admin) ? labFromDb?.solution : null,
     };
     assert('Admin user view: Solution is VISIBLE', adminUserView.solution === 'function sum(a, b) { return a + b; }');
 
