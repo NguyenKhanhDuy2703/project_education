@@ -8,9 +8,23 @@ interface AuthState {
 }
 
 const initialToken = localStorage.getItem('access_token');
+const savedUser = localStorage.getItem('user');
+
+let initialUser: User | null = null;
+if (savedUser) {
+  try {
+    const parsed = JSON.parse(savedUser);
+    initialUser = {
+      ...parsed,
+      role: parsed.role || 'user',
+    };
+  } catch {
+    initialUser = null;
+  }
+}
 
 const initialState: AuthState = {
-  user: null,
+  user: initialUser,
   accessToken: initialToken,
   isAuthenticated: Boolean(initialToken),
 };
@@ -20,10 +34,15 @@ export const authSlice = createSlice({
   initialState,
   reducers: {
     setAuth: (state, action: PayloadAction<{ user: User; accessToken: string }>) => {
-      state.user = action.payload.user;
+      const normalizedUser = {
+        ...action.payload.user,
+        role: action.payload.user.role || 'user',
+      };
+      state.user = normalizedUser;
       state.accessToken = action.payload.accessToken;
       state.isAuthenticated = true;
       localStorage.setItem('access_token', action.payload.accessToken);
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
     },
     setToken: (state, action: PayloadAction<string>) => {
       state.accessToken = action.payload;
@@ -31,13 +50,19 @@ export const authSlice = createSlice({
       localStorage.setItem('access_token', action.payload);
     },
     setUser: (state, action: PayloadAction<User>) => {
-      state.user = action.payload;
+      const normalizedUser = {
+        ...action.payload,
+        role: action.payload.role || 'user',
+      };
+      state.user = normalizedUser;
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
     },
     logout: (state) => {
       state.user = null;
       state.accessToken = null;
       state.isAuthenticated = false;
       localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
     },
   },
 });

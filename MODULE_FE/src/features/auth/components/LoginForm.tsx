@@ -19,19 +19,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const IS_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-
-  const MOCK_ACCOUNTS = [
-    { label: 'User (free)', email: 'user@test.com', role: 'user' },
-    { label: 'User Pro', email: 'pro@test.com', role: 'userPro' },
-    { label: 'Admin', email: 'admin@test.com', role: 'admin' },
-  ];
-
-  const fillMockAccount = (email: string) => {
-    setPhoneOrEmail(email);
-    setPassword('Test@123');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -55,28 +42,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Đăng nhập</h1>
         <p className="text-sm text-muted-foreground mt-1">Tiếp tục học trên StudyIT</p>
       </div>
-
-      {/* Mock account hint — only shown in dev mock mode */}
-      {IS_MOCK && (
-        <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
-          <p className="text-[11px] font-semibold text-primary uppercase tracking-wide">
-            🧪 Mock mode — Click để điền nhanh
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {MOCK_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.email}
-                type="button"
-                onClick={() => fillMockAccount(acc.email)}
-                className="text-[11px] px-2 py-1 rounded bg-card border border-border hover:border-primary/60 hover:bg-accent transition-colors text-foreground"
-              >
-                {acc.label}
-              </button>
-            ))}
-          </div>
-          <p className="text-[10px] text-muted-foreground">Mật khẩu chung: <code className="font-mono bg-muted px-1 rounded">Test@123</code></p>
-        </div>
-      )}
 
       {/* Error */}
       {errorMessage && (

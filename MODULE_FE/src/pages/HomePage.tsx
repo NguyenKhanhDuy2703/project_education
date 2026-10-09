@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { useAppSelector } from '@/stores/store';
+import { seriesApi } from '@/features/lab/api/series.api';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowRight,
   CheckCircle2,
@@ -15,9 +19,26 @@ import {
   Clock,
   ShieldCheck,
   Check,
+  Flame,
+  BookOpen,
+  Lock,
 } from 'lucide-react';
 
+const levelLabels: Record<string, string> = {
+  beginner: 'Nhập môn',
+  intermediate: 'Trung cấp',
+  advanced: 'Nâng cao',
+};
+
 export function HomePage() {
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const isLoggedIn = isAuthenticated || Boolean(user);
+
+  const { data: seriesList, isLoading: isLoadingSeries } = useQuery({
+    queryKey: ['series'],
+    queryFn: () => seriesApi.getAll(),
+  });
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* ──────────────────────────────────────────────────────────────────────────
@@ -29,7 +50,11 @@ export function HomePage() {
             {/* Top Pill Tag */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold tracking-wide animate-in fade-in duration-500">
               <Sparkles className="size-3.5" />
-              <span>Nền tảng thực hành Lab IT thế hệ mới</span>
+              <span>
+                {isLoggedIn
+                  ? `Chào mừng ${user?.name || 'Học viên'} trở lại!`
+                  : 'Nền tảng thực hành Lab IT thế hệ mới'}
+              </span>
             </div>
 
             {/* Main Headline */}
@@ -47,15 +72,17 @@ export function HomePage() {
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link to="/series">
-                <Button size="lg" className="h-11 px-7 font-semibold gap-2 shadow-sm text-sm sm:text-base">
+                <Button size="lg" className="h-11 px-8 font-semibold gap-2 shadow-sm text-sm sm:text-base">
                   <Play className="size-4 fill-current" /> Bắt đầu làm bài Lab
                 </Button>
               </Link>
-              <Link to="/register">
-                <Button variant="outline" size="lg" className="h-11 px-6 text-sm sm:text-base gap-2">
-                  Đăng ký miễn phí <ArrowRight className="size-4" />
-                </Button>
-              </Link>
+              {!isLoggedIn && (
+                <Link to="/register">
+                  <Button variant="outline" size="lg" className="h-11 px-6 text-sm sm:text-base gap-2">
+                    Đăng ký miễn phí <ArrowRight className="size-4" />
+                  </Button>
+                </Link>
+              )}
             </div>
 
             {/* Value Highlights */}
@@ -74,6 +101,96 @@ export function HomePage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          POPULAR / FEATURED SERIES LAB SECTION
+      ────────────────────────────────────────────────────────────────────────── */}
+      <section className="py-12 sm:py-16 border-b border-border bg-card/25">
+        <div className="container mx-auto px-4 sm:px-6 max-w-5xl space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+                <Flame className="size-3.5 text-amber-500 fill-amber-500" />
+                <span>Series Thực Hành Phổ Biến</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                Các Series Lab Nổi Bật
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Bắt tay vào thực hành ngay trên trình duyệt xoay quanh 1 dự án mẫu chuẩn doanh nghiệp.
+              </p>
+            </div>
+            <Link to="/series">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-primary hover:text-primary font-semibold text-xs sm:text-sm">
+                Xem toàn bộ Series ({seriesList?.length ?? 0}) <ArrowRight className="size-4" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Grid of Popular Series */}
+          {isLoadingSeries ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-52 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {(seriesList ?? []).slice(0, 3).map((series) => {
+                const totalLabs = series._count?.labs ?? series.totalLabs ?? 0;
+                const estMinutes = series.estimatedMinutes ?? (totalLabs > 0 ? totalLabs * 20 : 30);
+                return (
+                  <Link
+                    key={series.id}
+                    to={`/series/${series.slug}`}
+                    className="group focus-visible:outline-none flex"
+                  >
+                    <Card className="flex flex-col w-full hover:border-primary/60 transition-all hover:shadow-md cursor-pointer bg-card">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <span className="text-3xl" role="img" aria-label="series emoji">
+                            {series.coverEmoji ?? '📚'}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {series.isProOnly && (
+                              <Badge variant="secondary" className="text-[10px] gap-1 h-5 px-1.5 font-bold">
+                                <Lock className="size-2.5" /> Pro
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium">
+                              {levelLabels[series.level] ?? series.level}
+                            </Badge>
+                          </div>
+                        </div>
+                        <CardTitle className="text-base font-bold leading-snug group-hover:text-primary transition-colors">
+                          {series.title}
+                        </CardTitle>
+                        <CardDescription className="text-xs leading-relaxed line-clamp-2 mt-1">
+                          {series.description}
+                        </CardDescription>
+                      </CardHeader>
+
+                      <CardContent className="mt-auto border-t border-border pt-3 flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="size-3.5" />
+                          {totalLabs} bài lab
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="size-3.5" />
+                          ~{estMinutes} phút
+                        </span>
+                        <span className="flex items-center gap-1 text-primary font-semibold group-hover:translate-x-0.5 transition-transform">
+                          Vào học <ArrowRight className="size-3" />
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -471,22 +588,28 @@ export function HomePage() {
         <div className="container mx-auto px-4 sm:px-6 max-w-5xl">
           <div className="rounded-3xl border border-border bg-gradient-to-r from-primary/10 via-accent/40 to-primary/10 p-8 sm:p-14 text-center space-y-6">
             <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground max-w-xl mx-auto leading-tight">
-              Sẵn sàng nâng cấp kỹ năng IT thực chiến của bạn?
+              {isLoggedIn
+                ? 'Tiếp tục nâng cấp kỹ năng IT thực chiến của bạn'
+                : 'Sẵn sàng nâng cấp kỹ năng IT thực chiến của bạn?'}
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
-              Tham gia cùng hàng nghìn học viên đang thực hành mỗi ngày trên StudyIT. Bắt đầu với bài Lab đầu tiên hoàn toàn miễn phí.
+              {isLoggedIn
+                ? 'Theo dõi tiến độ, hoàn thành các chuỗi bài Lab và đối chiếu kết quả thực hành ngay hôm nay.'
+                : 'Tham gia cùng hàng nghìn học viên đang thực hành mỗi ngày trên StudyIT. Bắt đầu với bài Lab đầu tiên hoàn toàn miễn phí.'}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-              <Link to="/register">
-                <Button size="lg" className="h-11 px-8 font-semibold shadow-md gap-2">
-                  Tạo tài khoản miễn phí <ArrowRight className="size-4" />
-                </Button>
-              </Link>
               <Link to="/series">
-                <Button variant="outline" size="lg" className="h-11 px-6">
-                  Duyệt danh mục bài Lab
+                <Button size="lg" className="h-11 px-8 font-semibold shadow-md gap-2">
+                  <Play className="size-4 fill-current" /> Khám phá tất cả Series Lab
                 </Button>
               </Link>
+              {!isLoggedIn && (
+                <Link to="/register">
+                  <Button variant="outline" size="lg" className="h-11 px-6">
+                    Tạo tài khoản miễn phí <ArrowRight className="size-4" />
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>

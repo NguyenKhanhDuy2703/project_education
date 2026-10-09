@@ -1,7 +1,8 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { authApi } from '../api/auth.api';
 import { useAppDispatch, useAppSelector } from '@/stores/store';
-import { setAuth, logout as logoutAction } from '@/stores/slices/auth.slice';
+import { setAuth, setUser, logout as logoutAction } from '@/stores/slices/auth.slice';
 import type { LoginCredentials, RegisterCredentials } from '../types/auth.types';
 
 export const useAuth = () => {
@@ -27,6 +28,12 @@ export const useAuth = () => {
     queryFn: authApi.getCurrentUser,
     enabled: isAuthenticated,
   });
+
+  useEffect(() => {
+    if (currentUserQuery.data) {
+      dispatch(setUser(currentUserQuery.data));
+    }
+  }, [currentUserQuery.data, dispatch]);
 
   const logout = () => {
     dispatch(logoutAction());
