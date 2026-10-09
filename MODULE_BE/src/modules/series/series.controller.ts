@@ -26,14 +26,14 @@ export class SeriesController {
   constructor(private readonly seriesService: SeriesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lấy danh sách các Topic / Series bài lab (Public)' })
+  @ApiOperation({ summary: 'List all practice topics / series (Public)' })
   async findAll(@Query('includeInactive') includeInactive?: string) {
     const showAll = includeInactive === 'true';
     return this.seriesService.findAll(showAll);
   }
 
   @Get(':slug')
-  @ApiOperation({ summary: 'Lấy chi tiết một Topic / Series qua slug kèm danh sách bài thực hành' })
+  @ApiOperation({ summary: 'Get topic / series detail by slug with included practice labs (Public)' })
   async findBySlug(@Param('slug') slug: string) {
     return this.seriesService.findBySlug(slug);
   }
@@ -42,7 +42,7 @@ export class SeriesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.admin)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Tạo mới một Topic / Series (Admin only)' })
+  @ApiOperation({ summary: 'Create new topic / series (Admin only)' })
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateSeriesDto) {
     return this.seriesService.create(dto);
@@ -52,7 +52,7 @@ export class SeriesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.admin)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Chỉnh sửa Topic / Series (Admin only)' })
+  @ApiOperation({ summary: 'Update topic / series (Admin only)' })
   async update(@Param('id') id: string, @Body() dto: UpdateSeriesDto) {
     return this.seriesService.update(id, dto);
   }
@@ -61,7 +61,7 @@ export class SeriesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.admin)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Xóa Topic / Series (Admin only)' })
+  @ApiOperation({ summary: 'Delete topic / series (Admin only)' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
     await this.seriesService.delete(id);

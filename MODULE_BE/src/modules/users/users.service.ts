@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { User, Prisma } from '@prisma/client';
+import { User, Prisma, UserRole } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -54,6 +54,83 @@ export class UsersService {
     await this.prisma.user.update({
       where: { id },
       data: { refreshToken },
+    });
+  }
+
+  async findAll(params?: {
+    search?: string;
+    role?: UserRole;
+    isActive?: boolean;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = Math.max(1, params?.page ?? 1);
+    const limit = Math.min(100, Math.max(1, params?.limit ?? 20));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.UserWhereInput = {};
+
+    if (params?.role) {
+      where.role = params.role;
+    }
+
+    if (params?.isActive !== undefined) {
+      where.isActive = params.isActive;
+    }
+
+    if (params?.search) {
+      const s = params.search.trim();
+      where.OR = [
+        { name: { contains: s, mode: 'insensitive' } },
+        { email: { contains: s, mode: 'insensitive' } },
+        { phone: { contains: s } },
+      ];
+    }
+
+    const [total, users] = await Promise.all([
+      this.prisma.user.count({ where }),
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+          isActive: true,
+          avatarUrl: true,
+          googleId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
+
+    return {
+      items: users,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async updateRole(id: string, role: UserRole): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data: { role },
+    });
+  }
+
+  async updateStatus(id: string, isActive: boolean): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data: { isActive },
     });
   }
 

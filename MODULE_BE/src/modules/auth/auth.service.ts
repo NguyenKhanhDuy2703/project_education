@@ -32,8 +32,11 @@ export class AuthService {
 
     const hashedPassword = await this.bcryptService.hashPassword(registerDto.password);
     const user = await this.usersService.create({
-      ...registerDto,
+      name: registerDto.name,
+      email: registerDto.email,
+      phone: registerDto.phone,
       password: hashedPassword,
+      role: 'user', // Default to 'user' role to strictly prevent privilege escalation
     });
 
     return {
@@ -99,9 +102,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
     const accessToken = this.jwtService.sign({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
+      payload: {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      },
       type: 'ACCESS_TOKEN',
     });
     return { accessToken };
@@ -134,6 +139,10 @@ export class AuthService {
   async refreshToken(token: string) {
     try {
       const payload = await this.jwtService.verifyAsync(token);
+      if (payload.type !== 'REFRESH_TOKEN') {
+        throw new UnauthorizedException('Token is not a valid refresh token');
+      }
+
       const user = await this.usersService.findById(payload.payload?.userId || payload.userId);
 
       if (!user) {

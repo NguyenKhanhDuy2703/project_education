@@ -28,6 +28,11 @@ model User {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  subscriptions     UserSubscription[]
+  featureOverrides  UserFeatureOverride[]
+  createdAuditLogs  AuditLog[]            @relation("ActorLogs")
+  targetedAuditLogs AuditLog[]            @relation("TargetLogs")
+
   @@map("users")
 }
 
@@ -75,4 +80,149 @@ model Lab {
 
   @@map("labs")
 }
+
+// ============================================================================
+// Dynamic Authorization, Subscription Plans & Feature Entitlements
+// ============================================================================
+
+enum FeatureCategory {
+  lab_execution
+  content_access
+  ai_assistant
+  system_operation
+}
+
+enum OverrideEffect {
+  ALLOW
+  DENY
+}
+
+enum BillingCycle {
+  FREE
+  MONTHLY
+  YEARLY
+  LIFETIME
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  TRIAL
+}
+
+model Feature {
+  id          String          @id @default(uuid())
+  code        String          @unique
+  name        String
+  description String?         @db.Text
+  category    FeatureCategory @default(content_access)
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  planFeatures PlanFeature[]
+  overrides    UserFeatureOverride[]
+
+  @@map("features")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?  @db.Text
+  module      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("permissions")
+}
+
+model SubscriptionPlan {
+  id           String       @id @default(uuid())
+  code         String       @unique
+  name         String
+  description  String?      @db.Text
+  price        Decimal      @default(0) @db.Decimal(10, 2)
+  billingCycle BillingCycle @default(FREE)
+  isDefault    Boolean      @default(false)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  planFeatures  PlanFeature[]
+  subscriptions UserSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model PlanFeature {
+  planId     String
+  featureId  String
+  limitValue Int?
+  createdAt  DateTime @default(now())
+
+  plan    SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature Feature          @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@id([planId, featureId])
+  @@map("plan_features")
+}
+
+model UserSubscription {
+  id         String             @id @default(uuid())
+  userId     String
+  planId     String
+  status     SubscriptionStatus @default(ACTIVE)
+  startDate  DateTime           @default(now())
+  endDate    DateTime?
+  autoRenew  Boolean            @default(false)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status])
+  @@map("user_subscriptions")
+}
+
+model UserFeatureOverride {
+  id        String         @id @default(uuid())
+  userId    String
+  featureId String
+  effect    OverrideEffect
+  reason    String         @db.Text
+  expiresAt DateTime?
+  createdBy String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feature Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureId])
+  @@index([userId, effect])
+  @@map("user_feature_overrides")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorId      String
+  targetUserId String?
+  action       String
+  details      Json
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  actor      User  @relation("ActorLogs", fields: [actorId], references: [id], onDelete: Restrict)
+  targetUser User? @relation("TargetLogs", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([targetUserId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
 

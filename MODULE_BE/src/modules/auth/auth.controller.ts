@@ -50,7 +50,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(loginDto);
-    // Lưu AccessToken vào HttpOnly Cookie
+    // Store AccessToken in HttpOnly Cookie
     res.cookie('accessToken', result.accessToken, this.cookieOptions);
     return {
       accessToken: result.accessToken,
@@ -105,7 +105,7 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Redirect to Google OAuth consent screen' })
   googleLogin() {
-    // Passport redirect — không có body
+    // Passport redirect — empty body
   }
 
   @Get('google/callback')
@@ -118,8 +118,19 @@ export class AuthController {
     const tokens = await this.authService.generateTokens(req.user);
     res.cookie('accessToken', tokens.accessToken, this.cookieOptions);
 
-    const rawFrontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
-    const frontendUrl = rawFrontendUrl.split(',')[0].trim().replace(/\/$/, '');
+    // Determine target frontend URL dynamically based on request host
+    const host = (req.headers.host || '').toLowerCase();
+    let frontendUrl = 'http://localhost:5173';
+
+    if (host.includes('onrender.com')) {
+      frontendUrl = 'https://project-education-red.vercel.app';
+    } else if (host.includes('localhost') || host.includes('127.0.0.1')) {
+      frontendUrl = 'http://localhost:5173';
+    } else {
+      const rawFrontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+      frontendUrl = rawFrontendUrl.split(',')[0].trim().replace(/\/$/, '');
+    }
+
     const redirectUrl = new URL('/auth/callback', frontendUrl);
     redirectUrl.searchParams.set('token', tokens.accessToken);
     return res.redirect(redirectUrl.toString());
