@@ -10,8 +10,9 @@ Tài liệu được quản lý theo tiêu chuẩn **Docs-as-Code**, lưu trữ 
 |---|---|---|---|---|---|---|
 | **DOC-01** | Đề xuất Dự án (Project Proposal) | 1.1 | 2026-10-02 | Nguyen Khanh Duy | Final | [01-proposal.md](file:///d:/Projects/study-web/Docs/01-proposal.md) |
 | **DOC-03** | Danh sách Yêu cầu Sản phẩm (Product Backlog) | 1.1 | 2026-10-02 | Nguyen Khanh Duy | Final | [03-product-backlog.md](file:///d:/Projects/study-web/Docs/03-product-backlog.md) |
-| **DOC-05** | Thiết kế Cơ sở Dữ liệu (Database Design) | 1.1 | 2026-10-02 | Nguyen Khanh Duy | Final | [05-database.md](file:///d:/Projects/study-web/Docs/05-database.md) |
-| **DOC-06** | Sơ đồ Luồng Tuần tự (Workflows Hub) | 1.0 | 2026-10-02 | Nguyen Khanh Duy | Final | [workflows/README.md](file:///d:/Projects/study-web/Docs/workflows/README.md) |
+| **DOC-05** | Thiết kế Cơ sở Dữ liệu (Database Design) | 1.1 | 2026-10-02 | Nguyen Khanh Duy | Final | [05-database.md](file:///d:/Projects/study-web/docs/05-database.md) |
+| **DOC-06** | Sơ đồ Luồng Tuần tự (Workflows Hub) | 1.0 | 2026-10-02 | Nguyen Khanh Duy | Final | [workflows/README.md](file:///d:/Projects/study-web/docs/workflows/README.md) |
+| **DOC-07** | Phân quyền Động & Entitlements (Dynamic Entitlements) | 1.0 | 2026-10-09 | Nguyen Khanh Duy | Final | [07-dynamic-authorization-and-entitlements.md](file:///d:/Projects/study-web/docs/07-dynamic-authorization-and-entitlements.md) |
 
 ---
 
