@@ -13,6 +13,8 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SeriesModule } from './modules/series/series.module';
 import { LabsModule } from './modules/labs/labs.module';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { EntitlementsModule } from './modules/entitlements/entitlements.module';
 import validateEnvironmentVariables  from "./configs/env.validation"
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import validateEnvironmentVariables  from "./configs/env.validation"
     UsersModule,
     SeriesModule,
     LabsModule,
+    AuditLogsModule,
+    EntitlementsModule,
   ],
 })
 export class AppModule {}

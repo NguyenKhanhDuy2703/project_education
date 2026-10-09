@@ -6,6 +6,9 @@ import { AdminStatsCards } from './_components/AdminStatsCards';
 import { AdminTabsBar } from './_components/AdminTabsBar';
 import { AdminTopicsTab } from './_components/AdminTopicsTab';
 import { AdminLabsTab } from './_components/AdminLabsTab';
+import { AdminUsersTab } from './_components/AdminUsersTab';
+import { AdminPlansTab } from './_components/AdminPlansTab';
+import { AdminAuditLogsTab } from './_components/AdminAuditLogsTab';
 import { SeriesModal } from './_components/SeriesModal';
 import { LabModal } from './_components/LabModal';
 
@@ -25,27 +28,28 @@ export function AdminContentPage() {
               <Shield className="size-5" />
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Admin Studio — Quản lý Nội dung
+              Admin Studio — Content &amp; User Management
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Quản trị Topics, Series và các bài thực hành / blog kiến thức trên toàn hệ thống.
+            Manage Topics, Series, Practice Labs, and User Permissions across the platform.
           </p>
         </div>
 
         {/* Action button */}
         <div className="flex items-center gap-3">
-          {ctx.activeTab === 'topics' ? (
+          {ctx.activeTab === 'topics' && (
             <Button onClick={ctx.openCreateSeries} className="gap-2 font-semibold shadow-sm">
-              <Plus className="size-4" /> Tạo Topic mới
+              <Plus className="size-4" /> Create New Topic
             </Button>
-          ) : (
+          )}
+          {ctx.activeTab === 'labs' && (
             <Button
               onClick={ctx.openCreateLab}
               disabled={!ctx.activeSeries}
               className="gap-2 font-semibold shadow-sm"
             >
-              <Plus className="size-4" /> Thêm Bài Lab vào Topic này
+              <Plus className="size-4" /> Add Practice Lab
             </Button>
           )}
         </div>
@@ -91,6 +95,12 @@ export function AdminContentPage() {
             onDeleteLab={ctx.handleDeleteLab}
           />
         )}
+
+        {ctx.activeTab === 'users' && <AdminUsersTab />}
+
+        {ctx.activeTab === 'plans' && <AdminPlansTab />}
+
+        {ctx.activeTab === 'audit' && <AdminAuditLogsTab />}
       </div>
 
       {/* Modals */}

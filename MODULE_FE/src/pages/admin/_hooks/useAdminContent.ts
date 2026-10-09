@@ -6,7 +6,7 @@ import type { CreateSeriesInput, CreateLabInput, LabSeries } from '@/types/lab.t
 
 export function useAdminContent() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'topics' | 'labs'>('topics');
+  const [activeTab, setActiveTab] = useState<'topics' | 'labs' | 'users' | 'plans' | 'audit'>('topics');
   const [selectedSeriesSlug, setSelectedSeriesSlug] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
