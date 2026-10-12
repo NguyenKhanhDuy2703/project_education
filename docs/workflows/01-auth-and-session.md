@@ -2,12 +2,12 @@
 doc_type: workflow
 title: Sơ đồ Luồng Xác thực & Quản lý Phiên Đăng nhập (Auth & Silent Refresh)
 project: study-web
-version: "1.0"
+version: "1.1"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Xác thực JWT, Cookie bảo mật và Tự động làm mới phiên ngầm
-date: 2026-10-02
+scope: Luồng nghiệp vụ người dùng (Email/Password & Google OAuth) và chu trình xác thực JWT, Cookie bảo mật
+date: 2026-10-12
 source_file: "MODULE_BE/src/modules/auth, MODULE_FE/src/features/auth"
 status: final
 language: vi
@@ -21,17 +21,59 @@ related_docs: [../01-proposal.md, ../05-database.md]
 | Thuộc tính | Chi tiết |
 |---|---|
 | **Tên tài liệu** | Sơ đồ Luồng Xác thực & Quản lý Phiên Đăng nhập |
-| **Version** | v1.0 |
+| **Version** | v1.1 |
 | **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Chu trình xác thực người dùng bằng SĐT/Mật khẩu, phân quyền JWT và cơ chế Silent Refresh qua Axios Interceptor |
-| **Thời gian** | 2026-10-02 |
+| **Phạm vi (Scope)** | Luồng nghiệp vụ người dùng (Email/Mật khẩu & Google OAuth), phân quyền JWT và cơ chế Silent Refresh qua Axios Interceptor |
+| **Thời gian** | 2026-10-12 |
 | **Tham chiếu từ** | Hiện trạng mã nguồn xác thực tại `MODULE_BE/src/modules/auth` và `MODULE_FE/src/services/api.client.ts` |
 
 ---
 
 ## 2. Nội dung chính (Content)
 
-### 2.1. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.1. Sơ đồ Luồng Nghiệp vụ Người dùng (User Business Flow)
+
+Sơ đồ thể hiện chu trình tương tác thực tế của người dùng trên giao diện Web khi thực hiện đăng nhập qua 2 hình thức: Tài khoản thông thường (Email & Mật khẩu) hoặc Google OAuth:
+
+```mermaid
+flowchart TD
+    Start([User mở trang Đăng nhập]) --> Choice{User chọn cách đăng nhập}
+
+    %% --- Cách 1: Email / Password ---
+    Choice -->|Nhập tài khoản| Form[Nhập Email và Mật khẩu]
+    Form --> ClickLogin[Bấm nút 'Đăng nhập']
+    ClickLogin --> CheckInput{Kết quả hiển thị trên màn hình}
+    CheckInput -->|Thông tin sai / để trống| ErrMsg[Màn hình hiện thông báo đỏ: 'Sai email hoặc mật khẩu']
+    ErrMsg --> Form
+
+    %% --- Cách 2: Google ---
+    Choice -->|Dùng Google| ClickGoogle[Bấm nút 'Tiếp tục với Google']
+    ClickGoogle --> GoogleScreen[Màn hình Google hiện lên để chọn tài khoản]
+    GoogleScreen --> GoogleAction{User thao tác trên Google}
+    GoogleAction -->|Tắt popup / Bấm Hủy| BackToLogin[Quay lại màn hình Đăng nhập]
+    BackToLogin --> Choice
+
+    %% --- Kết quả chung ---
+    GoogleAction -->|Chọn tài khoản & Đồng ý| LoginSuccess
+    CheckInput -->|Thông tin chính xác| LoginSuccess
+
+    LoginSuccess{Trạng thái tài khoản} -->|Tài khoản bị khóa| BannedMsg[Hiện thông báo: 'Tài khoản đã bị tạm khóa']
+    BannedMsg --> Start
+
+    LoginSuccess -->|Bình thường| SuccessUI[Chuyển màn hình vào Dashboard / Trang chủ]
+    SuccessUI --> Done([Bắt đầu sử dụng hệ thống])
+```
+
+#### Các điểm chạm (Touchpoints) của Người dùng trên Giao diện:
+1. **Lựa chọn hình thức**: Người dùng nhìn thấy 2 tùy chọn rõ ràng trên màn hình (Form nhập Email/Password và nút liên kết "Tiếp tục với Google").
+2. **Phản hồi lỗi trên UI**:
+   - Nếu nhập thiếu hoặc sai thông tin, giao diện giữ nguyên ngữ cảnh nhập liệu và hiển thị thông báo lỗi trực quan ngay tại form.
+   - Khi chọn đăng nhập Google, mở hộp thoại chọn tài khoản Google. Nếu người dùng đóng popup/hủy bỏ, trạng thái trang đăng nhập được bảo toàn.
+3. **Phản hồi trạng thái & Điều hướng**:
+   - Trường hợp tài khoản bị khóa: Hệ thống hiển thị thông báo trạng thái tài khoản bị tạm khóa.
+   - Trường hợp thành công: Người dùng được tự động điều hướng vào Dashboard hoặc trang bài lab đang thao tác dở trước đó.
+
+### 2.2. Sơ đồ Tuần tự Kỹ thuật (Sequence Diagram)
 
 ```mermaid
 sequenceDiagram
@@ -78,7 +120,7 @@ sequenceDiagram
     FE-->>User: Hiển thị nội dung bài học mượt mà không bị ngắt quãng
 ```
 
-### 2.2. Phân tích Chi tiết Từng Bước
+### 2.3. Phân tích Chi tiết Từng Bước
 
 1. **Đăng nhập an toàn**:
    * Mật khẩu không bao giờ được lưu dạng thô (plain-text) mà luôn được băm với salt 10 rounds qua Bcrypt.
