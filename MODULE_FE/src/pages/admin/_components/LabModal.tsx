@@ -36,12 +36,12 @@ export function LabModal({
         {/* Header & Presets */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
           <h2 className="text-lg font-bold text-foreground">
-            {editingLabId ? 'Chỉnh sửa Bài Thực hành / Blog' : 'Thêm Bài Thực hành Mới'}
+            {editingLabId ? 'Edit Practice Lab / Lesson' : 'Add New Practice Lab'}
           </h2>
 
           {!editingLabId && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-muted-foreground mr-1">Chèn nhanh mẫu:</span>
+              <span className="text-[11px] text-muted-foreground mr-1">Quick Templates:</span>
               <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => onApplyPreset('js')}>
                 <FileCode2 className="size-3" /> JS
               </Button>
@@ -58,13 +58,13 @@ export function LabModal({
         <form onSubmit={onSubmit} className="space-y-4">
           {/* Title */}
           <div>
-            <label className="text-xs font-semibold text-foreground">Tiêu đề bài học / Blog *</label>
+            <label className="text-xs font-semibold text-foreground">Lab / Lesson Title *</label>
             <input
               type="text"
               required
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="Ví dụ: Viết câu lệnh SELECT lấy danh sách khách hàng"
+              placeholder="e.g. Write a SELECT query to filter active customers"
               className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -72,7 +72,7 @@ export function LabModal({
           {/* Meta fields */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-semibold text-foreground">Môi trường thực thi</label>
+              <label className="text-xs font-semibold text-foreground">Execution Environment</label>
               <select
                 value={form.sandboxType}
                 onChange={(e) => setForm({ ...form, sandboxType: e.target.value })}
@@ -80,12 +80,12 @@ export function LabModal({
               >
                 <option value="js_worker">JavaScript Worker</option>
                 <option value="sql_worker">SQL Sandbox</option>
-                <option value="markdown_only">Chỉ đọc lý thuyết (Blog)</option>
+                <option value="markdown_only">Theory Only (Markdown)</option>
               </select>
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground">Thời gian ước tính (phút)</label>
+              <label className="text-xs font-semibold text-foreground">Estimated Time (minutes)</label>
               <input
                 type="number"
                 value={form.durationMinutes}
@@ -95,7 +95,7 @@ export function LabModal({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground">Thứ tự hiển thị</label>
+              <label className="text-xs font-semibold text-foreground">Display Order</label>
               <input
                 type="number"
                 value={form.orderIndex}
@@ -109,7 +109,7 @@ export function LabModal({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-semibold text-foreground">
-                Nội dung lý thuyết &amp; đề bài (Hỗ trợ Markdown) *
+                Theory &amp; Task Instructions (Markdown Supported) *
               </label>
               <div className="flex items-center gap-1 bg-muted p-0.5 rounded-lg text-xs">
                 <button
@@ -121,7 +121,7 @@ export function LabModal({
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Soạn thảo (Editor)
+                  Editor
                 </button>
                 <button
                   type="button"
@@ -132,7 +132,7 @@ export function LabModal({
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Xem trước (Preview)
+                  Preview
                 </button>
               </div>
             </div>
@@ -143,7 +143,7 @@ export function LabModal({
                 rows={8}
                 value={form.instructions}
                 onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                placeholder="# Đề bài..."
+                placeholder="# Task instructions..."
                 className="w-full font-mono text-xs bg-background border border-border rounded-lg p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             ) : (
@@ -157,7 +157,7 @@ export function LabModal({
           {/* Initial Snippet */}
           {form.sandboxType !== 'markdown_only' && (
             <div>
-              <label className="text-xs font-semibold text-foreground">Code khởi đầu (Initial Snippet)</label>
+              <label className="text-xs font-semibold text-foreground">Initial Starter Code</label>
               <textarea
                 rows={3}
                 value={form.initialSnippet}
@@ -171,7 +171,7 @@ export function LabModal({
           {/* Test script */}
           {form.sandboxType !== 'markdown_only' && (
             <div>
-              <label className="text-xs font-semibold text-foreground">Kịch bản chấm điểm tự động (Test Script)</label>
+              <label className="text-xs font-semibold text-foreground">Automated Test Script</label>
               <textarea
                 rows={3}
                 value={form.testScript}
@@ -184,12 +184,12 @@ export function LabModal({
 
           {/* Solution */}
           <div>
-            <label className="text-xs font-semibold text-foreground">Lời giải chuẩn (Chỉ hiển thị cho Pro/Admin)</label>
+            <label className="text-xs font-semibold text-foreground">Official Solution (Pro / Admin only)</label>
             <textarea
               rows={2}
               value={form.solution}
               onChange={(e) => setForm({ ...form, solution: e.target.value })}
-              placeholder="Code đáp án chuẩn..."
+              placeholder="Reference solution code..."
               className="w-full mt-1 font-mono text-xs bg-background border border-border rounded-lg p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -204,17 +204,17 @@ export function LabModal({
               className="rounded text-primary focus:ring-primary"
             />
             <label htmlFor="lab-pro" className="text-xs text-foreground font-medium cursor-pointer">
-              Bài thực hành Pro (Yêu cầu tài khoản Pro để xem đáp án / nộp bài)
+              Pro Lab (Requires Pro subscription to unlock solution & run tests)
             </label>
           </div>
 
           {/* Footer actions */}
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
             <Button type="button" variant="ghost" onClick={onClose}>
-              Hủy
+              Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {editingLabId ? 'Lưu bài học' : 'Thêm bài học'}
+              {editingLabId ? 'Save Lab' : 'Add Lab'}
             </Button>
           </div>
         </form>

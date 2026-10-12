@@ -26,25 +26,25 @@ export function SeriesModal({
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-bold text-foreground">
-          {editingSeries ? 'Chỉnh sửa Topic' : 'Tạo Topic mới'}
+          {editingSeries ? 'Edit Topic' : 'Create New Topic'}
         </h2>
 
         <form onSubmit={onSubmit} className="space-y-3.5">
           <div>
-            <label className="text-xs font-semibold text-foreground">Tên Topic / Series *</label>
+            <label className="text-xs font-semibold text-foreground">Topic / Series Title *</label>
             <input
               type="text"
               required
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="Ví dụ: SQL Cơ Bản cho Tester"
+              placeholder="e.g. SQL Fundamentals for QA"
               className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-foreground">Danh mục (Category) *</label>
+              <label className="text-xs font-semibold text-foreground">Category *</label>
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -58,15 +58,15 @@ export function SeriesModal({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground">Cấp độ (Level)</label>
+              <label className="text-xs font-semibold text-foreground">Level</label>
               <select
                 value={form.level}
                 onChange={(e) => setForm({ ...form, level: e.target.value })}
                 className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                <option value="beginner">Beginner (Cơ bản)</option>
-                <option value="intermediate">Intermediate (Trung cấp)</option>
-                <option value="advanced">Advanced (Nâng cao)</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
               </select>
             </div>
           </div>
@@ -83,7 +83,7 @@ export function SeriesModal({
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-foreground">Thứ tự hiển thị</label>
+              <label className="text-xs font-semibold text-foreground">Display Order</label>
               <input
                 type="number"
                 value={form.orderIndex}
@@ -94,13 +94,13 @@ export function SeriesModal({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-foreground">Mô tả tổng quan *</label>
+            <label className="text-xs font-semibold text-foreground">Overview Description *</label>
             <textarea
               required
               rows={3}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Mô tả nội dung học viên sẽ đạt được sau khi học..."
+              placeholder="Brief description of knowledge and skills acquired in this topic..."
               className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -114,16 +114,16 @@ export function SeriesModal({
               className="rounded text-primary focus:ring-primary"
             />
             <label htmlFor="series-pro" className="text-xs text-foreground font-medium cursor-pointer">
-              Khóa học chỉ dành cho tài khoản Pro (Pro Only)
+              Pro Only Course (Requires Pro Membership)
             </label>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
             <Button type="button" variant="ghost" onClick={onClose}>
-              Hủy
+              Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {editingSeries ? 'Lưu thay đổi' : 'Tạo Topic'}
+              {editingSeries ? 'Save Changes' : 'Create Topic'}
             </Button>
           </div>
         </form>

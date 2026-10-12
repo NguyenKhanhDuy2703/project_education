@@ -1,4 +1,4 @@
-import { Shield, Plus } from 'lucide-react';
+import { Layers, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAdminContent } from './_hooks/useAdminContent';
 import { AdminToast } from './_components/AdminToast';
@@ -6,9 +6,6 @@ import { AdminStatsCards } from './_components/AdminStatsCards';
 import { AdminTabsBar } from './_components/AdminTabsBar';
 import { AdminTopicsTab } from './_components/AdminTopicsTab';
 import { AdminLabsTab } from './_components/AdminLabsTab';
-import { AdminUsersTab } from './_components/AdminUsersTab';
-import { AdminPlansTab } from './_components/AdminPlansTab';
-import { AdminAuditLogsTab } from './_components/AdminAuditLogsTab';
 import { SeriesModal } from './_components/SeriesModal';
 import { LabModal } from './_components/LabModal';
 
@@ -20,19 +17,19 @@ export function AdminContentPage() {
       {/* Toast */}
       <AdminToast message={ctx.toastMessage} onClose={() => ctx.setToastMessage(null)} />
 
-      {/* Header */}
+      {/* Header — T1: Streamlined header matching content scope */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-2 rounded-lg bg-primary/10 text-primary">
-              <Shield className="size-5" />
+              <Layers className="size-5" />
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Admin Studio — Content &amp; User Management
+              Topics & Labs
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage Topics, Series, Practice Labs, and User Permissions across the platform.
+            Create, edit, and manage learning content: Topics, Series, and Practice Labs.
           </p>
         </div>
 
@@ -62,7 +59,7 @@ export function AdminContentPage() {
         proTopics={ctx.stats.proTopics}
       />
 
-      {/* Tabs + Search */}
+      {/* Tabs + Search — T2: Retain Topics and Labs only */}
       <AdminTabsBar
         activeTab={ctx.activeTab}
         setActiveTab={ctx.setActiveTab}
@@ -95,12 +92,6 @@ export function AdminContentPage() {
             onDeleteLab={ctx.handleDeleteLab}
           />
         )}
-
-        {ctx.activeTab === 'users' && <AdminUsersTab />}
-
-        {ctx.activeTab === 'plans' && <AdminPlansTab />}
-
-        {ctx.activeTab === 'audit' && <AdminAuditLogsTab />}
       </div>
 
       {/* Modals */}

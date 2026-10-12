@@ -12,6 +12,7 @@ export interface AdminUserItem {
   googleId: string | null;
   createdAt: string;
   updatedAt: string;
+  lastLoginAt: string | null;
 }
 
 export interface AdminUsersResponse {

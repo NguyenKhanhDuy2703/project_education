@@ -21,7 +21,7 @@ import {
  * Helper to render color-coded badge for audit actions.
  */
 function ActionBadge({ action }: { action: string }) {
-  if (action === 'FEATURE_OVERRIDE_DENY') {
+  if (action === 'FEATURE_OVERRIDE_DENY' || action === 'USER_SUSPENDED') {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">
         <Ban className="size-3" />
@@ -29,10 +29,18 @@ function ActionBadge({ action }: { action: string }) {
       </span>
     );
   }
-  if (action === 'FEATURE_OVERRIDE_ALLOW') {
+  if (action === 'FEATURE_OVERRIDE_ALLOW' || action === 'USER_ACTIVATED') {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
         <ShieldCheck className="size-3" />
+        {action}
+      </span>
+    );
+  }
+  if (action === 'USER_ROLE_CHANGE') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+        <ShieldAlert className="size-3" />
         {action}
       </span>
     );
@@ -136,6 +144,9 @@ export function AdminAuditLogsTab() {
             <option value="CREATE_PLAN">CREATE_PLAN</option>
             <option value="UPDATE_PLAN_FEATURES">UPDATE_PLAN_FEATURES</option>
             <option value="CREATE_FEATURE">CREATE_FEATURE</option>
+            <option value="USER_ROLE_CHANGE">USER_ROLE_CHANGE</option>
+            <option value="USER_ACTIVATED">USER_ACTIVATED</option>
+            <option value="USER_SUSPENDED">USER_SUSPENDED</option>
           </select>
 
           {/* Search Bar */}
@@ -188,8 +199,18 @@ export function AdminAuditLogsTab() {
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                    No audit logs recorded for this criteria.
+                  <td colSpan={6} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <FileText className="size-10 opacity-30" />
+                      <p className="text-sm font-medium">
+                        {selectedAction || searchTerm
+                          ? 'No audit logs found matching current criteria.'
+                          : 'No administrative activities recorded yet.'}
+                      </p>
+                      <p className="text-xs opacity-70">
+                        Audit records will appear when admins update roles, suspend accounts, or modify subscriptions.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (

@@ -30,7 +30,7 @@ export function AdminLabsTab({
       {/* Topic selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-foreground">Chọn Topic kiến thức:</span>
+          <span className="text-sm font-semibold text-foreground">Select Topic:</span>
           <select
             value={activeSeries?.slug || ''}
             onChange={(e) => onSelectSeries(e.target.value)}
@@ -38,25 +38,25 @@ export function AdminLabsTab({
           >
             {seriesList.map((s) => (
               <option key={s.id} value={s.slug}>
-                {s.coverEmoji} {s.title} ({s._count?.labs ?? s.labs?.length ?? 0} bài)
+                {s.coverEmoji} {s.title} ({s._count?.labs ?? s.labs?.length ?? 0} labs)
               </option>
             ))}
           </select>
         </div>
 
         <Button onClick={onCreateLab} size="sm" className="gap-2 font-semibold">
-          <Plus className="size-4" /> Thêm Bài Thực hành
+          <Plus className="size-4" /> Add Practice Lab
         </Button>
       </div>
 
       {/* Labs Table */}
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Đang tải danh sách bài lab...</p>
+        <p className="text-sm text-muted-foreground">Loading practice labs...</p>
       ) : filteredLabs.length === 0 ? (
         <div className="text-center py-12 border border-dashed rounded-xl p-8">
-          <p className="text-muted-foreground text-sm">Không tìm thấy bài thực hành hoặc blog nào.</p>
+          <p className="text-muted-foreground text-sm">No practice labs or lessons found.</p>
           <Button onClick={onCreateLab} className="mt-4 gap-2">
-            <Plus className="size-4" /> Thêm bài đầu tiên
+            <Plus className="size-4" /> Add First Lab
           </Button>
         </div>
       ) : (
@@ -65,11 +65,11 @@ export function AdminLabsTab({
             <thead className="bg-muted/50 border-b border-border text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               <tr>
                 <th className="py-3 px-4">#</th>
-                <th className="py-3 px-4">Tiêu đề bài học / Blog</th>
-                <th className="py-3 px-4">Loại môi trường</th>
-                <th className="py-3 px-4">Thời lượng</th>
-                <th className="py-3 px-4">Phân quyền</th>
-                <th className="py-3 px-4 text-right">Thao tác</th>
+                <th className="py-3 px-4">Title / Path</th>
+                <th className="py-3 px-4">Environment</th>
+                <th className="py-3 px-4">Duration</th>
+                <th className="py-3 px-4">Access</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -87,7 +87,7 @@ export function AdminLabsTab({
                   </td>
                   <td className="py-3.5 px-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Clock className="size-3.5" /> {lab.durationMinutes || 20}p
+                      <Clock className="size-3.5" /> {lab.durationMinutes || 20}m
                     </span>
                   </td>
                   <td className="py-3.5 px-4">
@@ -104,7 +104,7 @@ export function AdminLabsTab({
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <Link to={`/labs/${lab.slug}`} target="_blank">
-                        <Button variant="ghost" size="icon-sm" title="Mở trang Workspace làm bài">
+                        <Button variant="ghost" size="icon-sm" title="Open Workspace">
                           <ExternalLink className="size-3.5 text-muted-foreground hover:text-foreground" />
                         </Button>
                       </Link>
@@ -112,7 +112,7 @@ export function AdminLabsTab({
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => onEditLab(lab)}
-                        title="Sửa nội dung"
+                        title="Edit Lab"
                       >
                         <Pencil className="size-3.5 text-muted-foreground hover:text-primary" />
                       </Button>
@@ -120,7 +120,7 @@ export function AdminLabsTab({
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => onDeleteLab(lab.id, lab.title)}
-                        title="Xóa bài"
+                        title="Delete Lab"
                       >
                         <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
                       </Button>

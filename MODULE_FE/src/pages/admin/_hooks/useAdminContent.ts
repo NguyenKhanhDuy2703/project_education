@@ -6,7 +6,7 @@ import type { CreateSeriesInput, CreateLabInput, LabSeries } from '@/types/lab.t
 
 export function useAdminContent() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'topics' | 'labs' | 'users' | 'plans' | 'audit'>('topics');
+  const [activeTab, setActiveTab] = useState<'topics' | 'labs'>('topics');
   const [selectedSeriesSlug, setSelectedSeriesSlug] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -105,10 +105,10 @@ export function useAdminContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-series'] });
       setSeriesModalOpen(false);
-      showToast('Đã tạo Topic mới thành công!');
+      showToast('New topic created successfully!');
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || 'Lỗi khi tạo Topic', 'error');
+      showToast(err.response?.data?.message || 'Failed to create topic', 'error');
     },
   });
 
@@ -118,10 +118,10 @@ export function useAdminContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-series'] });
       setSeriesModalOpen(false);
-      showToast('Đã cập nhật Topic thành công!');
+      showToast('Topic updated successfully!');
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || 'Lỗi khi cập nhật Topic', 'error');
+      showToast(err.response?.data?.message || 'Failed to update topic', 'error');
     },
   });
 
@@ -129,10 +129,10 @@ export function useAdminContent() {
     mutationFn: (id: string) => seriesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-series'] });
-      showToast('Đã xóa Topic thành công!');
+      showToast('Topic deleted successfully!');
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || 'Lỗi khi xóa Topic', 'error');
+      showToast(err.response?.data?.message || 'Failed to delete topic', 'error');
     },
   });
 
@@ -142,10 +142,10 @@ export function useAdminContent() {
       queryClient.invalidateQueries({ queryKey: ['admin-series-detail'] });
       queryClient.invalidateQueries({ queryKey: ['admin-series'] });
       setLabModalOpen(false);
-      showToast('Đã thêm bài thực hành mới thành công!');
+      showToast('Practice lab added successfully!');
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || 'Lỗi khi thêm bài học', 'error');
+      showToast(err.response?.data?.message || 'Failed to add practice lab', 'error');
     },
   });
 
@@ -155,10 +155,10 @@ export function useAdminContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-series-detail'] });
       setLabModalOpen(false);
-      showToast('Đã cập nhật bài thực hành thành công!');
+      showToast('Practice lab updated successfully!');
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || 'Lỗi khi cập nhật bài học', 'error');
+      showToast(err.response?.data?.message || 'Failed to update practice lab', 'error');
     },
   });
 
@@ -167,10 +167,10 @@ export function useAdminContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-series-detail'] });
       queryClient.invalidateQueries({ queryKey: ['admin-series'] });
-      showToast('Đã xóa bài thực hành!');
+      showToast('Practice lab deleted successfully!');
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || 'Lỗi khi xóa bài học', 'error');
+      showToast(err.response?.data?.message || 'Failed to delete practice lab', 'error');
     },
   });
 
@@ -216,7 +216,7 @@ export function useAdminContent() {
   };
 
   const handleDeleteSeries = (id: string, title: string) => {
-    if (confirm(`Bạn có chắc muốn xóa Topic "${title}"? Mọi bài thực hành thuộc topic này cũng sẽ bị xóa vĩnh viễn.`)) {
+    if (confirm(`Are you sure you want to delete topic "${title}"? All practice labs within this topic will also be permanently deleted.`)) {
       deleteSeriesMutation.mutate(id);
     }
   };
@@ -230,9 +230,9 @@ export function useAdminContent() {
       title: '',
       sandboxType: 'js_worker',
       objective: '',
-      instructions: '# Tiêu đề bài thực hành\n\n## Giới thiệu\nTrình bày kiến thức nền tảng tại đây...\n\n## Yêu cầu bài tập\nViết hàm thực hiện yêu cầu...',
-      initialSnippet: 'function solution() {\n  // Code của bạn ở đây\n}\n',
-      testScript: "assert('Kiểm tra hàm cơ bản', typeof solution === 'function');\n",
+      instructions: '# Practice Lab Title\n\n## Overview\nExplain background concepts here...\n\n## Requirements\nImplement the required function...',
+      initialSnippet: 'function solution() {\n  // Your code here\n}\n',
+      testScript: "assert('Basic function check', typeof solution === 'function');\n",
       solution: '',
       durationMinutes: 20,
       isProOnly: false,
@@ -268,31 +268,31 @@ export function useAdminContent() {
       setLabForm((prev) => ({
         ...prev,
         sandboxType: 'js_worker',
-        instructions: `# Bài tập JavaScript\n\n## Đề bài\nViết hàm \`findMax(arr)\` nhận vào một mảng số nguyên và trả về giá trị lớn nhất.\n\n## Ví dụ\n\`\`\`js\nfindMax([1, 5, 3]) // 5\nfindMax([-10, -5]) // -5\n\`\`\``,
-        initialSnippet: 'function findMax(arr) {\n  // Triển khai thuật toán tại đây\n}\n',
-        testScript: "assert('Mảng số dương', findMax([1, 5, 3]) === 5);\nassert('Mảng số âm', findMax([-10, -5]) === -5);\n",
+        instructions: `# JavaScript Challenge\n\n## Task\nWrite a function \`findMax(arr)\` that takes an array of integers and returns the maximum value.\n\n## Example\n\`\`\`js\nfindMax([1, 5, 3]) // 5\nfindMax([-10, -5]) // -5\n\`\`\``,
+        initialSnippet: 'function findMax(arr) {\n  // Implement algorithm here\n}\n',
+        testScript: "assert('Positive numbers', findMax([1, 5, 3]) === 5);\nassert('Negative numbers', findMax([-10, -5]) === -5);\n",
         solution: 'function findMax(arr) {\n  return Math.max(...arr);\n}',
       }));
     } else if (type === 'sql') {
       setLabForm((prev) => ({
         ...prev,
         sandboxType: 'sql_worker',
-        instructions: `# Truy vấn SQL\n\n## Đề bài\nViết câu lệnh SQL lấy toàn bộ khách hàng có địa chỉ tại \`Hà Nội\` và sắp xếp theo ngày tạo mới nhất.\n\n\`\`\`sql\nSELECT * FROM customers WHERE city = 'Hà Nội' ORDER BY created_at DESC;\n\`\`\``,
+        instructions: `# SQL Query Challenge\n\n## Task\nWrite an SQL query to retrieve all active customers ordered by creation date descending.\n\n\`\`\`sql\nSELECT * FROM customers WHERE is_active = true ORDER BY created_at DESC;\n\`\`\``,
         initialSnippet: "SELECT * FROM customers WHERE ...;\n",
         testScript: "assert('Query syntax valid', query.includes('SELECT') && query.includes('WHERE'));",
-        solution: "SELECT * FROM customers WHERE city = 'Hà Nội' ORDER BY created_at DESC;",
+        solution: "SELECT * FROM customers WHERE is_active = true ORDER BY created_at DESC;",
       }));
     } else {
       setLabForm((prev) => ({
         ...prev,
         sandboxType: 'markdown_only',
-        instructions: `# Tổng quan Kiến thức QA / Testing\n\nKiểm thử phần mềm là một quá trình đánh giá phần mềm nhằm phát hiện lỗi và đảm bảo chất lượng.\n\n### Các cấp độ kiểm thử chính:\n- **Unit Testing**: Kiểm thử từng hàm/module nhỏ.\n- **Integration Testing**: Kiểm thử tích hợp các module.\n- **System Testing**: Kiểm thử toàn diện hệ thống.\n- **Acceptance Testing**: Kiểm thử chấp nhận của người dùng (UAT).`,
+        instructions: `# QA & Software Testing Overview\n\nSoftware testing is an evaluation process to identify defects and ensure system quality.\n\n### Primary Test Levels:\n- **Unit Testing**: Tests individual functions or units.\n- **Integration Testing**: Verifies communication across integrated modules.\n- **System Testing**: Validates the end-to-end integrated application.\n- **Acceptance Testing**: Verifies customer satisfaction & business requirements (UAT).`,
         initialSnippet: '',
         testScript: '',
         solution: '',
       }));
     }
-    showToast(`Đã áp dụng mẫu ${type.toUpperCase()}!`);
+    showToast(`Applied ${type.toUpperCase()} template!`);
   };
 
   const handleSaveLab = (e: React.FormEvent) => {
@@ -305,7 +305,7 @@ export function useAdminContent() {
   };
 
   const handleDeleteLab = (id: string, title: string) => {
-    if (confirm(`Bạn có chắc muốn xóa bài "${title}"?`)) {
+    if (confirm(`Are you sure you want to delete lab "${title}"?`)) {
       deleteLabMutation.mutate(id);
     }
   };

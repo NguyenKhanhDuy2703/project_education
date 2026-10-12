@@ -20,15 +20,15 @@ export function AdminTopicsTab({
   onDeleteSeries,
 }: AdminTopicsTabProps) {
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Đang tải danh sách topics...</p>;
+    return <p className="text-sm text-muted-foreground">Loading topics...</p>;
   }
 
   if (filteredSeries.length === 0) {
     return (
       <div className="text-center py-12 border border-dashed rounded-xl p-8">
-        <p className="text-muted-foreground text-sm">Không tìm thấy Topic phù hợp.</p>
+        <p className="text-muted-foreground text-sm">No matching topics found.</p>
         <Button onClick={onCreateSeries} className="mt-4 gap-2">
-          <Plus className="size-4" /> Tạo Topic mới
+          <Plus className="size-4" /> Create New Topic
         </Button>
       </div>
     );
@@ -65,12 +65,12 @@ export function AdminTopicsTab({
 
           <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
-              {s._count?.labs ?? s.labs?.length ?? 0} bài thực hành
+              {s._count?.labs ?? s.labs?.length ?? 0} practice labs
             </span>
 
             <div className="flex items-center gap-1.5">
               <Link to={`/series/${s.slug}`} target="_blank">
-                <Button variant="ghost" size="icon-sm" title="Xem trên Client">
+                <Button variant="ghost" size="icon-sm" title="View on site">
                   <Eye className="size-3.5 text-muted-foreground hover:text-foreground" />
                 </Button>
               </Link>
@@ -78,7 +78,7 @@ export function AdminTopicsTab({
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => onEditSeries(s)}
-                title="Chỉnh sửa Topic"
+                title="Edit Topic"
               >
                 <Pencil className="size-3.5 text-muted-foreground hover:text-primary" />
               </Button>
@@ -86,7 +86,7 @@ export function AdminTopicsTab({
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => onDeleteSeries(s.id, s.title)}
-                title="Xóa Topic"
+                title="Delete Topic"
               >
                 <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
               </Button>

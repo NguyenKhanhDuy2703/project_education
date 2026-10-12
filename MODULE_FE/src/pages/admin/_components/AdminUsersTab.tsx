@@ -17,6 +17,7 @@ import {
   Mail,
   Phone,
   Calendar,
+  Clock,
 } from 'lucide-react';
 import { UserEntitlementsModal } from './UserEntitlementsModal';
 
@@ -184,7 +185,7 @@ export function AdminUsersTab() {
                 <th className="py-3 px-4">Contact</th>
                 <th className="py-3 px-4">Role</th>
                 <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Registered Date</th>
+                <th className="py-3 px-4">Joined / Activity</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -284,16 +285,32 @@ export function AdminUsersTab() {
                       )}
                     </td>
 
-                    {/* Registered Date */}
+                    {/* Registered Date & Last Active */}
                     <td className="py-3 px-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="size-3" />
-                        {new Date(u.createdAt).toLocaleDateString('en-US', {
+                      <div className="flex items-center gap-1.5" title="Registration date">
+                        <Calendar className="size-3 text-muted-foreground/70" />
+                        <span>{new Date(u.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric',
-                        })}
+                        })}</span>
                       </div>
+                      {u.lastLoginAt ? (
+                        <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground/80" title="Last login timestamp">
+                          <Clock className="size-3 text-primary/70" />
+                          <span>{new Date(u.lastLoginAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground/50">
+                          <Clock className="size-3" />
+                          <span>Never logged in</span>
+                        </div>
+                      )}
                     </td>
 
                     {/* Action Buttons */}
