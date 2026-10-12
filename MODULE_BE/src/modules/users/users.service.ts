@@ -105,6 +105,7 @@ export class UsersService {
           googleId: true,
           createdAt: true,
           updatedAt: true,
+          lastLoginAt: true,
         },
       }),
     ]);

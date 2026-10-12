@@ -76,6 +76,9 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user);
 
+    // T4: Ghi nhận thời điểm đăng nhập gần nhất
+    await this.usersService.update(user.id, { lastLoginAt: new Date() });
+
     return {
       ...tokens,
       user: {
