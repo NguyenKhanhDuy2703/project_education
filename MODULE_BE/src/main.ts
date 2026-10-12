@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -56,7 +57,12 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'X-Requested-With',
+    ],
   });
 
   // 4. Validation tự động DTO
@@ -68,7 +74,10 @@ async function bootstrap() {
     }),
   );
 
-  // 5. Swagger Documentation
+  // 5. Global Exception Logging Filter
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // 6. Swagger Documentation
   const swaggerConfig = configService.get('swagger');
   if (swaggerConfig?.enabled) {
     const documentBuilder = new DocumentBuilder()
@@ -86,7 +95,9 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`🚀 Server running on: http://localhost:${port}/${apiPrefix}`);
   if (swaggerConfig?.enabled) {
-    console.log(`📚 Swagger documentation at: http://localhost:${port}/${swaggerConfig.prefix}`);
+    console.log(
+      `📚 Swagger documentation at: http://localhost:${port}/${swaggerConfig.prefix}`,
+    );
   }
 }
 
