@@ -15,6 +15,8 @@ import { SeriesModule } from './modules/series/series.module';
 import { LabsModule } from './modules/labs/labs.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { EntitlementsModule } from './modules/entitlements/entitlements.module';
+import { GroupsModule } from './modules/groups/groups.module';
+import { ReviewModule } from './modules/review/review.module';
 import validateEnvironmentVariables from './configs/env.validation';
 import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware';
 @Module({
@@ -45,6 +47,8 @@ import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware
     LabsModule,
     AuditLogsModule,
     EntitlementsModule,
+    GroupsModule,
+    ReviewModule,
   ],
 })
 export class AppModule implements NestModule {

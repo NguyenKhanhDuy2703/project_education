@@ -21,12 +21,22 @@ export class EntitlementsService {
 
   /**
    * Evaluate whether a user has access to a specific feature.
-   * Priority: Explicit DENY > Direct User ALLOW > Active Subscription Plan > Default Free Plan.
+   * Priority: Explicit DENY > Direct User ALLOW > Direct Subscription Plan > IAM Group Union Plans > Default Free Plan.
    */
   async checkUserFeature(
     userId: string,
     featureCode: string,
-  ): Promise<{ hasAccess: boolean; isBanned: boolean; reason?: string }> {
+  ): Promise<{
+    hasAccess: boolean;
+    isBanned: boolean;
+    reason?: string;
+    provenance?: {
+      type: 'DIRECT_OVERRIDE' | 'DIRECT_SUBSCRIPTION' | 'GROUP_UNION' | 'DEFAULT_FREE' | 'NONE';
+      sourceId?: string;
+      sourceName?: string;
+      planCode?: string;
+    };
+  }> {
     const now = new Date();
 
     // 1. Check feature existence
@@ -34,7 +44,12 @@ export class EntitlementsService {
       where: { code: featureCode },
     });
     if (!feature || !feature.isActive) {
-      return { hasAccess: false, isBanned: false, reason: 'Feature not found or inactive' };
+      return {
+        hasAccess: false,
+        isBanned: false,
+        reason: 'Feature not found or inactive',
+        provenance: { type: 'NONE' },
+      };
     }
 
     // 2. Step 1: Check User-Level Overrides
@@ -55,15 +70,20 @@ export class EntitlementsService {
             hasAccess: false,
             isBanned: true,
             reason: override.reason || 'This feature has been suspended on your account',
+            provenance: { type: 'DIRECT_OVERRIDE', sourceId: override.id },
           };
         }
         if (override.effect === 'ALLOW') {
-          return { hasAccess: true, isBanned: false };
+          return {
+            hasAccess: true,
+            isBanned: false,
+            provenance: { type: 'DIRECT_OVERRIDE', sourceId: override.id },
+          };
         }
       }
     }
 
-    // 3. Step 2: Check Active User Subscription Plan
+    // 3. Step 2: Check Active Direct User Subscription Plan
     const activeSubscription = await this.prisma.userSubscription.findFirst({
       where: {
         userId,
@@ -87,11 +107,66 @@ export class EntitlementsService {
         (pf) => pf.feature.code === featureCode && pf.feature.isActive,
       );
       if (hasPlanFeature) {
-        return { hasAccess: true, isBanned: false };
+        return {
+          hasAccess: true,
+          isBanned: false,
+          provenance: {
+            type: 'DIRECT_SUBSCRIPTION',
+            sourceId: activeSubscription.id,
+            planCode: activeSubscription.plan.code,
+          },
+        };
       }
     }
 
-    // 4. Step 3: Fallback to Default Free Plan
+    // 4. Step 3: Check IAM Group Union (All active groups user belongs to)
+    const userGroupMemberships = await this.prisma.userGroupMember.findMany({
+      where: {
+        userId,
+        group: { isActive: true },
+      },
+      include: {
+        group: {
+          include: {
+            groupPlans: {
+              include: {
+                plan: {
+                  include: {
+                    planFeatures: {
+                      include: { feature: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    for (const membership of userGroupMemberships) {
+      for (const gp of membership.group.groupPlans) {
+        if (gp.plan.isActive) {
+          const hasGroupPlanFeature = gp.plan.planFeatures.some(
+            (pf) => pf.feature.code === featureCode && pf.feature.isActive,
+          );
+          if (hasGroupPlanFeature) {
+            return {
+              hasAccess: true,
+              isBanned: false,
+              provenance: {
+                type: 'GROUP_UNION',
+                sourceId: membership.group.id,
+                sourceName: membership.group.name,
+                planCode: gp.plan.code,
+              },
+            };
+          }
+        }
+      }
+    }
+
+    // 5. Step 4: Fallback to Default Free Plan
     const defaultPlan = await this.prisma.subscriptionPlan.findFirst({
       where: { isDefault: true, isActive: true },
       include: {
@@ -106,29 +181,62 @@ export class EntitlementsService {
         (pf) => pf.feature.code === featureCode && pf.feature.isActive,
       );
       if (hasDefaultFeature) {
-        return { hasAccess: true, isBanned: false };
+        return {
+          hasAccess: true,
+          isBanned: false,
+          provenance: {
+            type: 'DEFAULT_FREE',
+            sourceId: defaultPlan.id,
+            planCode: defaultPlan.code,
+          },
+        };
       }
     }
 
     return {
       hasAccess: false,
       isBanned: false,
-      reason: 'This feature requires an active upgraded subscription plan',
+      reason: 'This feature requires an active upgraded subscription plan or group membership',
+      provenance: { type: 'NONE' },
     };
   }
 
   /**
-   * Retrieve full entitlement summary for a specific user.
+   * Retrieve full entitlement summary for a specific user, including
+   * IAM Group Union, Provenance breakdown, and Effective Permissions.
    */
   async getUserEntitlements(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        groupMemberships: {
+          include: {
+            group: {
+              include: {
+                groupPlans: {
+                  include: {
+                    plan: {
+                      include: {
+                        planFeatures: { include: { feature: true } },
+                        planPermissions: { include: { permission: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
     const now = new Date();
 
-    // 1. Active subscription
+    // 1. Active direct subscription
     const subscription = await this.prisma.userSubscription.findFirst({
       where: {
         userId,
@@ -140,6 +248,9 @@ export class EntitlementsService {
           include: {
             planFeatures: {
               include: { feature: true },
+            },
+            planPermissions: {
+              include: { permission: true },
             },
           },
         },
@@ -154,7 +265,40 @@ export class EntitlementsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // 3. All platform features to compute effective status
+    // 3. Extract Group Memberships
+    const groups = user.groupMemberships.map((gm) => ({
+      groupId: gm.group.id,
+      groupCode: gm.group.code,
+      groupName: gm.group.name,
+      isActive: gm.group.isActive,
+      joinedAt: gm.createdAt,
+      plans: gm.group.groupPlans.map((gp) => ({
+        planId: gp.plan.id,
+        planCode: gp.plan.code,
+        planName: gp.plan.name,
+      })),
+    }));
+
+    // 4. Effective Permissions Union (From direct plan + all active group plans)
+    const effectivePermissionCodes = new Set<string>();
+    if (subscription?.plan?.planPermissions) {
+      for (const pp of subscription.plan.planPermissions) {
+        effectivePermissionCodes.add(pp.permission.code);
+      }
+    }
+    for (const gm of user.groupMemberships) {
+      if (gm.group.isActive) {
+        for (const gp of gm.group.groupPlans) {
+          if (gp.plan.isActive && gp.plan.planPermissions) {
+            for (const pp of gp.plan.planPermissions) {
+              effectivePermissionCodes.add(pp.permission.code);
+            }
+          }
+        }
+      }
+    }
+
+    // 5. All platform features to compute effective status & provenance
     const allFeatures = await this.prisma.feature.findMany({
       where: { isActive: true },
       orderBy: { category: 'asc' },
@@ -171,6 +315,7 @@ export class EntitlementsService {
           hasAccess: result.hasAccess,
           isBanned: result.isBanned,
           reason: result.reason,
+          provenance: result.provenance,
         };
       }),
     );
@@ -180,6 +325,7 @@ export class EntitlementsService {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
       },
       currentSubscription: subscription
@@ -192,6 +338,8 @@ export class EntitlementsService {
             endDate: subscription.endDate,
           }
         : null,
+      groups,
+      effectivePermissions: Array.from(effectivePermissionCodes),
       overrides: overrides.map((o) => ({
         id: o.id,
         featureCode: o.feature.code,

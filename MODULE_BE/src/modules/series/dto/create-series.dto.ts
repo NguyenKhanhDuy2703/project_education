@@ -27,7 +27,7 @@ export class CreateSeriesDto {
   @IsOptional()
   level?: string;
 
-  @ApiPropertyOptional({ example: '🧪', description: 'Emoji đại diện cho topic' })
+  @ApiPropertyOptional({ example: 'bookmark', description: 'Icon identifier' })
   @IsString()
   @IsOptional()
   coverEmoji?: string;

@@ -9,8 +9,20 @@ datasource db {
 
 enum UserRole {
   admin
+  contributor
   user
   userPro
+}
+
+enum ContentLifecycleStatus {
+  draft
+  submitted
+  in_review
+  changes_requested
+  approved
+  published
+  archived
+  rejected
 }
 
 model User {
@@ -33,56 +45,90 @@ model User {
   createdAuditLogs  AuditLog[]            @relation("ActorLogs")
   targetedAuditLogs AuditLog[]            @relation("TargetLogs")
 
+  authoredSeries    LabSeries[]           @relation("AuthoredSeries")
+  authoredLabs      Lab[]                 @relation("AuthoredLabs")
+  groupMemberships  UserGroupMember[]
+  submissions       LabSubmission[]
+
   @@map("users")
 }
 
 model LabSeries {
-  id               String   @id @default(uuid())
+  id               String                 @id @default(uuid())
   title            String
-  slug             String   @unique
-  category         String   @default("testing")
+  slug             String                 @unique
+  category         String                 @default("testing")
   repoUrl          String?
   swaggerUrl       String?
-  description      String   @db.Text
-  level            String   @default("beginner")
-  coverEmoji       String?  @default("🧪")
-  orderIndex       Int      @default(0)
-  isProOnly        Boolean  @default(false)
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  description      String                 @db.Text
+  level            String                 @default("beginner")
+  coverEmoji       String?                @default("🧪")
+  orderIndex       Int                    @default(0)
+  isProOnly        Boolean                @default(false)
+  isActive         Boolean                @default(true)
+  status           ContentLifecycleStatus @default(draft)
+  reviewFeedback   String?                @db.Text
+  version          String                 @default("v1.0")
+  authorId         String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
 
+  author           User?                  @relation("AuthoredSeries", fields: [authorId], references: [id], onDelete: SetNull)
   labs             Lab[]
 
   @@map("lab_series")
 }
 
 model Lab {
-  id               String     @id @default(uuid())
+  id               String                 @id @default(uuid())
   seriesId         String
   title            String
-  slug             String     @unique
-  sandboxType      String     @default("js_worker")
-  objective        String?    @db.Text
-  instructions     String     @db.Text
-  initialSnippet   String?    @db.Text
-  testScript       String?    @db.Text
-  solution         String?    @db.Text
-  durationMinutes  Int        @default(20)
-  isFreePreview    Boolean    @default(true)
-  isProOnly        Boolean    @default(false)
-  orderIndex       Int        @default(0)
-  isActive         Boolean    @default(true)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  slug             String                 @unique
+  sandboxType      String                 @default("js_worker")
+  objective        String?                @db.Text
+  instructions     String                 @db.Text
+  initialSnippet   String?                @db.Text
+  testScript       String?                @db.Text
+  solution         String?                @db.Text
+  durationMinutes  Int                    @default(20)
+  isFreePreview    Boolean                @default(true)
+  isProOnly        Boolean                @default(false)
+  orderIndex       Int                    @default(0)
+  isActive         Boolean                @default(true)
+  status           ContentLifecycleStatus @default(draft)
+  reviewFeedback   String?                @db.Text
+  version          String                 @default("v1.0")
+  authorId         String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
 
-  series           LabSeries  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  series           LabSeries              @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  author           User?                  @relation("AuthoredLabs", fields: [authorId], references: [id], onDelete: SetNull)
+  submissions      LabSubmission[]
 
   @@map("labs")
 }
 
+model LabSubmission {
+  id              String   @id @default(uuid())
+  labId           String
+  userId          String
+  submittedCode   String   @db.Text
+  status          String   @default("passed") // "passed" | "failed"
+  executionTimeMs Int      @default(0)
+  testLogs        String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  lab             Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, labId])
+  @@index([labId, createdAt])
+  @@map("lab_submissions")
+}
+
 // ============================================================================
-// Dynamic Authorization, Subscription Plans & Feature Entitlements
+// Dynamic Authorization, Subscription Plans, IAM Groups & Entitlements
 // ============================================================================
 
 enum FeatureCategory {
@@ -128,13 +174,15 @@ model Feature {
 }
 
 model Permission {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  name        String
-  description String?  @db.Text
-  module      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  description     String?          @db.Text
+  module          String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  planPermissions PlanPermission[]
 
   @@map("permissions")
 }
@@ -151,8 +199,10 @@ model SubscriptionPlan {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  planFeatures  PlanFeature[]
-  subscriptions UserSubscription[]
+  planFeatures    PlanFeature[]
+  subscriptions   UserSubscription[]
+  groupPlans      GroupPlan[]
+  planPermissions PlanPermission[]
 
   @@map("subscription_plans")
 }
@@ -170,16 +220,67 @@ model PlanFeature {
   @@map("plan_features")
 }
 
+model PlanPermission {
+  planId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  plan         SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  permission   Permission       @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([planId, permissionId])
+  @@map("plan_permissions")
+}
+
+model UserGroup {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members    UserGroupMember[]
+  groupPlans GroupPlan[]
+
+  @@map("user_groups")
+}
+
+model UserGroupMember {
+  userId    String
+  groupId   String
+  createdAt DateTime @default(now())
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group UserGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([userId, groupId])
+  @@map("user_group_members")
+}
+
+model GroupPlan {
+  groupId   String
+  planId    String
+  createdAt DateTime @default(now())
+
+  group UserGroup        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  plan  SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, planId])
+  @@map("group_plans")
+}
+
 model UserSubscription {
-  id         String             @id @default(uuid())
-  userId     String
-  planId     String
-  status     SubscriptionStatus @default(ACTIVE)
-  startDate  DateTime           @default(now())
-  endDate    DateTime?
-  autoRenew  Boolean            @default(false)
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
+  id        String             @id @default(uuid())
+  userId    String
+  planId    String
+  status    SubscriptionStatus @default(ACTIVE)
+  startDate DateTime           @default(now())
+  endDate   DateTime?
+  autoRenew Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
 
   user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
@@ -224,5 +325,3 @@ model AuditLog {
   @@index([action, createdAt])
   @@map("audit_logs")
 }
-
-
