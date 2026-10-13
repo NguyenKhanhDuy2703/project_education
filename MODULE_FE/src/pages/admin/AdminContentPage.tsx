@@ -27,15 +27,6 @@ export function AdminContentPage() {
       {/* Header with Dynamic Breadcrumbs */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border">
         <div className="space-y-1.5">
-          {/* Dynamic Breadcrumbs */}
-          <nav className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-            <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
-            <span>/</span>
-            <Link to="/admin" className="hover:text-foreground transition-colors">Admin Studio</Link>
-            <span>/</span>
-            <span className="text-foreground font-semibold">Content Studio</span>
-          </nav>
-
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Catalog Oversight

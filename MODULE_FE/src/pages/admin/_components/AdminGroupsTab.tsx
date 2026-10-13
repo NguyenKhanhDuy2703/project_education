@@ -86,9 +86,10 @@ export function AdminGroupsTab() {
 
   // Compute effective permissions for a set of planIds
   const computeGroupEffectivePermissions = useCallback(
-    (planIds: string[]): PermissionCode[] => {
+    (planIds: string[] = []): PermissionCode[] => {
       const permSet = new Set<PermissionCode>();
-      const activePlans = plans.filter((p) => p.isActive && planIds.includes(p.id));
+      const safePlanIds = planIds || [];
+      const activePlans = plans.filter((p) => p.isActive && safePlanIds.includes(p.id));
       activePlans.forEach((p: any) => {
         (p.permissionCodes || []).forEach((code: PermissionCode) => permSet.add(code));
       });
@@ -104,19 +105,20 @@ export function AdminGroupsTab() {
       name: '',
       code: '',
       description: '',
-      planIds: ['plan-free'],
+      planIds: plans[0]?.id ? [plans[0].id] : [],
       isActive: true,
     });
     setGroupModalOpen(true);
   };
 
-  const handleOpenEditGroup = (group: UserGroup) => {
+  const handleOpenEditGroup = (group: any) => {
     setEditingGroup(group);
+    const initialPlanIds = group.planIds || group.plans?.map((p: any) => p.id) || [];
     setGroupForm({
       name: group.name,
       code: group.code,
       description: group.description || '',
-      planIds: [...group.planIds],
+      planIds: [...initialPlanIds],
       isActive: group.isActive,
     });
     setGroupModalOpen(true);
@@ -124,10 +126,11 @@ export function AdminGroupsTab() {
 
   const handleTogglePlanInGroup = (planId: string) => {
     setGroupForm((prev) => {
-      const exists = prev.planIds.includes(planId);
+      const currentPlanIds = prev.planIds || [];
+      const exists = currentPlanIds.includes(planId);
       const nextPlanIds = exists
-        ? prev.planIds.filter((id) => id !== planId)
-        : [...prev.planIds, planId];
+        ? currentPlanIds.filter((id) => id !== planId)
+        : [...currentPlanIds, planId];
       return { ...prev, planIds: nextPlanIds };
     });
   };
@@ -215,10 +218,7 @@ export function AdminGroupsTab() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            User Groups (AWS IAM Groups)
-            <Badge variant="outline" className="font-mono text-xs font-normal">
-              IAM Model
-            </Badge>
+            User Groups
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Assign subscription plans to groups instead of individual users. A user can belong to multiple groups.
@@ -245,10 +245,12 @@ export function AdminGroupsTab() {
       {/* Group Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredGroups.map((group) => {
-          const groupPlans = plans.filter((p) => group.planIds.includes(p.id));
-          const effectiveCodes = computeGroupEffectivePermissions(group.planIds);
+          const groupPlanIds = group.planIds || (group as any).plans?.map((p: any) => p.id) || [];
+          const groupPlans = plans.filter((p) => groupPlanIds.includes(p.id));
+          const effectiveCodes = computeGroupEffectivePermissions(groupPlanIds);
+          const groupMemberIds = group.memberIds || [];
           const memberUsers = allUsers.filter(
-            (u) => u.groupIds?.includes(group.id) || group.memberIds.includes(u.id)
+            (u) => u.groupIds?.includes(group.id) || groupMemberIds.includes(u.id)
           );
 
           return (
@@ -438,9 +440,8 @@ export function AdminGroupsTab() {
                             {plan.code}
                           </Badge>
                         </div>
-                        <p className="text-[11px] text-muted-foreground line-clamp-1">{plan.description}</p>
                         <p className="text-[10px] text-primary font-mono mt-0.5">
-                          {plan.permissionCodes.length} permissions
+                          {plan.planFeatures?.length ?? plan.permissionCodes?.length ?? 0} features
                         </p>
                       </div>
                     </div>

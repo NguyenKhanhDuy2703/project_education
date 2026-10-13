@@ -38,6 +38,6 @@ export const BREADCRUMB_DOMAINS = {
   CONTRIBUTOR_STUDIO: 'Contributor Studio',
   CONTENT_STUDIO: 'Content Studio',
   REVIEW_QUEUE: 'Review Queue',
-  IAM_GROUPS: 'IAM Groups & Plans',
+  IAM_GROUPS: 'User Groups & Plans',
   AUDIT_TRAIL: 'Audit Trail',
 } as const;

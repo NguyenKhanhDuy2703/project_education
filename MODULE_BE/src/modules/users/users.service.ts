@@ -279,6 +279,49 @@ export class UsersService {
     };
   }
 
+  async hardDeleteByAdmin(targetUserId: string, currentAdminId: string) {
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException(`User with ID "${targetUserId}" not found.`);
+    }
+
+    if (targetUserId === currentAdminId) {
+      throw new BadRequestException('Security Violation: Administrators cannot delete their own active account.');
+    }
+
+    if (targetUser.email === 'admin@studyweb.dev') {
+      throw new BadRequestException('Security Violation: System Root Super Administrator account is protected and cannot be deleted.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userSubscription.deleteMany({ where: { userId: targetUserId } });
+      await tx.userFeatureOverride.deleteMany({ where: { userId: targetUserId } });
+      await tx.userGroupMember.deleteMany({ where: { userId: targetUserId } });
+      await tx.labSubmission.deleteMany({ where: { userId: targetUserId } });
+      await tx.auditLog.deleteMany({ where: { actorId: targetUserId } });
+      await tx.auditLog.deleteMany({ where: { targetUserId: targetUserId } });
+
+      await tx.labSeries.updateMany({
+        where: { authorId: targetUserId },
+        data: { authorId: null },
+      });
+      await tx.lab.updateMany({
+        where: { authorId: targetUserId },
+        data: { authorId: null },
+      });
+
+      await tx.user.delete({ where: { id: targetUserId } });
+    });
+
+    return {
+      message: `User "${targetUser.name}" has been permanently deleted from the system.`,
+      userId: targetUserId,
+    };
+  }
+
   async updateRole(id: string, role: UserRole): Promise<User> {
     return this.prisma.user.update({
       where: { id },

@@ -204,14 +204,14 @@ export function UserEntitlementsModal({ userId, onClose }: UserEntitlementsModal
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  IAM &amp; Permissions Management
+                  Permissions &amp; Groups Management
                 </h2>
                 <Badge variant="outline" className="text-xs uppercase font-semibold">
                   {displayRole}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Configure user groups (AWS IAM Group model), trace permission provenance, and manage feature overrides.
+                Configure user groups, trace permission provenance, and manage feature overrides.
               </p>
             </div>
           </div>
@@ -245,7 +245,7 @@ export function UserEntitlementsModal({ userId, onClose }: UserEntitlementsModal
               }`}
             >
               <Users className="size-3.5 text-primary" />
-              IAM Groups &amp; Permissions Analysis
+              User Groups &amp; Permissions Analysis
             </button>
             <button
               onClick={() => setActiveTab('subscription')}
@@ -288,7 +288,7 @@ export function UserEntitlementsModal({ userId, onClose }: UserEntitlementsModal
                   <div>
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                       <Users className="size-4 text-primary" />
-                      IAM Group Memberships
+                      User Group Memberships
                     </h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       User permissions are aggregated (Union) from all active plans attached to assigned groups.
@@ -302,7 +302,8 @@ export function UserEntitlementsModal({ userId, onClose }: UserEntitlementsModal
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
                   {allGroups.map((group) => {
                     const isMember = group.memberIds?.includes(userId!) ?? false;
-                    const groupPlans = allPlans.filter((p) => group.planIds.includes(p.id));
+                    const groupPlanIds = group.planIds || (group as any).plans?.map((p: any) => p.id) || [];
+                    const groupPlans = allPlans.filter((p) => groupPlanIds.includes(p.id));
 
                     return (
                       <div
