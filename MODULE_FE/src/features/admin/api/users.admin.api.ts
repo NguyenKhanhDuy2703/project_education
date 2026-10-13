@@ -73,10 +73,10 @@ export const usersAdminApi = {
   },
 
   /**
-   * Soft-delete / deactivate a user account with protection checks (Admin only).
+   * Delete or deactivate a user account with protection checks (Admin only).
    */
-  deleteUser: async (userId: string): Promise<void> => {
-    await apiClient.delete(`/users/${userId}`);
+  deleteUser: async (userId: string, permanent: boolean = true): Promise<void> => {
+    await apiClient.delete(`/users/${userId}`, { params: { permanent } });
   },
 
   /**

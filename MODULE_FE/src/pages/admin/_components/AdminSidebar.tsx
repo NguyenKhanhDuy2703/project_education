@@ -40,7 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Review Queue', href: '/admin/review', icon: ClipboardCheck },
   { label: 'Catalog Oversight', href: '/admin/content', icon: Layers },
   { label: 'Users', href: '/admin/users', icon: Users },
-  { label: 'Plans & Groups (IAM)', href: '/admin/plans', icon: CreditCard },
+  { label: 'Plans & Groups', href: '/admin/plans', icon: CreditCard },
   { label: 'Audit Trail', href: '/admin/audit', icon: FileText },
 ];
 

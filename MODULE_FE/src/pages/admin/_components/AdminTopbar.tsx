@@ -1,14 +1,6 @@
-import { useLocation } from 'react-router-dom';
 import { useAppSelector } from '@/stores/store';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+import { AppBreadcrumb } from '@/components/layout/AppBreadcrumb';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,19 +17,6 @@ interface AdminTopbarProps {
   onToggleMobileMenu?: () => void;
 }
 
-/** Map pathname segments to human-readable labels */
-const BREADCRUMB_MAP: Record<string, string> = {
-  admin: 'Admin Studio',
-  content: 'Content Studio',
-  users: 'User Directory',
-  plans: 'IAM & Plans',
-  audit: 'Audit Log',
-  dashboard: 'Overview',
-  labs: 'Practice Labs',
-  new: 'Create New',
-  edit: 'Editor',
-};
-
 function getInitials(name?: string) {
   if (!name) return 'A';
   const parts = name.trim().split(' ');
@@ -45,22 +24,10 @@ function getInitials(name?: string) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function useBreadcrumbs() {
-  const location = useLocation();
-  // Split path and build crumb pairs
-  const segments = location.pathname.split('/').filter(Boolean);
-  return segments.map((seg, idx) => ({
-    label: BREADCRUMB_MAP[seg] || seg.charAt(0).toUpperCase() + seg.slice(1),
-    href: '/' + segments.slice(0, idx + 1).join('/'),
-    isLast: idx === segments.length - 1,
-  }));
-}
-
 export function AdminTopbar({ onToggleMobileMenu }: AdminTopbarProps) {
   const { user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const breadcrumbs = useBreadcrumbs();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -80,29 +47,7 @@ export function AdminTopbar({ onToggleMobileMenu }: AdminTopbarProps) {
         </button>
       )}
       {/* Breadcrumb */}
-      <Breadcrumb className="flex-1">
-        <BreadcrumbList>
-          {breadcrumbs.map((crumb, idx) => (
-            <span key={crumb.href} className="flex items-center gap-1.5">
-              {idx > 0 && <BreadcrumbSeparator />}
-              <BreadcrumbItem>
-                {crumb.isLast ? (
-                  <BreadcrumbPage className="text-xs font-semibold text-foreground">
-                    {crumb.label}
-                  </BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink
-                    href={crumb.href}
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    {crumb.label}
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-            </span>
-          ))}
-        </BreadcrumbList>
-      </Breadcrumb>
+      <AppBreadcrumb className="flex-1" />
 
       {/* Right actions */}
       <div className="flex items-center gap-2">
