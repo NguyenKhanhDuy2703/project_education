@@ -1,4 +1,9 @@
-import { Clock, ExternalLink, Pencil, Trash2, Plus } from 'lucide-react';
+/**
+ * AdminLabsTab — Quản lý danh sách Bài thực hành (Labs) trong Series
+ *
+ * Chỉ đơn giản: xem danh sách, thêm bài lab mới và sửa bài lab (kèm bài tập).
+ * Zero icons, styled with shadcn/ui.
+ */
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,50 +31,57 @@ export function AdminLabsTab({
   onDeleteLab,
 }: AdminLabsTabProps) {
   return (
-    <div className="mt-6 space-y-6">
-      {/* Topic selector */}
+    <div className="space-y-6">
+      {/* Series selector bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-foreground">Chọn Topic kiến thức:</span>
+          <span className="text-sm font-semibold text-foreground">Curriculum Series:</span>
           <select
             value={activeSeries?.slug || ''}
             onChange={(e) => onSelectSeries(e.target.value)}
-            className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
           >
             {seriesList.map((s) => (
               <option key={s.id} value={s.slug}>
-                {s.coverEmoji} {s.title} ({s._count?.labs ?? s.labs?.length ?? 0} bài)
+                {s.title} ({s._count?.labs ?? s.labs?.length ?? 0} labs)
               </option>
             ))}
           </select>
         </div>
 
-        <Button onClick={onCreateLab} size="sm" className="gap-2 font-semibold">
-          <Plus className="size-4" /> Thêm Bài Thực hành
+        <Button
+          onClick={onCreateLab}
+          size="sm"
+          className="text-xs font-bold px-3 shadow-xs"
+        >
+          + Add New Lab
         </Button>
       </div>
 
       {/* Labs Table */}
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Đang tải danh sách bài lab...</p>
+        <p className="text-sm text-muted-foreground">Loading practice labs...</p>
       ) : filteredLabs.length === 0 ? (
-        <div className="text-center py-12 border border-dashed rounded-xl p-8">
-          <p className="text-muted-foreground text-sm">Không tìm thấy bài thực hành hoặc blog nào.</p>
-          <Button onClick={onCreateLab} className="mt-4 gap-2">
-            <Plus className="size-4" /> Thêm bài đầu tiên
+        <div className="text-center py-12 border border-dashed rounded-xl p-8 bg-card space-y-3">
+          <p className="text-muted-foreground text-sm font-medium">No practice labs found in this series.</p>
+          <Button
+            onClick={onCreateLab}
+            className="text-xs font-bold"
+          >
+            + Create First Lab
           </Button>
         </div>
       ) : (
-        <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
+        <div className="border border-border rounded-xl overflow-hidden bg-card shadow-xs">
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/50 border-b border-border text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               <tr>
                 <th className="py-3 px-4">#</th>
-                <th className="py-3 px-4">Tiêu đề bài học / Blog</th>
-                <th className="py-3 px-4">Loại môi trường</th>
-                <th className="py-3 px-4">Thời lượng</th>
-                <th className="py-3 px-4">Phân quyền</th>
-                <th className="py-3 px-4 text-right">Thao tác</th>
+                <th className="py-3 px-4">Lab Title</th>
+                <th className="py-3 px-4">Sandbox Type</th>
+                <th className="py-3 px-4">Duration</th>
+                <th className="py-3 px-4">Access Tier</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -81,48 +93,57 @@ export function AdminLabsTab({
                     <p className="text-xs text-muted-foreground font-mono mt-0.5">/{lab.slug}</p>
                   </td>
                   <td className="py-3.5 px-4">
-                    <Badge variant="outline" className="font-mono text-[11px]">
-                      {lab.sandboxType || 'js_worker'}
+                    <Badge variant="outline" className="font-mono text-[11px] uppercase">
+                      {lab.sandboxType === 'sql_worker'
+                        ? 'SQL'
+                        : lab.sandboxType === 'quizlet'
+                        ? 'Quizlet'
+                        : lab.sandboxType === 'markdown_only'
+                        ? 'Blog'
+                        : 'JavaScript'}
                     </Badge>
                   </td>
                   <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="size-3.5" /> {lab.durationMinutes || 20}p
-                    </span>
+                    {lab.durationMinutes || 20} mins
                   </td>
                   <td className="py-3.5 px-4">
                     {lab.isProOnly ? (
-                      <Badge variant="outline" className="border-amber-500/40 text-amber-500 text-[10px]">
-                        Pro Only
+                      <Badge variant="secondary" className="border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-[10px] font-bold">
+                        PRO
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-500 text-[10px]">
+                      <Badge variant="outline" className="text-muted-foreground text-[10px]">
                         Free
                       </Badge>
                     )}
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Link to={`/labs/${lab.slug}`} target="_blank">
-                        <Button variant="ghost" size="icon-sm" title="Mở trang Workspace làm bài">
-                          <ExternalLink className="size-3.5 text-muted-foreground hover:text-foreground" />
-                        </Button>
-                      </Link>
+                    <div className="flex items-center justify-end gap-2">
                       <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => onEditLab(lab)}
-                        title="Sửa nội dung"
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="h-7 text-xs px-2.5 font-medium"
                       >
-                        <Pencil className="size-3.5 text-muted-foreground hover:text-primary" />
+                        <Link to={`/labs/${lab.slug || lab.id}`} target="_blank">
+                          Preview
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => onEditLab(lab)}
+                        className="h-7 text-xs px-2.5 font-semibold"
+                      >
+                        Edit
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon-sm"
+                        size="sm"
                         onClick={() => onDeleteLab(lab.id, lab.title)}
-                        title="Xóa bài"
+                        className="h-7 text-xs px-2 text-destructive hover:bg-destructive/10"
                       >
-                        <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
+                        Delete
                       </Button>
                     </div>
                   </td>
