@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
+import { UpdatePlanDto } from './dto/update-plan.dto';
 import { CreateFeatureDto } from './dto/create-feature.dto';
 import { AssignSubscriptionDto } from './dto/assign-subscription.dto';
 import { SetFeatureOverrideDto } from './dto/set-feature-override.dto';
@@ -529,6 +530,53 @@ export class EntitlementsService {
     }
 
     return this.prisma.subscriptionPlan.create({ data: dto });
+  }
+
+  async updatePlan(planId: string, dto: UpdatePlanDto) {
+    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: planId } });
+    if (!plan) throw new NotFoundException('Plan not found');
+
+    if (dto.isDefault) {
+      await this.prisma.subscriptionPlan.updateMany({
+        where: { isDefault: true, id: { not: planId } },
+        data: { isDefault: false },
+      });
+    }
+
+    return this.prisma.subscriptionPlan.update({
+      where: { id: planId },
+      data: dto,
+      include: {
+        planFeatures: { include: { feature: true } },
+      },
+    });
+  }
+
+  async deletePlan(planId: string) {
+    const plan = await this.prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
+      include: {
+        subscriptions: {
+          where: { status: SubscriptionStatus.ACTIVE },
+        },
+      },
+    });
+    if (!plan) throw new NotFoundException('Plan not found');
+
+    if (plan.subscriptions.length > 0) {
+      throw new BadRequestException(
+        `Cannot delete plan "${plan.name}" because it has ${plan.subscriptions.length} active subscriber(s). Please deactivate the plan instead.`
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.planFeature.deleteMany({ where: { planId } });
+      await tx.groupPlan.deleteMany({ where: { planId } });
+      await tx.userSubscription.deleteMany({ where: { planId } });
+      await tx.subscriptionPlan.delete({ where: { id: planId } });
+    });
+
+    return { message: `Plan "${plan.name}" deleted successfully`, planId };
   }
 
   async updatePlanFeatures(planId: string, featureIds: string[]) {
