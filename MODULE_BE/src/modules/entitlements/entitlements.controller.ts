@@ -18,6 +18,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { EntitlementsService } from './entitlements.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
+import { UpdatePlanDto } from './dto/update-plan.dto';
 import { UpdatePlanFeaturesDto } from './dto/update-plan-features.dto';
 import { CreateFeatureDto } from './dto/create-feature.dto';
 import { AssignSubscriptionDto } from './dto/assign-subscription.dto';
@@ -58,6 +59,29 @@ export class EntitlementsController {
   @HttpCode(HttpStatus.CREATED)
   async createPlan(@Body() dto: CreatePlanDto) {
     return this.entitlementsService.createPlan(dto);
+  }
+
+  @Put('admin/plans/:id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.admin)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update subscription plan details (Admin only)' })
+  @HttpCode(HttpStatus.OK)
+  async updatePlan(
+    @Param('id') planId: string,
+    @Body() dto: UpdatePlanDto,
+  ) {
+    return this.entitlementsService.updatePlan(planId, dto);
+  }
+
+  @Delete('admin/plans/:id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.admin)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a subscription plan (Admin only)' })
+  @HttpCode(HttpStatus.OK)
+  async deletePlan(@Param('id') planId: string) {
+    return this.entitlementsService.deletePlan(planId);
   }
 
   @Put('admin/plans/:id/features')

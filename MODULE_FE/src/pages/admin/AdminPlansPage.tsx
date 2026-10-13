@@ -17,11 +17,11 @@ export function AdminPlansPage() {
               <Shield className="size-5" />
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              IAM Permissions &amp; Plans Management
+              Plans &amp; User Groups Management
             </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            AWS IAM model: Define feature plans and assign them to User Groups to consolidate effective access permissions.
+            Define feature plans and assign them to User Groups to consolidate effective access permissions.
           </p>
         </div>
       </div>
@@ -35,7 +35,7 @@ export function AdminPlansPage() {
           </TabsTrigger>
           <TabsTrigger value="groups" className="text-xs font-semibold px-4 gap-1.5">
             <Users className="size-3.5" />
-            2. User Groups (IAM Groups)
+            2. User Groups
           </TabsTrigger>
         </TabsList>
 

@@ -3,7 +3,6 @@
  * Displays parent topics containing nested practice labs.
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -14,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Folder, ExternalLink } from 'lucide-react';
+import { Folder } from 'lucide-react';
 import type { LabSeries } from '@/types/lab.types';
 
 interface AdminTopicHierarchyProps {
@@ -184,39 +183,28 @@ export function AdminTopicHierarchy({
                     variant="outline"
                     size="sm"
                     onClick={() => onEditTopic(topic)}
-                    className="h-8 text-xs px-2.5"
+                    className="h-8 text-xs font-medium"
                   >
                     Edit
                   </Button>
 
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    asChild
-                    className="h-8 text-xs px-2 text-muted-foreground hover:text-foreground hidden md:inline-flex gap-1"
-                  >
-                    <Link to={`/series/${topic.slug}`} target="_blank">
-                      View <ExternalLink className="size-3" />
-                    </Link>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
+                    variant="destructive"
                     size="sm"
                     onClick={() => onDeleteTopic(topic.id, topic.title)}
-                    className="h-8 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="h-8 text-xs font-medium"
                   >
                     Delete
                   </Button>
 
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
                     onClick={() => toggleCollapse(topic.id)}
-                    className="h-8 text-xs px-2 font-mono"
+                    className="h-8 text-xs font-medium"
                     title={isCollapsed ? 'Expand labs' : 'Collapse labs'}
                   >
-                    {isCollapsed ? `[+] ${labsCount} labs` : '[-] Collapse'}
+                    {isCollapsed ? `[+] ${labsCount} labs` : `[-] ${labsCount} labs`}
                   </Button>
                 </div>
               </div>
@@ -275,21 +263,10 @@ export function AdminTopicHierarchy({
                             <TableCell className="py-2.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  asChild
-                                  className="h-7 text-xs px-2 text-primary hover:text-primary font-medium"
-                                >
-                                  <Link to={`/labs/${lab.slug || lab.id}`} target="_blank">
-                                    Preview
-                                  </Link>
-                                </Button>
-
-                                <Button
-                                  variant="ghost"
+                                  variant="destructive"
                                   size="sm"
                                   onClick={() => onDeleteLab(lab.id, lab.title)}
-                                  className="h-7 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  className="h-7 text-xs px-2.5 font-medium"
                                 >
                                   Delete
                                 </Button>

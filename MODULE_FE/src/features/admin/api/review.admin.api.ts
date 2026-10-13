@@ -18,6 +18,12 @@ export interface ReviewQueueItem {
   submittedAt?: string;
 }
 
+export interface ReviewQueueResponse {
+  counts: Record<string, number>;
+  total: number;
+  items: ReviewQueueItem[];
+}
+
 export interface ReviewQueueFilter {
   status?: ContentLifecycleStatus;
   type?: 'all' | 'series' | 'lab';
@@ -25,9 +31,17 @@ export interface ReviewQueueFilter {
 }
 
 export const adminReviewApi = {
-  getQueue: async (filter?: ReviewQueueFilter): Promise<ReviewQueueItem[]> => {
+  getQueue: async (filter?: ReviewQueueFilter): Promise<ReviewQueueResponse> => {
     const res = await apiClient.get<any>('/admin/review/queue', { params: filter });
-    return res.data?.data || res.data || [];
+    const payload = res.data?.data || res.data;
+    if (Array.isArray(payload)) {
+      return { counts: {}, total: payload.length, items: payload };
+    }
+    return {
+      counts: payload?.counts || {},
+      total: payload?.total || (payload?.items?.length ?? 0),
+      items: payload?.items || [],
+    };
   },
 
   approve: async (type: 'series' | 'lab', id: string): Promise<any> => {

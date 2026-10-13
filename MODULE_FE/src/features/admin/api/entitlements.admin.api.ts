@@ -126,6 +126,31 @@ export const entitlementsAdminApi = {
   },
 
   /**
+   * Update subscription plan details (Admin only).
+   */
+  updatePlan: async (
+    planId: string,
+    data: {
+      name?: string;
+      description?: string;
+      price?: number;
+      billingCycle?: string;
+      isActive?: boolean;
+      isDefault?: boolean;
+    },
+  ): Promise<SubscriptionPlanItem> => {
+    const res = await apiClient.put<any>(`/admin/plans/${planId}`, data);
+    return res.data?.data ?? res.data;
+  },
+
+  /**
+   * Delete a subscription plan (Admin only).
+   */
+  deletePlan: async (planId: string): Promise<void> => {
+    await apiClient.delete(`/admin/plans/${planId}`);
+  },
+
+  /**
    * Update mapped features for a subscription plan.
    */
   updatePlanFeatures: async (planId: string, featureIds: string[]): Promise<SubscriptionPlanItem> => {

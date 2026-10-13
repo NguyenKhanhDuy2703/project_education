@@ -29,6 +29,9 @@ export class GroupsService {
             plan: true,
           },
         },
+        members: {
+          select: { userId: true },
+        },
         _count: {
           select: { members: true },
         },
@@ -43,6 +46,8 @@ export class GroupsService {
       description: g.description,
       isActive: g.isActive,
       memberCount: g._count.members,
+      planIds: g.groupPlans.map((gp) => gp.planId),
+      memberIds: g.members.map((m) => m.userId),
       plans: g.groupPlans.map((gp) => ({
         id: gp.plan.id,
         code: gp.plan.code,

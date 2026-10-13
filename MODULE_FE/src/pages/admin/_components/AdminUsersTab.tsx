@@ -36,7 +36,6 @@ import {
   Edit2,
   Trash2,
   PenTool,
-  AlertTriangle,
 } from 'lucide-react';
 import { UserEntitlementsModal } from './UserEntitlementsModal';
 
@@ -118,13 +117,13 @@ export function AdminUsersTab() {
     },
   });
 
-  // Delete User Mutation (Soft-delete)
+  // Delete User Mutation
   const deleteMutation = useMutation({
-    mutationFn: (userId: string) => usersAdminApi.deleteUser(userId),
+    mutationFn: (userId: string) => usersAdminApi.deleteUser(userId, true),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
       setDeletingUser(null);
-      showFeedback('User account safely deactivated (soft-deleted).');
+      showFeedback('User account deleted successfully.');
     },
     onError: (err: any) => {
       showFeedback(err?.response?.data?.message || 'Failed to delete user', 'error');
@@ -398,10 +397,10 @@ export function AdminUsersTab() {
                             }
                             className="text-xs py-1 px-2 bg-background border border-border rounded-md text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed"
                           >
-                            <option value="user">Assign: Student</option>
-                            <option value="userPro">Assign: Pro Member ⭐</option>
-                            <option value="contributor">Assign: Contributor ✍️</option>
-                            <option value="admin">Assign: Administrator 🛡️</option>
+                            <option value="user">Student</option>
+                            <option value="userPro">Pro Member</option>
+                            <option value="contributor">Contributor</option>
+                            <option value="admin">Administrator</option>
                           </select>
                         </div>
                       </td>
@@ -442,7 +441,7 @@ export function AdminUsersTab() {
                             size="sm"
                             onClick={() => setManagingUserId(u.id)}
                             className="h-8 text-xs gap-1 text-primary hover:bg-primary/10 border-primary/20"
-                            title="IAM & Entitlements"
+                            title="Plans & Permissions"
                           >
                             <ShieldCheck className="size-3.5" /> Plans
                           </Button>
@@ -619,10 +618,10 @@ export function AdminUsersTab() {
                 onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}
                 className="w-full h-9 text-xs px-3 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                <option value="user">Student (Free Tier)</option>
-                <option value="userPro">Pro Member ⭐</option>
-                <option value="contributor">Content Contributor ✍️</option>
-                <option value="admin">Administrator 🛡️</option>
+                <option value="user">Student</option>
+                <option value="userPro">Pro Member</option>
+                <option value="contributor">Contributor</option>
+                <option value="admin">Administrator</option>
               </select>
             </div>
 
@@ -718,10 +717,10 @@ export function AdminUsersTab() {
                 onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
                 className="w-full h-9 text-xs px-3 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
               >
-                <option value="user">Student (Free Tier)</option>
-                <option value="userPro">Pro Member ⭐</option>
-                <option value="contributor">Content Contributor ✍️</option>
-                <option value="admin">Administrator 🛡️</option>
+                <option value="user">Student</option>
+                <option value="userPro">Pro Member</option>
+                <option value="contributor">Contributor</option>
+                <option value="admin">Administrator</option>
               </select>
             </div>
 
@@ -762,26 +761,25 @@ export function AdminUsersTab() {
         </DialogContent>
       </Dialog>
 
-      {/* ── DELETE USER DIALOG (Soft-Delete with Safety Warning) ────────────── */}
+      {/* ── DELETE USER DIALOG ────────────── */}
       <Dialog open={Boolean(deletingUser)} onOpenChange={(open) => !open && setDeletingUser(null)}>
         <DialogContent className="w-[95vw] sm:max-w-md p-6">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2 text-destructive">
-              <AlertTriangle className="size-5" />
-              Deactivate User Account
+              <Trash2 className="size-5" />
+              Delete User Account
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed pt-1">
-              Are you sure you want to deactivate and soft-delete user{' '}
+              Are you sure you want to delete user{' '}
               <strong className="text-foreground">{deletingUser?.name}</strong> (
               {deletingUser?.email || deletingUser?.phone})?
             </DialogDescription>
           </DialogHeader>
 
           <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive space-y-1 my-2">
-            <p className="font-semibold">Security &amp; Data Preservation Policy:</p>
+            <p className="font-semibold">Notice: Permanent Cleanup</p>
             <p className="text-[11px] leading-relaxed">
-              This action will deactivate the user's login access while preserving their previous lab submissions,
-              learning history, and certificates in the database.
+              This action will remove the user account, associated group memberships, subscriptions, and personal overrides.
             </p>
           </div>
 
@@ -803,7 +801,7 @@ export function AdminUsersTab() {
               onClick={() => deletingUser && deleteMutation.mutate(deletingUser.id)}
               className="text-xs font-bold shadow-xs"
             >
-              {deleteMutation.isPending ? 'Deactivating…' : 'Confirm Deactivation'}
+              {deleteMutation.isPending ? 'Deleting…' : 'Confirm Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>

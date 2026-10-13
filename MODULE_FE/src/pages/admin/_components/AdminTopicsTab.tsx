@@ -1,10 +1,9 @@
 /**
  * AdminTopicsTab — Course Series / Topics management tab
  */
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Folder, ExternalLink } from 'lucide-react';
+import { Folder } from 'lucide-react';
 import type { LabSeries } from '@/types/lab.types';
 
 interface AdminTopicsTabProps {
@@ -86,28 +85,18 @@ export function AdminTopicsTab({
 
             <div className="flex items-center gap-1.5">
               <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="h-7 text-xs px-2 text-primary hover:text-primary gap-1"
-              >
-                <Link to={`/series/${s.slug}`} target="_blank">
-                  View <ExternalLink className="size-3" />
-                </Link>
-              </Button>
-              <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onEditSeries(s)}
-                className="h-7 text-xs px-2"
+                className="h-7 text-xs px-2.5 font-medium"
               >
                 Edit
               </Button>
               <Button
-                variant="ghost"
+                variant="destructive"
                 size="sm"
                 onClick={() => onDeleteSeries(s.id, s.title)}
-                className="h-7 text-xs px-2 text-destructive hover:bg-destructive/10"
+                className="h-7 text-xs px-2.5 font-medium"
               >
                 Delete
               </Button>

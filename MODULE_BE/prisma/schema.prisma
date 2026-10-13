@@ -49,6 +49,7 @@ model User {
   authoredLabs      Lab[]                 @relation("AuthoredLabs")
   groupMemberships  UserGroupMember[]
   submissions       LabSubmission[]
+  feedbacks         Feedback[]
 
   @@map("users")
 }
@@ -324,4 +325,26 @@ model AuditLog {
   @@index([targetUserId, createdAt])
   @@index([action, createdAt])
   @@map("audit_logs")
+}
+
+enum FeedbackCategory {
+  bug
+  feature_request
+  content_lab
+  other
+}
+
+model Feedback {
+  id        String           @id @default(uuid())
+  userId    String?
+  email     String?
+  category  FeedbackCategory @default(other)
+  message   String           @db.Text
+  pageUrl   String?
+  createdAt DateTime         @default(now())
+
+  user      User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([category, createdAt])
+  @@map("feedbacks")
 }

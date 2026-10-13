@@ -91,13 +91,18 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Safely soft-delete/deactivate user account with Admin Protection (Admin only)' })
+  @ApiOperation({ summary: 'Delete user account with Admin Protection (Admin only)' })
+  @ApiQuery({ name: 'permanent', required: false, type: Boolean })
   @HttpCode(HttpStatus.OK)
   async delete(
     @Param('id') id: string,
     @Req() req: Request & { user: any },
+    @Query('permanent') permanent?: string,
   ) {
-    return this.usersService.softDeleteByAdmin(id, req.user.userId);
+    if (permanent === 'false') {
+      return this.usersService.softDeleteByAdmin(id, req.user.userId);
+    }
+    return this.usersService.hardDeleteByAdmin(id, req.user.userId);
   }
 
   @Patch(':id/role')

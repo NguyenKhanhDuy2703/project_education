@@ -52,10 +52,12 @@ export function AdminReviewQueue() {
   };
 
   // Fetch real review queue from backend API
-  const { data: combinedItems = [], refetch } = useQuery({
+  const { data: queueData, refetch } = useQuery({
     queryKey: ['admin-review-queue'],
     queryFn: () => adminReviewApi.getQueue(),
   });
+  const combinedItems = queueData?.items || [];
+  const queueCounts = queueData?.counts || {};
 
   // Fetch real users from backend API for author transfer
   const { data: usersData } = useQuery({
@@ -222,19 +224,19 @@ export function AdminReviewQueue() {
         <Tabs value={activeQueueTab} onValueChange={setActiveQueueTab}>
           <TabsList className="h-9 p-1 bg-muted/60 flex w-max min-w-full">
             <TabsTrigger value="pending" className="text-xs px-3 font-medium">
-              Pending Review ({combinedItems.filter((i) => i.status === 'submitted').length})
+              Pending Review ({queueCounts.submitted ?? combinedItems.filter((i) => i.status === 'submitted').length})
             </TabsTrigger>
             <TabsTrigger value="changes_requested" className="text-xs px-3 font-medium">
-              Changes Requested ({combinedItems.filter((i) => i.status === 'changes_requested').length})
+              Changes Requested ({queueCounts.changes_requested ?? combinedItems.filter((i) => i.status === 'changes_requested').length})
             </TabsTrigger>
             <TabsTrigger value="approved" className="text-xs px-3 font-medium">
-              Approved ({combinedItems.filter((i) => i.status === 'approved').length})
+              Approved ({queueCounts.approved ?? combinedItems.filter((i) => i.status === 'approved').length})
             </TabsTrigger>
             <TabsTrigger value="published" className="text-xs px-3 font-medium">
-              Published Live ({combinedItems.filter((i) => i.status === 'published').length})
+              Published Live ({queueCounts.published ?? combinedItems.filter((i) => i.status === 'published').length})
             </TabsTrigger>
             <TabsTrigger value="archived" className="text-xs px-3 font-medium">
-              Archived ({combinedItems.filter((i) => i.status === 'archived').length})
+              Archived ({queueCounts.archived ?? combinedItems.filter((i) => i.status === 'archived').length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
