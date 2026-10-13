@@ -3,6 +3,10 @@ import { MainLayout } from '@/layouts/MainLayout';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { LabLayout } from '@/layouts/LabLayout';
 import { AdminLayout } from '@/layouts/AdminLayout';
+import { ContributorLayout } from '@/layouts/ContributorLayout';
+import { ContributorDashboardPage } from '@/pages/contributor/ContributorDashboardPage';
+import { ContributorContentPage } from '@/pages/contributor/ContributorContentPage';
+import { ContributorCreatePage } from '@/pages/contributor/ContributorCreatePage';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
@@ -12,10 +16,12 @@ import { SeriesHubPage } from '@/pages/lab/SeriesHubPage';
 import { SeriesDetailPage } from '@/pages/lab/SeriesDetailPage';
 import { LabWorkspacePage } from '@/pages/lab/LabWorkspacePage';
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
+import { AdminReviewPage } from '@/pages/admin/AdminReviewPage';
 import { AdminContentPage } from '@/pages/admin/AdminContentPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { AdminPlansPage } from '@/pages/admin/AdminPlansPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
+import { AdminLabStudioPage } from '@/pages/admin/AdminLabStudioPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
@@ -45,6 +51,26 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // ── Contributor Studio routes (Dedicated layout with Sidebar, no public Navbar/Footer) ──
+  {
+    path: '/contributor',
+    element: <ProtectedRoute allowedRoles={['contributor', 'admin']} />,
+    children: [
+      {
+        element: <ContributorLayout />,
+        children: [
+          { index: true, element: <ContributorDashboardPage /> },
+          { path: 'topics', element: <ContributorContentPage defaultTab="topics" /> },
+          { path: 'series', element: <ContributorContentPage defaultTab="series" /> },
+          { path: 'labs', element: <ContributorContentPage defaultTab="labs" /> },
+          { path: 'create', element: <ContributorCreatePage /> },
+          { path: 'feedback', element: <ContributorContentPage defaultTab="feedback" /> },
+          { path: 'published', element: <ContributorContentPage defaultTab="published" /> },
+        ],
+      },
+    ],
+  },
+
   // ── Admin Studio routes (Dedicated layout with Sidebar, no public Navbar/Footer) ──
   {
     path: '/admin',
@@ -54,7 +80,10 @@ export const router = createBrowserRouter([
         element: <AdminLayout />,
         children: [
           { index: true, element: <AdminDashboardPage /> },
+          { path: 'review', element: <AdminReviewPage /> },
           { path: 'content', element: <AdminContentPage /> },
+          { path: 'labs/new', element: <AdminLabStudioPage /> },
+          { path: 'labs/:labId/edit', element: <AdminLabStudioPage /> },
           { path: 'users', element: <AdminUsersPage /> },
           { path: 'plans', element: <AdminPlansPage /> },
           { path: 'audit', element: <AdminAuditPage /> },

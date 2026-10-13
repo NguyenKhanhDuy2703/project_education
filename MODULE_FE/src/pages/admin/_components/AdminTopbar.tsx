@@ -16,19 +16,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Settings, LogOut, User } from 'lucide-react';
+import { Bell, Settings, LogOut, User, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/stores/store';
 import { logout } from '@/stores/slices/auth.slice';
 
+interface AdminTopbarProps {
+  onToggleMobileMenu?: () => void;
+}
+
 /** Map pathname segments to human-readable labels */
 const BREADCRUMB_MAP: Record<string, string> = {
   admin: 'Admin Studio',
-  content: 'Content',
-  users: 'Users',
-  plans: 'Plans & Features',
-  audit: 'Audit Trail',
-  dashboard: 'Dashboard',
+  content: 'Content Studio',
+  users: 'User Directory',
+  plans: 'IAM & Plans',
+  audit: 'Audit Log',
+  dashboard: 'Overview',
+  labs: 'Practice Labs',
+  new: 'Create New',
+  edit: 'Editor',
 };
 
 function getInitials(name?: string) {
@@ -49,7 +56,7 @@ function useBreadcrumbs() {
   }));
 }
 
-export function AdminTopbar() {
+export function AdminTopbar({ onToggleMobileMenu }: AdminTopbarProps) {
   const { user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -61,7 +68,17 @@ export function AdminTopbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border bg-card/95 backdrop-blur-md px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 sm:gap-4 border-b border-border bg-card/95 backdrop-blur-md px-4 sm:px-6">
+      {onToggleMobileMenu && (
+        <button
+          type="button"
+          onClick={onToggleMobileMenu}
+          className="md:hidden p-1.5 -ml-1 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+          aria-label="Open menu"
+        >
+          <Menu className="size-5" />
+        </button>
+      )}
       {/* Breadcrumb */}
       <Breadcrumb className="flex-1">
         <BreadcrumbList>

@@ -10,15 +10,15 @@ export function NotFoundPage() {
       </div>
       <div className="space-y-2">
         <h1 className="text-6xl font-black tracking-tight text-primary">404</h1>
-        <h2 className="text-xl font-bold text-foreground">Trang không tồn tại</h2>
+        <h2 className="text-xl font-bold text-foreground">Page Not Found</h2>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          Trang bạn tìm kiếm có thể đã bị xóa, đổi tên, hoặc tạm thời không khả dụng.
+          The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
         </p>
       </div>
       <Link to="/">
         <Button className="gap-2 font-semibold">
           <Home className="size-4" />
-          Về trang chủ StudyIT
+          Back to StudyIT Home
         </Button>
       </Link>
     </div>

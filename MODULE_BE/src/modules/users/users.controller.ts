@@ -1,20 +1,27 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   Patch,
+  Post,
+  Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 
@@ -52,24 +59,57 @@ export class UsersController {
     });
   }
 
+  @Post()
+  @ApiOperation({ summary: 'Create a new user account (Admin only)' })
+  @HttpCode(HttpStatus.CREATED)
+  async create(
+    @Body() dto: CreateUserDto,
+  ) {
+    return this.usersService.createByAdmin(dto);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get user details by ID (Admin only)' })
+  async findById(@Param('id') id: string) {
+    const user = await this.usersService.findById(id);
+    if (!user) {
+      return null;
+    }
+    const { password, refreshToken, ...publicUser } = user;
+    return publicUser;
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update user profile, credentials, and role with Admin Protection (Admin only)' })
+  @HttpCode(HttpStatus.OK)
+  async update(
+    @Param('id') id: string,
+    @Req() req: Request & { user: any },
+    @Body() dto: UpdateUserDto,
+  ) {
+    return this.usersService.updateByAdmin(id, req.user.userId, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Safely soft-delete/deactivate user account with Admin Protection (Admin only)' })
+  @HttpCode(HttpStatus.OK)
+  async delete(
+    @Param('id') id: string,
+    @Req() req: Request & { user: any },
+  ) {
+    return this.usersService.softDeleteByAdmin(id, req.user.userId);
+  }
+
   @Patch(':id/role')
   @ApiOperation({ summary: 'Update user role / membership tier (Admin only)' })
   @HttpCode(HttpStatus.OK)
   async updateRole(
     @Param('id') id: string,
+    @Req() req: Request & { user: any },
     @Body() dto: UpdateUserRoleDto,
   ) {
-    const updatedUser = await this.usersService.updateRole(id, dto.role);
-    return {
-      message: `User role updated successfully to ${dto.role}`,
-      user: {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        phone: updatedUser.phone,
-        role: updatedUser.role,
-      },
-    };
+    // Also protect against self-demotion
+    return this.usersService.updateByAdmin(id, req.user.userId, { role: dto.role });
   }
 
   @Patch(':id/status')
@@ -77,16 +117,9 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   async updateStatus(
     @Param('id') id: string,
+    @Req() req: Request & { user: any },
     @Body() dto: UpdateUserStatusDto,
   ) {
-    const updatedUser = await this.usersService.updateStatus(id, dto.isActive);
-    return {
-      message: `User status updated successfully to ${dto.isActive ? 'active' : 'suspended'}`,
-      user: {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        isActive: updatedUser.isActive,
-      },
-    };
+    return this.usersService.updateByAdmin(id, req.user.userId, { isActive: dto.isActive });
   }
 }

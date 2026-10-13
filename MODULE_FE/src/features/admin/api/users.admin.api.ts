@@ -24,6 +24,23 @@ export interface AdminUsersResponse {
   };
 }
 
+export interface CreateUserInput {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  role: UserRole;
+}
+
+export interface UpdateUserInput {
+  name?: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  role?: UserRole;
+  isActive?: boolean;
+}
+
 export const usersAdminApi = {
   /**
    * Fetch paginated users list with search and filter parameters (Admin only).
@@ -37,6 +54,29 @@ export const usersAdminApi = {
   }): Promise<AdminUsersResponse> => {
     const res = await apiClient.get<any>('/users', { params });
     return res.data?.data ?? res.data;
+  },
+
+  /**
+   * Create a new user account manually (Admin only).
+   */
+  createUser: async (data: CreateUserInput): Promise<AdminUserItem> => {
+    const res = await apiClient.post<any>('/users', data);
+    return res.data?.data ?? res.data;
+  },
+
+  /**
+   * Update user details and role (Admin only).
+   */
+  updateUser: async (userId: string, data: UpdateUserInput): Promise<AdminUserItem> => {
+    const res = await apiClient.put<any>(`/users/${userId}`, data);
+    return res.data?.data ?? res.data;
+  },
+
+  /**
+   * Soft-delete / deactivate a user account with protection checks (Admin only).
+   */
+  deleteUser: async (userId: string): Promise<void> => {
+    await apiClient.delete(`/users/${userId}`);
   },
 
   /**

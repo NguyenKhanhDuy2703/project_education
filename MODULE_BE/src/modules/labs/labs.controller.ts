@@ -16,12 +16,12 @@ import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { ResourceOwnerGuard } from '../../common/guards/resource-owner.guard';
 import { UserRole } from '@prisma/client';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { LabsService } from './labs.service';
 import { CreateLabDto } from './dto/create-lab.dto';
 import { UpdateLabDto } from './dto/update-lab.dto';
-
 import { FeatureEntitlementGuard } from '../entitlements/guards/feature-entitlement.guard';
 import { RequireFeature } from '../entitlements/decorators/require-feature.decorator';
 
@@ -29,6 +29,15 @@ import { RequireFeature } from '../entitlements/decorators/require-feature.decor
 @Controller('labs')
 export class LabsController {
   constructor(private readonly labsService: LabsService) {}
+
+  @Get('contributor/my-labs')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.admin, UserRole.contributor)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get practice labs authored by currently authenticated contributor' })
+  async findMyLabs(@Req() req: Request & { user: any }) {
+    return this.labsService.findMyLabs(req.user.userId);
+  }
 
   @Get(':slug')
   @UseGuards(OptionalJwtAuthGuard)
@@ -50,30 +59,54 @@ export class LabsController {
     return this.labsService.submit(labId, req.user.userId, body);
   }
 
+  @Get(':id/submissions')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get submission history for current user' })
+  async getSubmissions(
+    @Param('id') labId: string,
+    @Req() req: Request & { user: any },
+  ) {
+    return this.labsService.getSubmissions(labId, req.user.userId);
+  }
+
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.admin)
+  @Roles(UserRole.admin, UserRole.contributor)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new practice lab / blog (Admin only)' })
+  @ApiOperation({ summary: 'Create a new practice lab / blog (Admin or Contributor)' })
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateLabDto) {
-    return this.labsService.create(dto);
+  async create(@Body() dto: CreateLabDto, @Req() req: Request & { user: any }) {
+    return this.labsService.create(dto, req.user);
   }
 
   @Put(':id')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.admin)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, ResourceOwnerGuard)
+  @Roles(UserRole.admin, UserRole.contributor)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a practice lab / blog (Admin only)' })
-  async update(@Param('id') id: string, @Body() dto: UpdateLabDto) {
-    return this.labsService.update(id, dto);
+  @ApiOperation({ summary: 'Update a practice lab / blog (Author or Admin only)' })
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateLabDto,
+    @Req() req: Request & { user: any },
+  ) {
+    return this.labsService.update(id, dto, req.user);
+  }
+
+  @Post(':id/submit-for-review')
+  @UseGuards(AuthGuard('jwt'), RolesGuard, ResourceOwnerGuard)
+  @Roles(UserRole.admin, UserRole.contributor)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Submit practice lab to Admin Review Queue' })
+  async submitForReview(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    return this.labsService.submitForReview(id, req.user);
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.admin)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, ResourceOwnerGuard)
+  @Roles(UserRole.admin, UserRole.contributor)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete a practice lab / blog (Admin only)' })
+  @ApiOperation({ summary: 'Delete a practice lab / blog (Author or Admin only)' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
     await this.labsService.delete(id);

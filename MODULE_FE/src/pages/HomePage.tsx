@@ -23,12 +23,7 @@ import {
   BookOpen,
   Lock,
 } from 'lucide-react';
-
-const levelLabels: Record<string, string> = {
-  beginner: 'Nhập môn',
-  intermediate: 'Trung cấp',
-  advanced: 'Nâng cao',
-};
+import { DIFFICULTY_LABELS } from '@/constants/ui.constants';
 
 export function HomePage() {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
@@ -52,34 +47,34 @@ export function HomePage() {
               <Sparkles className="size-3.5" />
               <span>
                 {isLoggedIn
-                  ? `Chào mừng ${user?.name || 'Học viên'} trở lại!`
-                  : 'Nền tảng thực hành Lab IT thế hệ mới'}
+                  ? `Welcome back, ${user?.name || 'Learner'}!`
+                  : 'Next-Generation Interactive IT Lab Platform'}
               </span>
             </div>
 
             {/* Main Headline */}
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.15]">
-              Học IT bằng <span className="text-primary">thực hành thực tế.</span>
+              Master IT with <span className="text-primary">hands-on practice.</span>
               <br />
-              Không lý thuyết lan man.
+              No endless passive lectures.
             </h1>
 
             {/* Description */}
             <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-              Mỗi Series là chuỗi bài Lab thực chiến 15–30 phút. Viết code, bắt lỗi và kiểm thử tự động ngay trên trình duyệt xoay quanh <strong>1 dự án mẫu chuẩn doanh nghiệp</strong>.
+              Every Series is a focused 15–30 minute practical lab track. Write code, debug real bugs, and run automated tests directly in your browser around <strong>a production-grade enterprise project</strong>.
             </p>
 
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link to="/series">
                 <Button size="lg" className="h-11 px-8 font-semibold gap-2 shadow-sm text-sm sm:text-base">
-                  <Play className="size-4 fill-current" /> Bắt đầu làm bài Lab
+                  <Play className="size-4 fill-current" /> Start Lab Practice
                 </Button>
               </Link>
               {!isLoggedIn && (
                 <Link to="/register">
                   <Button variant="outline" size="lg" className="h-11 px-6 text-sm sm:text-base gap-2">
-                    Đăng ký miễn phí <ArrowRight className="size-4" />
+                    Register Free <ArrowRight className="size-4" />
                   </Button>
                 </Link>
               )}
@@ -89,15 +84,15 @@ export function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-6 w-full max-w-2xl text-xs text-muted-foreground">
               <div className="flex items-center justify-center gap-2 p-2.5 rounded-lg bg-card/60 border border-border">
                 <CheckCircle2 className="size-4 text-primary shrink-0" />
-                <span>Chạy trực tiếp trên trình duyệt</span>
+                <span>Runs directly in your browser</span>
               </div>
               <div className="flex items-center justify-center gap-2 p-2.5 rounded-lg bg-card/60 border border-border">
                 <CheckCircle2 className="size-4 text-primary shrink-0" />
-                <span>Web Worker tự động chấm tức thì</span>
+                <span>Web Worker automated scoring</span>
               </div>
               <div className="flex items-center justify-center gap-2 p-2.5 rounded-lg bg-card/60 border border-border">
                 <CheckCircle2 className="size-4 text-primary shrink-0" />
-                <span>1 Dự án mẫu kết nối toàn diện</span>
+                <span>1 Unified enterprise sample project</span>
               </div>
             </div>
           </div>
@@ -113,18 +108,18 @@ export function HomePage() {
             <div className="space-y-1.5">
               <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
                 <Flame className="size-3.5 text-amber-500 fill-amber-500" />
-                <span>Series Thực Hành Phổ Biến</span>
+                <span>Popular Practice Series</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                Các Series Lab Nổi Bật
+                Featured Lab Series
               </h2>
               <p className="text-sm text-muted-foreground">
-                Bắt tay vào thực hành ngay trên trình duyệt xoay quanh 1 dự án mẫu chuẩn doanh nghiệp.
+                Start practicing directly in your browser with real enterprise-grade projects.
               </p>
             </div>
             <Link to="/series">
               <Button variant="ghost" size="sm" className="gap-1.5 text-primary hover:text-primary font-semibold text-xs sm:text-sm">
-                Xem toàn bộ Series ({seriesList?.length ?? 0}) <ArrowRight className="size-4" />
+                View All Series ({seriesList?.length ?? 0}) <ArrowRight className="size-4" />
               </Button>
             </Link>
           </div>
@@ -150,17 +145,17 @@ export function HomePage() {
                     <Card className="flex flex-col w-full hover:border-primary/60 transition-all hover:shadow-md cursor-pointer bg-card">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-2 mb-2">
-                          <span className="text-3xl" role="img" aria-label="series emoji">
-                            {series.coverEmoji ?? '📚'}
-                          </span>
+                          <div className="flex items-center justify-center size-9 rounded-xl bg-primary/10 text-primary">
+                            <BookOpen className="size-5" />
+                          </div>
                           <div className="flex items-center gap-1.5">
                             {series.isProOnly && (
                               <Badge variant="secondary" className="text-[10px] gap-1 h-5 px-1.5 font-bold">
                                 <Lock className="size-2.5" /> Pro
                               </Badge>
                             )}
-                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium">
-                              {levelLabels[series.level] ?? series.level}
+                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium capitalize">
+                              {DIFFICULTY_LABELS[series.level as keyof typeof DIFFICULTY_LABELS] ?? series.level}
                             </Badge>
                           </div>
                         </div>
@@ -175,14 +170,14 @@ export function HomePage() {
                       <CardContent className="mt-auto border-t border-border pt-3 flex items-center justify-between text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <BookOpen className="size-3.5" />
-                          {totalLabs} bài lab
+                          {totalLabs} {totalLabs === 1 ? 'lab' : 'labs'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="size-3.5" />
-                          ~{estMinutes} phút
+                          ~{estMinutes} mins
                         </span>
                         <span className="flex items-center gap-1 text-primary font-semibold group-hover:translate-x-0.5 transition-transform">
-                          Vào học <ArrowRight className="size-3" />
+                          Learn <ArrowRight className="size-3" />
                         </span>
                       </CardContent>
                     </Card>
@@ -195,17 +190,17 @@ export function HomePage() {
       </section>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          2. SECTION: TẠI SAO CHỌN SERIES LAB (VALUE PROPOSITION)
+          2. SECTION: WHY STUDYIT (VALUE PROPOSITION)
       ────────────────────────────────────────────────────────────────────────── */}
       <section className="py-14 sm:py-20 border-b border-border bg-card/40">
         <div className="container mx-auto px-4 sm:px-6 max-w-5xl space-y-12">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Phương pháp học tập mới</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Modern Learning Methodology</span>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              Tại sao lại là mô hình Series Lab ngắn?
+              Why bite-sized Series Labs?
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Các khóa học video thụ động có tỷ lệ bỏ dở lên tới 85%. StudyIT tập trung vào việc giúp bạn bắt tay vào làm và nhìn thấy kết quả ngay lập tức.
+              Passive video courses have an 85% drop-off rate. StudyIT focuses on immediate hands-on coding and tangible feedback.
             </p>
           </div>
 
@@ -215,9 +210,9 @@ export function HomePage() {
                 <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                   <Clock className="size-5" />
                 </div>
-                <CardTitle className="text-lg">Bài Lab 15–30 phút</CardTitle>
+                <CardTitle className="text-lg">15–30 Minute Labs</CardTitle>
                 <CardDescription className="leading-relaxed">
-                  Mỗi bài lab giải quyết trọn vẹn 1 task thực tế: phân loại 1 bug, test 1 endpoint, code 1 REST API hoặc tối ưu 1 Dockerfile.
+                  Every lab tackles a complete real-world task: classify a bug, test an endpoint, code a REST API, or optimize a Dockerfile.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -227,9 +222,9 @@ export function HomePage() {
                 <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                   <Terminal className="size-5" />
                 </div>
-                <CardTitle className="text-lg">Không cần cài đặt phức tạp</CardTitle>
+                <CardTitle className="text-lg">Zero Complex Setup</CardTitle>
                 <CardDescription className="leading-relaxed">
-                  Mọi bài tập được biên dịch và chạy bằng Web Worker cô lập ngay trên trình duyệt. Bạn có thể học bất cứ lúc nào, ở bất kỳ máy tính nào.
+                  All exercises compile and execute using isolated Web Workers directly in your browser. Practice anywhere, anytime.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -239,9 +234,9 @@ export function HomePage() {
                 <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                   <ShieldCheck className="size-5" />
                 </div>
-                <CardTitle className="text-lg">Phản hồi tự động tức thì</CardTitle>
+                <CardTitle className="text-lg">Instant Automated Feedback</CardTitle>
                 <CardDescription className="leading-relaxed">
-                  Bấm 'Chạy kiểm thử' để nhận ngay bảng điểm từng test case, biết chính xác logic của bạn sai ở đâu để sửa và tiến bộ ngay.
+                  Click 'Run Tests' to inspect detailed test case assertions, pinpoint errors in your logic, and iterate quickly.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -250,23 +245,23 @@ export function HomePage() {
       </section>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          3. SECTION: CÁC LỘ TRÌNH ĐÀO TẠO TRỌNG TÂM (CORE TRACKS)
+          3. SECTION: CORE TRACKS
       ────────────────────────────────────────────────────────────────────────── */}
       <section id="tracks" className="py-14 sm:py-20 border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 max-w-5xl space-y-12">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary">Lộ trình học tập</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">Learning Pathways</span>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                Chọn chuyên môn bạn muốn làm chủ
+                Choose the specialization you want to master
               </h2>
               <p className="text-sm text-muted-foreground">
-                Được thiết kế theo chuẩn yêu cầu tuyển dụng thực tế tại các công ty công nghệ.
+                Designed to match real-world technical hiring benchmarks at technology companies.
               </p>
             </div>
             <Link to="/series">
               <Button variant="ghost" size="sm" className="gap-1.5 text-primary hover:text-primary font-semibold text-xs sm:text-sm">
-                Xem toàn bộ Series Lab <ArrowRight className="size-4" />
+                Browse All Lab Series <ArrowRight className="size-4" />
               </Button>
             </Link>
           </div>
@@ -281,31 +276,31 @@ export function HomePage() {
                   </div>
                   <Badge variant="outline" className="text-[11px] font-semibold">Track 01</Badge>
                 </div>
-                <CardTitle className="text-lg">Tester Chuyên Nghiệp</CardTitle>
+                <CardTitle className="text-lg">Professional QA &amp; Tester</CardTitle>
                 <CardDescription className="text-xs leading-relaxed">
-                  Lộ trình từ Manual Testing, viết Test Case chuẩn quốc tế, kiểm thử API Postman/Swagger đến luyện đề thi ISTQB Foundation.
+                  From manual testing foundations and standard test cases to Postman API verification and ISTQB exam preparation.
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-2 text-xs text-muted-foreground border-t border-border pt-4">
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                  <span>Quy trình Manual Test & Bug Life Cycle</span>
+                  <span>Manual testing workflows &amp; Bug Life Cycle</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                  <span>Test REST API với Postman & Swagger</span>
+                  <span>REST API validation with Postman &amp; Swagger</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                  <span>Bộ đề trắc nghiệm ISTQB có đáp án giải thích</span>
+                  <span>ISTQB question banks with detailed explanations</span>
                 </div>
               </CardContent>
 
               <CardFooter className="pt-2">
                 <Link to="/series?topic=testing" className="w-full">
                   <Button variant="outline" size="sm" className="w-full text-xs font-semibold gap-1.5 hover:bg-primary hover:text-primary-foreground">
-                    Khám phá Series Tester <ArrowRight className="size-3.5" />
+                    Explore QA &amp; Testing Series <ArrowRight className="size-3.5" />
                   </Button>
                 </Link>
               </CardFooter>
@@ -322,29 +317,29 @@ export function HomePage() {
                 </div>
                 <CardTitle className="text-lg">Backend Developer</CardTitle>
                 <CardDescription className="text-xs leading-relaxed">
-                  Xây dựng kiến trúc backend chuẩn doanh nghiệp với NestJS, Prisma ORM, PostgreSQL và bảo mật JWT Silent Refresh.
+                  Build enterprise-ready backend architectures with NestJS, Prisma ORM, PostgreSQL, and JWT silent refresh security.
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-2 text-xs text-muted-foreground border-t border-border pt-4">
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Xây dựng RESTful API chuẩn nghiệp vụ</span>
+                  <span>Production RESTful API design &amp; validation</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span>PostgreSQL & Prisma ORM Migration</span>
+                  <span>PostgreSQL &amp; Prisma ORM migrations</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Bảo mật JWT, HttpOnly Cookie & RBAC</span>
+                  <span>Secure JWT authentication, HttpOnly cookies &amp; RBAC</span>
                 </div>
               </CardContent>
 
               <CardFooter className="pt-2">
                 <Link to="/series?topic=backend" className="w-full">
                   <Button variant="outline" size="sm" className="w-full text-xs font-semibold gap-1.5 hover:bg-emerald-600 hover:text-white">
-                    Khám phá Series Backend <ArrowRight className="size-3.5" />
+                    Explore Backend Series <ArrowRight className="size-3.5" />
                   </Button>
                 </Link>
               </CardFooter>
@@ -359,31 +354,31 @@ export function HomePage() {
                   </div>
                   <Badge variant="outline" className="text-[11px] font-semibold">Track 03</Badge>
                 </div>
-                <CardTitle className="text-lg">DevOps & CI/CD</CardTitle>
+                <CardTitle className="text-lg">DevOps &amp; CI/CD</CardTitle>
                 <CardDescription className="text-xs leading-relaxed">
-                  Đóng gói ứng dụng với Docker, thiết lập Docker Compose nhiều dịch vụ và tạo pipeline tự động hóa với GitHub Actions.
+                  Containerize applications with Docker, coordinate multi-service stacks with Compose, and automate pipelines with GitHub Actions.
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-2 text-xs text-muted-foreground border-t border-border pt-4">
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <span>Viết Dockerfile đa tầng (Multi-stage build)</span>
+                  <span>Multi-stage production Dockerfiles</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <span>Quản lý môi trường với Docker Compose</span>
+                  <span>Environment orchestration with Docker Compose</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <span>Pipeline GitHub Actions chạy test tự động</span>
+                  <span>Automated testing with GitHub Actions CI/CD</span>
                 </div>
               </CardContent>
 
               <CardFooter className="pt-2">
                 <Link to="/series?topic=devops" className="w-full">
                   <Button variant="outline" size="sm" className="w-full text-xs font-semibold gap-1.5 hover:bg-amber-600 hover:text-white">
-                    Khám phá Series DevOps <ArrowRight className="size-3.5" />
+                    Explore DevOps Series <ArrowRight className="size-3.5" />
                   </Button>
                 </Link>
               </CardFooter>
@@ -393,17 +388,17 @@ export function HomePage() {
       </section>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          4. SECTION: TRẢI NGHIỆM THỰC HÀNH LAB (INTERACTIVE WORKSPACE SHOWCASE)
+          4. SECTION: INTERACTIVE WORKSPACE SHOWCASE
       ────────────────────────────────────────────────────────────────────────── */}
       <section className="py-14 sm:py-20 border-b border-border bg-card/30">
         <div className="container mx-auto px-4 sm:px-6 max-w-5xl space-y-10">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Giao diện Workspace trực quan</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Intuitive Workspace Interface</span>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              Trải nghiệm thực hành như dự án thật
+              Experience coding like a real engineering team
             </h2>
             <p className="text-sm text-muted-foreground">
-              Đọc đề bài, viết code và quan sát test runner chạy tự động ngay trên trình duyệt mà không cần chuyển màn hình.
+              Read specs, write code, and observe test runners execute automatically in your browser without switching screens.
             </p>
           </div>
 
@@ -415,10 +410,10 @@ export function HomePage() {
                 <span className="size-3 rounded-full bg-red-400" />
                 <span className="size-3 rounded-full bg-yellow-400" />
                 <span className="size-3 rounded-full bg-green-400" />
-                <span className="font-mono text-muted-foreground ml-2 text-[11px]">Lab Workspace · Lab #01: Phân loại Bug Severity</span>
+                <span className="font-mono text-muted-foreground ml-2 text-[11px]">Lab Workspace · Lab #01: Classify Bug Severity</span>
               </div>
               <Badge variant="secondary" className="text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                ● Tự động chấm điểm
+                ● Automated Scoring
               </Badge>
             </div>
 
@@ -427,20 +422,20 @@ export function HomePage() {
               {/* Left Column: Requirements & Instructions */}
               <div className="p-5 sm:p-6 space-y-4 bg-card">
                 <div className="space-y-1">
-                  <Badge variant="outline" className="text-[10px] uppercase font-bold">Đề bài thực hành</Badge>
-                  <h4 className="text-sm font-bold text-foreground">Viết hàm phân loại mức độ nghiêm trọng của Bug</h4>
+                  <Badge variant="outline" className="text-[10px] uppercase font-bold">Challenge Spec</Badge>
+                  <h4 className="text-sm font-bold text-foreground">Write a function to classify bug severity</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Xây dựng hàm <code className="font-mono bg-muted px-1 py-0.5 rounded text-[11px]">classifyBug(desc)</code> để tự động gắn nhãn mức độ: critical, major, minor hoặc trivial dựa trên từ khóa trong mô tả lỗi.
+                    Build a <code className="font-mono bg-muted px-1 py-0.5 rounded text-[11px]">classifyBug(desc)</code> function to classify issues into: critical, major, minor, or trivial based on keywords in the error description.
                   </p>
                 </div>
 
                 <div className="rounded-lg bg-muted/40 p-3 space-y-2 text-xs">
-                  <p className="font-semibold text-foreground text-[11px]">Quy tắc phân loại:</p>
+                  <p className="font-semibold text-foreground text-[11px]">Classification Rules:</p>
                   <ul className="space-y-1 text-muted-foreground text-[11px]">
-                    <li>• Chứa "crash" hoặc "data loss" → <code className="text-red-500 font-semibold">'critical'</code></li>
-                    <li>• Chứa "broken" hoặc "error" → <code className="text-amber-500 font-semibold">'major'</code></li>
-                    <li>• Chứa "slow" hoặc "delay" → <code className="text-blue-500 font-semibold">'minor'</code></li>
-                    <li>• Các trường hợp khác → <code className="text-muted-foreground font-semibold">'trivial'</code></li>
+                    <li>• Contains "crash" or "data loss" → <code className="text-red-500 font-semibold">'critical'</code></li>
+                    <li>• Contains "broken" or "error" → <code className="text-amber-500 font-semibold">'major'</code></li>
+                    <li>• Contains "slow" or "delay" → <code className="text-blue-500 font-semibold">'minor'</code></li>
+                    <li>• Other cases → <code className="text-muted-foreground font-semibold">'trivial'</code></li>
                   </ul>
                 </div>
               </div>
@@ -449,20 +444,20 @@ export function HomePage() {
               <div className="flex flex-col bg-muted/20">
                 {/* Code editor snippet */}
                 <div className="p-4 font-mono text-xs border-b border-border bg-card/80 text-foreground overflow-x-auto">
-                  <p className="text-muted-foreground text-[11px] mb-2">// 1. Viết code giải quyết yêu cầu bài Lab</p>
+                  <p className="text-muted-foreground text-[11px] mb-2">// 1. Write code to solve challenge requirements</p>
                   <p className="text-blue-600 dark:text-blue-400">function <span className="text-amber-600 dark:text-amber-300">classifyBug</span>(desc) &#123;</p>
                   <p className="pl-4 text-muted-foreground">const text = desc.toLowerCase();</p>
                   <p className="pl-4 text-purple-600 dark:text-purple-400">if <span className="text-foreground">(text.includes('crash') || text.includes('data loss'))</span> &#123;</p>
                   <p className="pl-8 text-emerald-600 dark:text-emerald-400">return 'critical';</p>
                   <p className="pl-4 text-purple-600 dark:text-purple-400">&#125;</p>
-                  <p className="pl-4 text-muted-foreground">... // Các trường hợp khác</p>
+                  <p className="pl-4 text-muted-foreground">... // Other cases</p>
                   <p className="text-blue-600 dark:text-blue-400">&#125;</p>
                 </div>
 
                 {/* Test results banner */}
                 <div className="p-4 space-y-2 bg-emerald-500/5">
                   <div className="flex items-center justify-between text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                    <span className="flex items-center gap-1.5"><CheckCircle2 className="size-4" /> Kết quả kiểm thử: 5/5 PASSED (100%)</span>
+                    <span className="flex items-center gap-1.5"><CheckCircle2 className="size-4" /> Test Suite: 5/5 PASSED (100%)</span>
                     <span className="font-mono text-[10px]">12ms</span>
                   </div>
                   <div className="space-y-1 font-mono text-[11px] text-muted-foreground">
@@ -478,18 +473,18 @@ export function HomePage() {
       </section>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          5. SECTION: ĐIỂM KHÁC BIỆT — 1 DỰ ÁN MẪU XUYÊN SUỐT
+          5. SECTION: 1 UNIFIED SAMPLE PROJECT
       ────────────────────────────────────────────────────────────────────────── */}
       <section className="py-14 sm:py-20 border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 max-w-5xl space-y-12">
           <div className="rounded-2xl border border-border bg-gradient-to-br from-card via-card to-accent/20 p-6 sm:p-10 shadow-sm space-y-8">
             <div className="max-w-2xl space-y-3">
-              <Badge className="bg-primary text-primary-foreground text-xs font-semibold">Điểm khác biệt cốt lõi</Badge>
+              <Badge className="bg-primary text-primary-foreground text-xs font-semibold">Core Differentiator</Badge>
               <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                1 Dự Án Mẫu Duy Nhất — Kết Nối Mọi Chuyên Môn
+                One Unified Project — Connecting Every Specialization
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Thay vì làm các bài tập rời rạc không liên quan, tại StudyIT, tất cả bài lab của mọi môn học đều xoay quanh 1 ứng dụng web thực tế hoàn chỉnh. Bạn hiểu được bức tranh toàn cảnh khi đi làm việc nhóm.
+                Instead of disconnected, throwaway exercises, every lab across all subjects contributes to a single complete web application. Understand the full picture of team collaboration.
               </p>
             </div>
 
@@ -499,7 +494,7 @@ export function HomePage() {
                   <Bug className="size-4" />
                 </div>
                 <h4 className="font-bold text-sm text-foreground">Tester</h4>
-                <p className="text-xs text-muted-foreground">Khảo sát yêu cầu, phát hiện bug cố ý và viết test case chuẩn trên dự án.</p>
+                <p className="text-xs text-muted-foreground">Inspect specs, discover intentional bugs, and write standard test cases on the project.</p>
               </div>
 
               <div className="p-4 rounded-xl border border-border bg-background/80 space-y-2">
@@ -507,7 +502,7 @@ export function HomePage() {
                   <Server className="size-4" />
                 </div>
                 <h4 className="font-bold text-sm text-foreground">Backend</h4>
-                <p className="text-xs text-muted-foreground">Code các API RESTful, kết nối PostgreSQL và xử lý logic theo đúng test spec.</p>
+                <p className="text-xs text-muted-foreground">Code RESTful APIs, connect PostgreSQL, and fulfill business logic according to test specs.</p>
               </div>
 
               <div className="p-4 rounded-xl border border-border bg-background/80 space-y-2">
@@ -515,7 +510,7 @@ export function HomePage() {
                   <Cpu className="size-4" />
                 </div>
                 <h4 className="font-bold text-sm text-foreground">DevOps</h4>
-                <p className="text-xs text-muted-foreground">Tạo Dockerfile đóng gói và cấu hình pipeline CI/CD chạy test tự động khi commit.</p>
+                <p className="text-xs text-muted-foreground">Author Dockerfiles and configure CI/CD pipelines to run test suites automatically on commit.</p>
               </div>
 
               <div className="p-4 rounded-xl border border-border bg-background/80 space-y-2">
@@ -523,7 +518,7 @@ export function HomePage() {
                   <Layers className="size-4" />
                 </div>
                 <h4 className="font-bold text-sm text-foreground">Frontend</h4>
-                <p className="text-xs text-muted-foreground">Giao diện mẫu trực quan giúp người học kiểm chứng luồng dữ liệu end-to-end.</p>
+                <p className="text-xs text-muted-foreground">Intuitive user interface that empowers learners to verify full end-to-end data flows.</p>
               </div>
             </div>
           </div>
@@ -531,50 +526,50 @@ export function HomePage() {
       </section>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          6. SECTION: QUY TRÌNH HỌC TẬP 4 BƯỚC (HOW IT WORKS)
+          6. SECTION: HOW IT WORKS (4 STEPS)
       ────────────────────────────────────────────────────────────────────────── */}
       <section className="py-14 sm:py-20 border-b border-border bg-card/30">
         <div className="container mx-auto px-4 sm:px-6 max-w-5xl space-y-12">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Quy trình đơn giản</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Simple Workflow</span>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              Bắt đầu học trong 4 bước
+              Start learning in 4 simple steps
             </h2>
             <p className="text-sm text-muted-foreground">
-              Không cần chuẩn bị môi trường, không cần cài đặt công cụ phức tạp.
+              Zero environment setup required. No complex local tooling needed.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="p-5 rounded-xl border border-border bg-card space-y-3 relative">
               <span className="text-3xl font-black text-primary/20">01</span>
-              <h4 className="font-bold text-sm text-foreground">Chọn Series Lab</h4>
+              <h4 className="font-bold text-sm text-foreground">Choose a Lab Series</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Lựa chọn chuyên môn Tester, Backend hoặc DevOps phù hợp với trình độ của bạn.
+                Select QA Testing, Backend, or DevOps suited to your current learning objectives.
               </p>
             </div>
 
             <div className="p-5 rounded-xl border border-border bg-card space-y-3 relative">
               <span className="text-3xl font-black text-primary/20">02</span>
-              <h4 className="font-bold text-sm text-foreground">Đọc đề & Hướng dẫn</h4>
+              <h4 className="font-bold text-sm text-foreground">Review Specs &amp; Starter Code</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Nghiên cứu tài liệu yêu cầu, tiêu chí nghiệm thu và mã mẫu có sẵn trong Workspace.
+                Examine requirement documentation, acceptance criteria, and provided starter templates.
               </p>
             </div>
 
             <div className="p-5 rounded-xl border border-border bg-card space-y-3 relative">
               <span className="text-3xl font-black text-primary/20">03</span>
-              <h4 className="font-bold text-sm text-foreground">Thực hành Code / Test</h4>
+              <h4 className="font-bold text-sm text-foreground">Code &amp; Test Interactively</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Viết code trực tiếp và bấm 'Chạy kiểm thử' để nhận phản hồi từ Web Worker ngay lập tức.
+                Write code directly and click 'Run Tests' to receive immediate Web Worker test feedback.
               </p>
             </div>
 
             <div className="p-5 rounded-xl border border-border bg-card space-y-3 relative">
               <span className="text-3xl font-black text-primary/20">04</span>
-              <h4 className="font-bold text-sm text-foreground">Tích lũy Tiến độ</h4>
+              <h4 className="font-bold text-sm text-foreground">Track Your Progress</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Hoàn thành bài lab, mở khóa bài kế tiếp và theo dõi chuỗi học tập (streak) trên Dashboard.
+                Complete labs, unlock the next challenge, and maintain your learning streak on the Dashboard.
               </p>
             </div>
           </div>
@@ -589,24 +584,24 @@ export function HomePage() {
           <div className="rounded-3xl border border-border bg-gradient-to-r from-primary/10 via-accent/40 to-primary/10 p-8 sm:p-14 text-center space-y-6">
             <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground max-w-xl mx-auto leading-tight">
               {isLoggedIn
-                ? 'Tiếp tục nâng cấp kỹ năng IT thực chiến của bạn'
-                : 'Sẵn sàng nâng cấp kỹ năng IT thực chiến của bạn?'}
+                ? 'Continue leveling up your real-world IT engineering skills'
+                : 'Ready to master hands-on IT engineering skills?'}
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
               {isLoggedIn
-                ? 'Theo dõi tiến độ, hoàn thành các chuỗi bài Lab và đối chiếu kết quả thực hành ngay hôm nay.'
-                : 'Tham gia cùng hàng nghìn học viên đang thực hành mỗi ngày trên StudyIT. Bắt đầu với bài Lab đầu tiên hoàn toàn miễn phí.'}
+                ? 'Track your progress, finish interactive lab series, and review your solutions today.'
+                : 'Join thousands of learners practicing daily on StudyIT. Start with your first lab completely free.'}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link to="/series">
                 <Button size="lg" className="h-11 px-8 font-semibold shadow-md gap-2">
-                  <Play className="size-4 fill-current" /> Khám phá tất cả Series Lab
+                  <Play className="size-4 fill-current" /> Explore All Lab Series
                 </Button>
               </Link>
               {!isLoggedIn && (
                 <Link to="/register">
                   <Button variant="outline" size="lg" className="h-11 px-6">
-                    Tạo tài khoản miễn phí <ArrowRight className="size-4" />
+                    Create Free Account <ArrowRight className="size-4" />
                   </Button>
                 </Link>
               )}

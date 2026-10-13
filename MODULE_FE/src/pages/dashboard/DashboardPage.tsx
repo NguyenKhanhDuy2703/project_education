@@ -8,6 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAppSelector } from '@/stores/store';
+import { can } from '@/features/auth/permissions';
 import { labApi } from '@/features/lab/api/lab.api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,41 +42,58 @@ export function DashboardPage() {
     <div className="container mx-auto px-4 sm:px-6 py-8 max-w-4xl space-y-6">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between border-b border-border pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Trang cá nhân</h1>
+          <h1 className="text-2xl font-bold text-foreground">Learner Profile &amp; Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Xin chào, {user?.name || 'Học viên'} 👋
+            Hello, {user?.name || 'Learner'} 👋
           </p>
         </div>
-        <Badge
-          variant={user?.role === 'admin' ? 'destructive' : user?.role === 'userPro' ? 'default' : 'secondary'}
-          className="uppercase text-xs font-bold"
-        >
-          {user?.role || 'user'}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {can(user, 'CONTENT_TOPIC_CREATE') && (
+            <Button size="sm" variant="outline" asChild className="h-8 text-xs font-semibold gap-1.5 border-primary/30 text-primary">
+              <Link to="/contributor">
+                <BookOpen className="size-3.5" />
+                Contributor Studio
+              </Link>
+            </Button>
+          )}
+          {can(user, 'USER_MANAGE') && (
+            <Button size="sm" asChild className="h-8 text-xs font-bold gap-1.5">
+              <Link to="/admin">
+                Admin Studio
+              </Link>
+            </Button>
+          )}
+          <Badge
+            variant={user?.role === 'admin' ? 'destructive' : user?.role === 'userPro' ? 'default' : 'secondary'}
+            className="uppercase text-xs font-bold"
+          >
+            {user?.role || 'user'}
+          </Badge>
+        </div>
       </div>
 
       {/* ── Stats grid ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard
           icon={CheckCircle2}
-          label="Bài hoàn thành"
+          label="Completed Labs"
           value={isLoading ? '…' : String(stats?.totalCompleted ?? 0)}
         />
         <StatCard
           icon={Layers}
-          label="Tổng bài lab"
+          label="Total Labs"
           value={isLoading ? '…' : String(stats?.totalLabs ?? 0)}
         />
         <StatCard
           icon={Flame}
-          label="Chuỗi ngày học"
-          value={isLoading ? '…' : `${stats?.streakDays ?? 0} ngày`}
+          label="Day Streak"
+          value={isLoading ? '…' : `${stats?.streakDays ?? 0} days`}
         />
         <StatCard
           icon={BookOpen}
-          label="Tiến độ chung"
+          label="Overall Progress"
           value={isLoading ? '…' : `${completionPct}%`}
         />
       </div>
@@ -85,7 +103,7 @@ export function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
-              <Layers className="size-4 text-primary" /> Tiến độ theo Series
+              <Layers className="size-4 text-primary" /> Progress by Series
             </CardTitle>
           </CardHeader>
           <CardContent className="border-t border-border pt-4 space-y-4">
@@ -101,7 +119,7 @@ export function DashboardPage() {
                     <div className="flex justify-between text-xs">
                       <span className="font-medium text-foreground">{sp.seriesTitle}</span>
                       <span className="text-muted-foreground">
-                        {sp.completedLabs}/{sp.totalLabs} bài
+                        {sp.completedLabs}/{sp.totalLabs} labs
                       </span>
                     </div>
                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
@@ -121,18 +139,18 @@ export function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
-              <User className="size-4 text-primary" /> Tài khoản
+              <User className="size-4 text-primary" /> Account Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 border-t border-border pt-4 text-sm">
-            <Row icon={Phone} label="SĐT" value={user?.phone} />
-            <Row icon={Mail} label="Email" value={user?.email || 'Chưa cung cấp'} />
+            <Row icon={Phone} label="Phone" value={user?.phone} />
+            <Row icon={Mail} label="Email" value={user?.email || 'Not provided'} />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Bắt đầu học</CardTitle>
+            <CardTitle className="text-sm">Continue Learning</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 border-t border-border pt-4">
             <Link
@@ -144,8 +162,8 @@ export function DashboardPage() {
                   <BookOpen className="size-3.5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-foreground">Series Bài Lab</p>
-                  <p className="text-[11px] text-muted-foreground">Thực hành ngắn 15–30 phút</p>
+                  <p className="text-xs font-semibold text-foreground">Lab Series Catalog</p>
+                  <p className="text-[11px] text-muted-foreground">Bite-sized 15–30 min practice</p>
                 </div>
               </div>
               <ArrowRight className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -157,7 +175,7 @@ export function DashboardPage() {
       <div className="flex justify-center">
         <Link to="/series">
           <Button className="gap-2 font-semibold">
-            <BookOpen className="size-4" /> Khám phá series <ArrowRight className="size-4" />
+            <BookOpen className="size-4" /> Explore All Series <ArrowRight className="size-4" />
           </Button>
         </Link>
       </div>
