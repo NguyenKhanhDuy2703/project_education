@@ -73,7 +73,7 @@ export function GoogleCallbackPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <p className="text-muted-foreground text-sm animate-pulse">Đang xác thực với Google...</p>
+      <p className="text-muted-foreground text-sm animate-pulse">Authenticating with Google...</p>
     </div>
   );
 }
