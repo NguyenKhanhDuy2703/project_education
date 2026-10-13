@@ -1,37 +1,36 @@
 /**
  * SeriesDetailPage — /series/:slug
  *
- * Shows labs within a series; respects RBAC (shows lock icon for Pro labs).
+ * Shows labs within a series; respects dynamic IAM permissions.
  * Workflow ref: Docs/workflows/02-lab-access-rbac.md
- *
- * Design: Meta flat. Lock 🔒 = visual RBAC layer 1 (FE role check).
  */
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { seriesApi } from '@/features/lab/api/series.api';
 import { useAppSelector } from '@/stores/store';
+import { can } from '@/features/auth/permissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  CheckCircle2,
-  Lock,
-  PlayCircle,
-  Clock,
-  ChevronLeft,
-  Circle,
-} from 'lucide-react';
+import { UpgradeModal } from '@/features/lab/components/UpgradeModal';
+import { StatusBadge } from '@/components/domain/StatusBadge';
+import { Sparkles, ArrowLeft, Clock, BookOpen, User as UserIcon } from 'lucide-react';
 import type { LabSummary } from '@/types/lab.types';
 
 export function SeriesDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAppSelector((s) => s.auth);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [selectedLabTitle, setSelectedLabTitle] = useState<string>('');
 
   const { data: series, isLoading, isError } = useQuery({
     queryKey: ['series', slug],
     queryFn: () => seriesApi.getBySlug(slug!),
     enabled: !!slug,
   });
+
+  const hasProAccess = can(user, 'LAB_PRO');
 
   if (isLoading) {
     return (
@@ -48,118 +47,191 @@ export function SeriesDetailPage() {
 
   if (isError || !series) {
     return (
-      <div className="container mx-auto px-4 py-10 max-w-3xl">
-        <p className="text-sm text-destructive">Không tìm thấy series này.</p>
+      <div className="container mx-auto px-4 py-10 max-w-3xl space-y-3">
+        <p className="text-sm font-semibold text-destructive">Series not found.</p>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/series">Back to series catalog</Link>
+        </Button>
       </div>
     );
   }
 
-  const isPro = user?.role === 'userPro' || user?.role === 'admin';
+  const handleOpenUpgrade = (labTitle: string) => {
+    setSelectedLabTitle(labTitle);
+    setUpgradeModalOpen(true);
+  };
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-10 max-w-3xl space-y-7">
       {/* ── Back breadcrumb ─────────────────────────────────────────────── */}
-      <Link
-        to="/series"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ChevronLeft className="size-3.5" />
-        Tất cả series
-      </Link>
+      <div>
+        <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-semibold px-2 gap-1.5 text-muted-foreground hover:text-foreground">
+          <Link to="/series">
+            <ArrowLeft className="size-3.5" />
+            All Practice Series
+          </Link>
+        </Button>
+      </div>
 
       {/* ── Series header ───────────────────────────────────────────────── */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2.5">
-          <span className="text-4xl">{series.coverEmoji ?? '📚'}</span>
-          {series.isProOnly && (
-            <Badge variant="secondary" className="gap-1">
-              <Lock className="size-3" /> Pro
+      <div className="space-y-3 bg-card border border-border p-6 rounded-xl shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs uppercase font-semibold tracking-wider">
+              {series.topic || 'Series'}
             </Badge>
+            {series.isProOnly && (
+              <Badge variant="secondary" className="text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 gap-1">
+                <Sparkles className="size-3 text-amber-500" />
+                PRO Tier
+              </Badge>
+            )}
+          </div>
+          {series.status && (
+            <StatusBadge status={series.status} size="sm" />
           )}
         </div>
+
         <h1 className="text-2xl font-bold tracking-tight text-foreground">{series.title}</h1>
         <p className="text-sm text-muted-foreground leading-relaxed">{series.description}</p>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-          <span className="flex items-center gap-1">
-            <PlayCircle className="size-3.5" />
-            {series.totalLabs} bài lab
+        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-border/50">
+          <span className="flex items-center gap-1.5">
+            <BookOpen className="size-3.5 text-primary" />
+            {series.totalLabs || series.labs?.length || 0} practice labs
           </span>
-          <span className="flex items-center gap-1">
-            <Clock className="size-3.5" />
-            ~{series.estimatedMinutes} phút
+          <span>•</span>
+          <span className="flex items-center gap-1.5">
+            <Clock className="size-3.5 text-primary" />
+            ~{series.estimatedMinutes || 60} mins to complete
           </span>
+          {series.authorName && (
+            <>
+              <span>•</span>
+              <span className="flex items-center gap-1.5">
+                <UserIcon className="size-3.5 text-muted-foreground" />
+                Author: <strong className="text-foreground">{series.authorName}</strong>
+              </span>
+            </>
+          )}
         </div>
       </div>
 
       {/* ── Lab list ────────────────────────────────────────────────────── */}
-      <div className="space-y-2">
-        <h2 className="text-sm font-semibold text-foreground">Danh sách bài lab</h2>
-        <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+            Lab Curriculum
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            {series.labs?.length || 0} labs
+          </span>
+        </div>
+
+        <div className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
           {series.labs?.map((lab, index) => (
-            <LabRow key={lab.id} lab={lab} index={index} isPro={isPro} />
+            <LabRowItem
+              key={lab.id}
+              lab={lab}
+              index={index}
+              hasProAccess={hasProAccess}
+              onUpgradeClick={() => handleOpenUpgrade(lab.title)}
+            />
           ))}
         </div>
       </div>
+
+      {/* Upgrade modal for locked labs */}
+      <UpgradeModal
+        open={upgradeModalOpen}
+        labTitle={selectedLabTitle}
+        onClose={() => setUpgradeModalOpen(false)}
+      />
     </div>
   );
 }
 
-// ─── Lab Row ──────────────────────────────────────────────────────────────────
-function LabRow({
+// ─── Lab Row Item ────────────────────────────────────────────────────────
+function LabRowItem({
   lab,
   index,
-  isPro,
+  hasProAccess,
+  onUpgradeClick,
 }: {
   lab: LabSummary;
   index: number;
-  isPro: boolean;
+  hasProAccess: boolean;
+  onUpgradeClick: () => void;
 }) {
-  const locked = lab.isProOnly && !isPro;
+  const locked = lab.isProOnly && !hasProAccess;
 
-  const StatusIcon = () => {
-    if (lab.userStatus === 'passed') return <CheckCircle2 className="size-4 text-green-600 shrink-0" />;
-    return <Circle className="size-4 text-muted-foreground/40 shrink-0" />;
+  const renderStatus = () => {
+    if (lab.userStatus === 'passed') {
+      return (
+        <Badge variant="outline" className="text-[10px] h-4.5 px-1.5 font-bold text-emerald-600 border-emerald-500/30 bg-emerald-500/10">
+          PASSED
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-[10px] h-4.5 px-1.5 text-muted-foreground/60 font-medium">
+        NOT STARTED
+      </Badge>
+    );
   };
 
-  const rowContent = (
+  const content = (
     <div
       className={`flex items-center gap-4 px-4 py-3 bg-card transition-colors ${
-        locked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-muted/50 cursor-pointer'
+        locked ? 'opacity-70 cursor-pointer bg-muted/10' : 'hover:bg-muted/40 cursor-pointer'
       }`}
+      onClick={locked ? onUpgradeClick : undefined}
     >
-      <span className="text-xs font-mono text-muted-foreground w-5 shrink-0 text-center">
+      <span className="text-xs font-mono text-muted-foreground w-6 shrink-0 text-center font-bold">
         {String(index + 1).padStart(2, '0')}
       </span>
-      <StatusIcon />
+
+      {renderStatus()}
+
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">{lab.title}</p>
-        <p className="text-[11px] text-muted-foreground">{lab.estimatedMinutes} phút</p>
+        <p className="text-sm font-semibold text-foreground truncate">{lab.title}</p>
+        <p className="text-[11px] text-muted-foreground">{lab.estimatedMinutes} mins</p>
       </div>
+
       <div className="flex items-center gap-2 shrink-0">
         {lab.isProOnly && (
-          <Badge variant="secondary" className="text-[10px] gap-0.5 h-4 px-1.5">
-            <Lock className="size-2.5" /> Pro
+          <Badge variant="secondary" className="text-[10px] font-bold h-4.5 px-1.5 bg-amber-500/10 text-amber-600 border border-amber-500/20">
+            PRO
           </Badge>
         )}
         {locked ? (
-          <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-            <a href="/upgrade">Mở khóa</a>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+            onClick={(e) => {
+              e.preventDefault();
+              onUpgradeClick();
+            }}
+          >
+            Unlock
           </Button>
         ) : (
-          <span className="text-xs text-primary font-medium">Vào lab →</span>
+          <Button size="sm" variant="ghost" className="h-7 text-xs font-semibold text-primary">
+            Start Lab
+          </Button>
         )}
       </div>
     </div>
   );
 
   if (locked) {
-    return <div key={lab.id}>{rowContent}</div>;
+    return <div key={lab.id}>{content}</div>;
   }
 
   return (
-    <Link key={lab.id} to={`/labs/${lab.id}`}>
-      {rowContent}
+    <Link key={lab.id} to={`/labs/${lab.slug || lab.id}`}>
+      {content}
     </Link>
   );
 }

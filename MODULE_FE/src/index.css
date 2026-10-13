@@ -37,6 +37,22 @@
 
   --radius: 8px;
 
+  /* Content Lifecycle Status Tokens */
+  --status-draft: #65676B;
+  --status-draft-bg: #E4E6EB;
+  --status-submitted: #0064D1;
+  --status-submitted-bg: #E7F3FF;
+  --status-changes: #D97706;
+  --status-changes-bg: #FEF3C7;
+  --status-approved: #059669;
+  --status-approved-bg: #D1FAE5;
+  --status-published: #0866FF;
+  --status-published-bg: #E7F3FF;
+  --status-rejected: #E41E3F;
+  --status-rejected-bg: #FEE2E2;
+  --status-archived: #4B5563;
+  --status-archived-bg: #F3F4F6;
+
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light dark;
 }
@@ -69,6 +85,22 @@
   --border: #3E4042;
   --input: #3E4042;
   --ring: #2D88FF;
+  
+  /* Content Lifecycle Status Tokens (Dark Mode) */
+  --status-draft: #B0B3B8;
+  --status-draft-bg: #242526;
+  --status-submitted: #4599FF;
+  --status-submitted-bg: #1B2E4B;
+  --status-changes: #FBBF24;
+  --status-changes-bg: #3B2A0F;
+  --status-approved: #34D399;
+  --status-approved-bg: #064E3B;
+  --status-published: #2D88FF;
+  --status-published-bg: #1A365D;
+  --status-rejected: #F87171;
+  --status-rejected-bg: #450A0A;
+  --status-archived: #9CA3AF;
+  --status-archived-bg: #1F2937;
 }
 
 @theme inline {

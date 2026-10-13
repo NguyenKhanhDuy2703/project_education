@@ -9,10 +9,12 @@ Thư mục này chứa toàn bộ các **Sơ đồ Tuần tự (Sequence Diagram
 | Mã | Tài liệu Luồng | Chức năng chính | Vai trò liên quan | Đường dẫn file |
 |---|---|---|---|---|
 | **WF-01** | Xác thực & Quản lý Phiên | Đăng nhập SĐT/Mật khẩu, phân quyền JWT và cơ chế Silent Refresh Token ngầm qua Cookie | Toàn bộ người dùng | [01-auth-and-session.md](file:///d:/Projects/study-web/Docs/workflows/01-auth-and-session.md) |
-| **WF-02** | Truy cập Bài Lab & RBAC Guard | Khám phá Series, Mở Lab Workspace và Kiểm tra phân quyền tài khoản Pro 2 lớp | User, UserPro, Admin | [02-lab-access-rbac.md](file:///d:/Projects/study-web/Docs/workflows/02-lab-access-rbac.md) |
+| **WF-02** | Truy cập Bài Lab & RBAC Guard | Luồng nghiệp vụ Trang chủ -> Danh sách Lab -> Mở bài Lab, kèm kiểm tra quyền Pro 2 lớp | User, UserPro, Admin | [02-lab-access-rbac.md](file:///d:/Projects/study-web/docs/workflows/02-lab-access-rbac.md) |
 | **WF-03** | Chạy Kiểm thử Web Worker | Thực thi code học viên trên luồng nền trình duyệt, Timeout Guard 2s chống đơ tab | Học viên lập trình / Backend | [03-webworker-execution.md](file:///d:/Projects/study-web/Docs/workflows/03-webworker-execution.md) |
-| **WF-04** | Nộp bài Lab & Ghi nhận Tiến độ | Lưu lịch sử bài nộp chi tiết và cập nhật bản ghi trạng thái hoàn thành O(1) vào CSDL | Học viên, Dashboard cá nhân | [04-lab-submission-progress.md](file:///d:/Projects/study-web/Docs/workflows/04-lab-submission-progress.md) |
-| **WF-05** | Mô phỏng Mini-App Bắt Lỗi | Nhúng component cấy sẵn lỗi, thao tác tìm Bug trên UI và chấm tự động phiếu Bug Report | Học viên Tester | [05-tester-bug-simulation.md](file:///d:/Projects/study-web/Docs/workflows/05-tester-bug-simulation.md) |
+| **WF-04** | Nộp bài Lab & Ghi nhận Tiến độ | Luồng nghiệp vụ Workspace -> Do Lab -> Submit, lưu vết bài nộp và cập nhật trạng thái hoàn thành | Học viên, Dashboard cá nhân | [04-lab-submission-progress.md](file:///d:/Projects/study-web/docs/workflows/04-lab-submission-progress.md) |
+| **WF-05** | Mô phỏng Mini-App Bắt Lỗi | Nhúng component cấy sẵn lỗi, thao tác tìm Bug trên UI và chấm tự động phiếu Bug Report | Học viên Tester | [05-tester-bug-simulation.md](file:///d:/Projects/study-web/docs/workflows/05-tester-bug-simulation.md) |
+| **WF-07** | Nâng cấp Tài khoản & Thanh toán VNPAY | Luồng nghiệp vụ Popup Paywall -> Chọn gói Pricing -> Thanh toán qua VNPAY -> Kích hoạt quyền PRO | Toàn bộ người dùng | [07-upgrade-and-payment.md](file:///d:/Projects/study-web/docs/workflows/07-upgrade-and-payment.md) |
+| **WF-08** | Quản trị Hệ thống (Admin Operations) | Luồng nghiệp vụ Quản lý User (Role, Suspend, Entitlements), Quản lý Lab, Gói cước và Audit Log | Quản trị viên (Admin) | [08-admin-operations.md](file:///d:/Projects/study-web/docs/workflows/08-admin-operations.md) |
 
 ---
 

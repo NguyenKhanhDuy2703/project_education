@@ -26,6 +26,7 @@ import {
   User,
   Shield,
   LayoutDashboard,
+  PenTool,
 } from 'lucide-react';
 
 export function Navbar() {
@@ -50,14 +51,20 @@ export function Navbar() {
   }
 
   const baseNavLinks: NavLinkItem[] = [
-    { name: 'Trang chủ', href: '/', icon: Home, exact: true },
-    { name: 'Series Lab', href: '/series', icon: Layers },
-    { name: 'Lộ trình', href: '/roadmaps', icon: Compass },
+    { name: 'Home', href: '/', icon: Home, exact: true },
+    { name: 'Series Catalog', href: '/series', icon: Layers },
+    { name: 'Roadmaps', href: '/roadmaps', icon: Compass },
   ];
 
-  const navLinks: NavLinkItem[] = user?.role === 'admin'
-    ? [...baseNavLinks, { name: 'Admin Studio', href: '/admin', icon: Shield, badge: 'ADMIN' }]
-    : baseNavLinks;
+  const navLinks: NavLinkItem[] = (() => {
+    const links = [...baseNavLinks];
+    if (user?.role === 'contributor') {
+      links.push({ name: 'Contributor Studio', href: '/contributor', icon: PenTool, badge: 'CREATOR' });
+    } else if (user?.role === 'admin') {
+      links.push({ name: 'Admin Studio', href: '/admin', icon: Shield, badge: 'ADMIN' });
+    }
+    return links;
+  })();
 
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -83,7 +90,7 @@ export function Navbar() {
                 </span>
               </span>
               <span className="text-[11px] text-muted-foreground font-normal mt-0.5">
-                Thực hành qua Series bài Lab
+                Learn by Practice Series
               </span>
             </div>
           </Link>
@@ -119,7 +126,7 @@ export function Navbar() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Tìm khóa học, bài test, API..."
+              placeholder="Search labs, test cases, APIs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-9 pl-9 pr-8 text-xs bg-muted/70 rounded-full border border-border focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-muted-foreground"
@@ -134,11 +141,18 @@ export function Navbar() {
         <div className="flex items-center gap-2 sm:gap-3">
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
-              <Link to="/user/dashboard" className="hidden sm:inline-flex">
-                <Button variant="ghost" size="sm" className="text-xs font-medium">
-                  Dashboard
-                </Button>
-              </Link>
+              {user?.role === 'contributor' && (
+                <Link to="/contributor" className="hidden sm:inline-flex">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs font-semibold border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 shadow-xs"
+                  >
+                    <PenTool className="size-3.5" />
+                    <span>Contributor Studio</span>
+                  </Button>
+                </Link>
+              )}
 
               {user?.role === 'admin' && (
                 <Link to="/admin" className="hidden sm:inline-flex">
@@ -154,7 +168,7 @@ export function Navbar() {
 
               <button
                 type="button"
-                aria-label="Thông báo"
+                aria-label="Notifications"
                 className="relative p-2 rounded-full text-foreground/80 hover:bg-muted transition-colors"
               >
                 <Bell className="size-4" />
@@ -177,7 +191,7 @@ export function Navbar() {
                   <DropdownMenuLabel className="font-normal py-2">
                     <div className="flex flex-col space-y-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold leading-none text-foreground">{user?.name || 'Học viên'}</p>
+                        <p className="text-sm font-semibold leading-none text-foreground">{user?.name || 'Student'}</p>
                         {user?.role && (
                           <Badge
                             variant={user.role === 'admin' ? 'destructive' : 'secondary'}
@@ -194,27 +208,35 @@ export function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link to="/user/dashboard" className="flex items-center cursor-pointer">
                       <LayoutDashboard className="size-4 mr-2 text-muted-foreground" />
-                      <span>Trang cá nhân &amp; Tiến độ</span>
+                      <span>Dashboard &amp; Progress</span>
                     </Link>
                   </DropdownMenuItem>
+                  {user?.role === 'contributor' && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/contributor" className="flex items-center cursor-pointer">
+                        <PenTool className="size-4 mr-2 text-indigo-500" />
+                        <span>Contributor Studio</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   {user?.role === 'admin' && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="flex items-center cursor-pointer">
                         <Shield className="size-4 mr-2 text-destructive" />
-                        <span>Quản trị viên (Admin)</span>
+                        <span>Admin Studio</span>
                       </Link>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem asChild>
                     <Link to="/settings" className="flex items-center cursor-pointer">
                       <User className="size-4 mr-2 text-muted-foreground" />
-                      <span>Cài đặt tài khoản</span>
+                      <span>Account Settings</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
                     <LogOut className="size-4 mr-2" />
-                    <span>Đăng xuất</span>
+                    <span>Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -223,12 +245,12 @@ export function Navbar() {
             <div className="flex items-center gap-2">
               <Link to="/login">
                 <Button variant="ghost" size="sm" className="font-medium text-xs sm:text-sm">
-                  Đăng nhập
+                  Log in
                 </Button>
               </Link>
               <Link to="/register">
                 <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs sm:text-sm shadow-sm">
-                  Đăng ký
+                  Sign up
                 </Button>
               </Link>
             </div>
@@ -253,7 +275,7 @@ export function Navbar() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Tìm kiếm khóa học..."
+              placeholder="Search courses and labs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-9 pl-9 pr-3 text-xs bg-muted/60 rounded-md border border-border"
@@ -291,12 +313,12 @@ export function Navbar() {
             <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border">
               <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="outline" className="w-full text-xs">
-                  Đăng nhập
+                  Log in
                 </Button>
               </Link>
               <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full text-xs bg-primary text-primary-foreground font-semibold">
-                  Đăng ký
+                  Sign up
                 </Button>
               </Link>
             </div>

@@ -2,12 +2,12 @@
 doc_type: workflow
 title: Sơ đồ Luồng Truy cập Bài Lab & Phân quyền Pro (RBAC Guard)
 project: study-web
-version: "1.0"
+version: "1.1"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Kiểm soát quyền truy cập nội dung bài lab theo vai trò học viên
-date: 2026-10-02
+scope: Luồng nghiệp vụ người dùng (Trang chủ -> Danh sách Lab -> Mở nội dung Lab) và phân hệ kiểm soát quyền truy cập RBAC
+date: 2026-10-13
 source_file: "MODULE_BE/src/common/guards/roles.guard.ts, MODULE_FE/src/routes"
 status: final
 language: vi
@@ -21,17 +21,117 @@ related_docs: [../01-proposal.md, ../05-database.md]
 | Thuộc tính | Chi tiết |
 |---|---|
 | **Tên tài liệu** | Sơ đồ Luồng Truy cập Bài Lab & Phân quyền Pro |
-| **Version** | v1.0 |
+| **Version** | v1.1 |
 | **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Luồng người dùng khám phá danh mục Series, chọn bài lab, kiểm tra vai trò (RBAC) và mở không gian thực hành Lab Workspace |
-| **Thời gian** | 2026-10-02 |
+| **Phạm vi (Scope)** | Luồng nghiệp vụ người dùng từ Trang chủ -> Danh sách Lab -> Mở nội dung Lab, kèm kiểm soát quyền RBAC 2 lớp |
+| **Thời gian** | 2026-10-13 |
 | **Tham chiếu từ** | `MODULE_BE/src/common/guards/roles.guard.ts` và cơ chế bảo vệ Route phía `MODULE_FE/src/routes` |
 
 ---
 
 ## 2. Nội dung chính (Content)
 
-### 2.1. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.1. Sơ đồ Luồng Nghiệp vụ Người dùng (User Business Flow)
+
+Sơ đồ thể hiện chu trình tương tác thực tế của người dùng thông thường từ Trang chủ, qua trang Danh sách bài Lab và mở Nội dung bài Lab thực hành:
+
+```mermaid
+flowchart TD
+    Start([1. User đang ở Trang chủ]) --> ViewHome[User xem giao diện Trang chủ: Banner giới thiệu & Các chủ đề nổi bật]
+    
+    %% --- Bước chuyển từ Trang chủ sang Lab ---
+    ViewHome --> ActionGoLab{User thao tác để vào Lab}
+    ActionGoLab -->|Bấm menu 'Labs' trên thanh điều hướng| LabPage[2. Mở Trang Danh sách Lab]
+    ActionGoLab -->|Bấm nút 'Khám phá ngay' / 'Bắt đầu'| LabPage
+
+    %% --- Giao diện Trang Lab ---
+    LabPage --> ViewLabCatalog[User xem Danh sách các bài Lab]
+    ViewLabCatalog --> FilterAction{User có lọc bài không?}
+    
+    FilterAction -->|Có| UseFilter[Chọn bộ lọc: Role 'Tester/Backend/DevOps', Độ khó, hoặc ô Tìm kiếm]
+    UseFilter --> UpdateList[Danh sách Lab tự động lọc theo yêu cầu]
+    UpdateList --> ClickLabCard
+    
+    FilterAction -->|Không: xem danh sách có sẵn| ClickLabCard[User bấm vào 1 thẻ bài Lab cụ thể]
+
+    %% --- Phân nhánh khi chọn bài ---
+    ClickLabCard --> CheckLabType{Thẻ bài Lab được click là loại nào?}
+
+    %% --- Nhánh Bài PRO ---
+    CheckLabType -->|Bài có nhãn PRO 🔒| ShowProModal[Hiện Popup: 'Bài Lab PRO - Nâng cấp để mở khóa']
+    ShowProModal --> UserChoiceModal{User thao tác trên Popup}
+    UserChoiceModal -->|Bấm 'Xem gói PRO'| PricingPage[Chuyển sang trang Bảng giá / Nâng cấp]
+    UserChoiceModal -->|Bấm nút 'Đóng / X'| LabPage
+
+    %% --- Nhánh Bài FREE -> Vào Nội dung Lab ---
+    CheckLabType -->|Bài FREE| LabContentPage[3. Màn hình Nội dung Lab hiển thị]
+    
+    LabContentPage --> ViewLabWorkspace[User nhìn thấy 3 khu vực chính trên giao diện:]
+    ViewLabWorkspace --> Area1[Thanh tiêu đề: Tên bài, Thời lượng, Nút 'Quay lại danh sách']
+    ViewLabWorkspace --> Area2[Khung nội dung: Đề bài, Hướng dẫn từng bước & Tiêu chí checklist]
+    ViewLabWorkspace --> Area3[Khung thực hành: Không gian làm bài & Nút 'Chạy thử', 'Nộp bài']
+
+    Area3 --> ReadyToPractice([User sẵn sàng đọc đề và bắt đầu làm bài])
+```
+
+#### Các điểm chạm (Touchpoints) của Người dùng trên Giao diện:
+1. **Trang chủ (Home Page)**:
+   - Người dùng dễ dàng thấy menu cố định "Labs" trên thanh điều hướng (Navbar) hoặc nút kêu gọi hành động (Call-to-Action) tại banner chính để mở danh mục thực hành.
+2. **Trang Danh sách Lab (Lab Catalog)**:
+   - Bộ lọc và thanh tìm kiếm hỗ trợ lọc nhanh theo Chuyên môn (Tester, Backend, DevOps) và Độ khó.
+   - Thẻ bài Lab thể hiện rõ nhãn phân loại (Free vs Pro 🔒) và trạng thái làm bài cá nhân (Chưa làm / Đang làm / Đã hoàn thành).
+3. **Mở Nội dung Lab**:
+   - Nếu bấm bài Pro: Hiển thị Modal thông báo quyền lợi gói Pro văn minh kèm nút tìm hiểu và nút đóng, không gây đứt gãy luồng trải nghiệm.
+   - Nếu bấm bài Free: Mở thẳng giao diện Workspace chia bố cục rõ ràng: Khung đọc đề/hướng dẫn và Khung thực hành thao tác.
+
+### 2.2. Sơ đồ Luồng Nghiệp vụ Dành cho Tài khoản PRO (User PRO Flow)
+
+Đối với học viên sở hữu tài khoản **User PRO**, lộ trình tương tự tài khoản thường nhưng toàn bộ rào cản Paywall được gỡ bỏ, đồng thời mở khóa cả Blog lý thuyết PRO và tính năng xem Lời giải mẫu (Solution):
+
+```mermaid
+flowchart TD
+    Start([1. User PRO đang ở Trang chủ]) --> ViewHome[User xem Trang chủ: Thấy Badge 'PRO' trên Avatar cá nhân]
+    
+    %% --- Điều hướng sang trang Lab & Blog ---
+    ViewHome --> ClickLabs[Bấm menu 'Labs & Blog' trên thanh điều hướng]
+    ClickLabs --> LabCatalogPage[2. Mở Trang Danh sách Labs & Blog]
+
+    %% --- Giao diện danh sách đối với User PRO ---
+    LabCatalogPage --> ViewList[Xem danh sách: Toàn bộ bài Free và PRO đều ở trạng thái MỞ KHÓA]
+    ViewList --> PickItem[User PRO bấm chọn một bài bất kỳ: Free hoặc PRO]
+
+    %% --- Phân loại loại nội dung được mở ---
+    PickItem --> CheckContentType{Loại bài User PRO vừa chọn}
+
+    %% --- Nhánh 1: Blog PRO (Chỉ đọc lý thuyết chuyên sâu) ---
+    CheckContentType -->|Blog PRO / Lý thuyết| OpenBlog[3A. Mở màn hình Đọc Blog PRO]
+    OpenBlog --> BlogUI[Giao diện đọc bài viết đầy đủ:]
+    BlogUI --> BlogContent1[- Toàn văn nội dung chuyên sâu không bị mờ / cắt ngắn]
+    BlogContent1 --> BlogContent2[- Tài liệu đính kèm & Cheat-sheet độc quyền cho PRO]
+    BlogContent2 --> ClickFinishBlog[Bấm 'Đánh dấu đã đọc' -> Hoàn thành bài]
+
+    %% --- Nhánh 2: Lab Thực hành PRO ---
+    CheckContentType -->|Lab Thực hành PRO / Free| OpenLabWorkspace[3B. Mở màn hình Lab Workspace]
+    OpenLabWorkspace --> WorkspaceUI[Giao diện làm bài với đặc quyền PRO:]
+    WorkspaceUI --> LabNormal[- Đề bài, Hướng dẫn từng bước & Không gian thực hành]
+    LabNormal --> ProFeature[- Nút đặc quyền PRO: 'Xem Lời giải mẫu / Solution']
+    
+    %% --- Thao tác làm bài ---
+    ProFeature --> ActionPractice[User thực hành: Gõ bài -> Chạy thử -> Nộp bài]
+    ActionPractice --> SubmitSuccess[Nộp bài đạt yêu cầu]
+
+    %% --- Hoàn thành & Tiếp tục ---
+    ClickFinishBlog --> UpdateProgress[Cập nhật tiến độ hoàn thành vào Profile PRO]
+    SubmitSuccess --> UpdateProgress
+    UpdateProgress --> Done([Tiếp tục chọn bài tiếp theo])
+```
+
+#### Các đặc quyền giao diện của User PRO:
+1. **Không bị chặn Paywall**: Toàn bộ bài có gắn nhãn PRO hiển thị biểu tượng mở khóa 🔓, bấm vào là xem ngay mà không gặp popup yêu cầu nâng cấp.
+2. **Blog lý thuyết PRO**: Hiển thị đầy đủ 100% nội dung kiến thức chuyên sâu và tài liệu đính kèm.
+3. **Workspace Thực hành PRO**: Mở khóa thêm nút **"Xem Lời giải mẫu (Solution)"** để tham khảo đáp án chuẩn khi gặp bài khó.
+
+### 2.3. Sơ đồ Tuần tự Kỹ thuật (Sequence Diagram)
 
 ```mermaid
 sequenceDiagram
@@ -67,7 +167,7 @@ sequenceDiagram
     end
 ```
 
-### 2.2. Phân tích Chi tiết Từng Bước
+### 2.4. Phân tích Chi tiết Từng Bước
 
 1. **Cấp độ Series (Public Catalog)**:
    * Danh sách các Series bài lab được công khai để khách vãng lai và học viên tự do khám phá.

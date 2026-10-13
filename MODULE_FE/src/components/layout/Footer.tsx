@@ -14,7 +14,7 @@ export function Footer() {
             StudyIT<span className="text-primary">.dev</span>
           </span>
           <span className="hidden sm:inline text-xs text-muted-foreground">
-            — Nền tảng học IT thực chiến qua Series Lab
+            — Interactive developer practice series platform
           </span>
         </div>
 
@@ -23,11 +23,11 @@ export function Footer() {
           <span>© {new Date().getFullYear()} StudyIT.dev</span>
           <span>·</span>
           <Link to="/terms" className="hover:text-foreground transition-colors">
-            Điều khoản
+            Terms of Service
           </Link>
           <span>·</span>
           <Link to="/privacy" className="hover:text-foreground transition-colors">
-            Bảo mật
+            Privacy Policy
           </Link>
         </div>
       </div>

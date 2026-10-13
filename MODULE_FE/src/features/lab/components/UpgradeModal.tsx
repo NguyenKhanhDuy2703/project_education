@@ -4,9 +4,8 @@
  * Shown when RBAC guard returns 403 on a Pro-only lab.
  * Workflow ref: Docs/workflows/02-lab-access-rbac.md
  *
- * Design: Meta flat, single primary CTA (#0866FF), no gradients.
+ * Design: shadcn/ui Dialog, zero icons.
  */
-import { Lock } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface Props {
   open: boolean;
@@ -28,43 +28,47 @@ export function UpgradeModal({ open, labTitle, onClose }: Props) {
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Lock className="size-5" />
-            </div>
-            <DialogTitle className="leading-tight">Nội dung dành cho Pro</DialogTitle>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold px-2 py-0.5">
+              PRO TIER
+            </Badge>
+            <DialogTitle className="leading-tight text-base">Exclusive PRO Content</DialogTitle>
           </div>
-          <DialogDescription className="text-sm leading-relaxed">
+          <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
             {labTitle ? (
               <>
-                Bài lab <strong>"{labTitle}"</strong> yêu cầu tài khoản{' '}
-                <span className="font-semibold text-primary">UserPro</span>.
+                The lab <strong>"{labTitle}"</strong> requires a{' '}
+                <span className="font-semibold text-primary">UserPro</span> account.
               </>
             ) : (
               <>
-                Bài lab này yêu cầu tài khoản{' '}
-                <span className="font-semibold text-primary">UserPro</span>.
+                This lab requires a{' '}
+                <span className="font-semibold text-primary">UserPro</span> account.
               </>
             )}{' '}
-            Nâng cấp để mở khóa toàn bộ nội dung thực hành.
+            Upgrade your membership plan to unlock all interactive labs and verified solution code.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
-          {['Truy cập không giới hạn tất cả bài lab', 'Bài tập nâng cao & đề thi thử', 'Hỗ trợ ưu tiên từ giảng viên'].map((feat) => (
-            <p key={feat} className="flex items-center gap-2">
-              <span className="size-1.5 rounded-full bg-primary shrink-0" />
-              {feat}
-            </p>
+        <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground space-y-2">
+          {[
+            'Unlimited access to all interactive labs & sandbox runners',
+            'Advanced challenges & verified reference solutions',
+            'Priority guidance and community support',
+          ].map((feat, i) => (
+            <div key={feat} className="flex items-start gap-2">
+              <span className="font-mono text-primary font-bold text-[11px] mt-0.5">[{i + 1}]</span>
+              <span>{feat}</span>
+            </div>
           ))}
         </div>
 
-        <DialogFooter className="flex gap-2 sm:flex-row flex-col-reverse">
-          <Button variant="ghost" size="sm" onClick={onClose} className="flex-1">
-            Để sau
+        <DialogFooter className="flex gap-2 sm:gap-0 mt-2">
+          <Button variant="outline" size="sm" onClick={onClose} className="text-xs">
+            Close
           </Button>
-          <Button size="sm" className="flex-1 font-semibold" asChild>
-            <a href="/upgrade">Nâng cấp Pro →</a>
+          <Button size="sm" asChild className="text-xs font-bold">
+            <a href="/pricing">Upgrade to PRO Now</a>
           </Button>
         </DialogFooter>
       </DialogContent>
