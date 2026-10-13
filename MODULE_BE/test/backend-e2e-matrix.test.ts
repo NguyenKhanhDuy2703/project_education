@@ -68,8 +68,8 @@ async function runE2ESuite() {
     slug: testSeriesSlug,
     category: 'testing',
     description: 'Series created by automated test runner',
-    status: ContentLifecycleStatus.published as any, // Trying to bypass with 'published'!
-  }, contribCtx);
+    status: ContentLifecycleStatus.published, // Trying to bypass with 'published'!
+  } as any, contribCtx);
 
   assert('Anti-Bypass: Contributor status is forced to DRAFT regardless of payload', 
     newSeries.status === ContentLifecycleStatus.draft
@@ -89,8 +89,8 @@ async function runE2ESuite() {
     initialSnippet: '// code',
     testScript: 'assert(true)',
     solution: '// verified solution',
-    status: ContentLifecycleStatus.published as any, // Bypass attempt!
-  }, contribCtx);
+    status: ContentLifecycleStatus.published, // Bypass attempt!
+  } as any, contribCtx);
 
   assert('Anti-Bypass: Lab status is forced to DRAFT', newLab.status === ContentLifecycleStatus.draft);
   assert('Lab authorId is set to Contributor ID', newLab.authorId === contributor!.id);
@@ -98,8 +98,8 @@ async function runE2ESuite() {
   // 2.3 Contributor update anti-bypass
   const updatedLab = await labsService.update(newLab.id, {
     title: 'Updated Automated Lab Title',
-    status: ContentLifecycleStatus.published as any,
-  }, contribCtx);
+    status: ContentLifecycleStatus.published,
+  } as any, contribCtx);
   assert('Anti-Bypass: Contributor cannot promote status via update API', 
     updatedLab.status === ContentLifecycleStatus.draft
   );
