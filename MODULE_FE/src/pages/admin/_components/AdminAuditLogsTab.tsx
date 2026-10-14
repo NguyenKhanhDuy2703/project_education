@@ -8,14 +8,13 @@ import {
   ShieldCheck,
   Ban,
   Layers,
-  ChevronLeft,
-  ChevronRight,
   Info,
 } from 'lucide-react';
 import {
   entitlementsAdminApi,
   type AuditLogItem,
 } from '@/features/admin/api/entitlements.admin.api';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 
 /**
  * Helper to render color-coded badge for audit actions.
@@ -67,7 +66,7 @@ export function AdminAuditLogsTab() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
 
-  const limit = 15;
+  const limit = 10;
 
   const {
     data: auditData,
@@ -263,29 +262,13 @@ export function AdminAuditLogsTab() {
         </div>
 
         {/* Pagination Bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-card">
-          <div className="text-xs text-muted-foreground">
-            Showing Page <span className="font-medium text-foreground">{meta.page}</span> of{' '}
-            <span className="font-medium text-foreground">{meta.totalPages}</span> ({meta.total} total entries)
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1 || isLoading}
-              className="p-1.5 rounded-lg border border-border text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <span className="text-xs font-semibold px-2">{page}</span>
-            <button
-              onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
-              disabled={page >= meta.totalPages || isLoading}
-              className="p-1.5 rounded-lg border border-border text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-        </div>
+        <DataTablePagination
+          page={meta.page}
+          totalPages={meta.totalPages}
+          totalItems={meta.total}
+          itemName="logs"
+          onPageChange={(p) => setPage(p)}
+        />
       </div>
 
       {/* Snapshot Modal */}

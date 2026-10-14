@@ -12,19 +12,34 @@ import { User } from '@prisma/client';
 @Controller('auth')
 export class AuthController {
   private readonly cookieOptions;
+  private readonly refreshCookieOptions;
 
   constructor(
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
   ) {
+    const isProd =
+      this.configService.get<string>('app.env') === 'production' ||
+      process.env.NODE_ENV === 'production';
+
     this.cookieOptions = {
       httpOnly: true,
-      secure: this.configService.get<string>('app.env') === 'production',
-      sameSite: 'strict' as const,
+      secure: isProd,
+      sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
       // Access token expiry read from config (default 15 min → ms)
       maxAge: this.parseDurationMs(
         this.configService.get<string>('jwt.accessTokenExpiresIn') ?? '15m',
+      ),
+    };
+
+    this.refreshCookieOptions = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+      // Refresh token expiry read from config (default 7 days → ms)
+      maxAge: this.parseDurationMs(
+        this.configService.get<string>('jwt.refreshTokenExpiresIn') ?? '7d',
       ),
     };
   }
@@ -50,8 +65,9 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(loginDto);
-    // Store AccessToken in HttpOnly Cookie
+    // Store tokens in HttpOnly Cookies
     res.cookie('accessToken', result.accessToken, this.cookieOptions);
+    res.cookie('refreshToken', result.refreshToken, this.refreshCookieOptions);
     return {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
@@ -61,23 +77,41 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token' })
   async refresh(
     @Body() refreshTokenDto: RefreshTokenDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.refreshToken(refreshTokenDto.refreshToken);
+    const token = refreshTokenDto?.refreshToken || (req as any).cookies?.refreshToken;
+    const result = await this.authService.refreshToken(token);
     res.cookie('accessToken', result.accessToken, this.cookieOptions);
+    res.cookie('refreshToken', result.refreshToken, this.refreshCookieOptions);
     return result;
+  }
+
+  @Post('refresh-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token (alias)' })
+  async refreshTokenAlias(
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.refresh(refreshTokenDto, req, res);
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(
     @Body() refreshTokenDto: RefreshTokenDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.logout(refreshTokenDto.refreshToken);
+    const token = refreshTokenDto?.refreshToken || (req as any).cookies?.refreshToken;
+    const result = await this.authService.logout(token);
     res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
     return result;
   }
 
@@ -118,6 +152,7 @@ export class AuthController {
     try {
       const tokens = await this.authService.generateTokens(req.user);
       res.cookie('accessToken', tokens.accessToken, this.cookieOptions);
+      res.cookie('refreshToken', tokens.refreshToken, this.refreshCookieOptions);
 
       // Determine target frontend URL dynamically based on request host
       const host = (req.headers.host || '').toLowerCase();
@@ -138,6 +173,7 @@ export class AuthController {
 
       const redirectUrl = new URL('/auth/callback', frontendUrl);
       redirectUrl.searchParams.set('token', tokens.accessToken);
+      redirectUrl.searchParams.set('refreshToken', tokens.refreshToken);
       return res.redirect(redirectUrl.toString());
     } catch (error) {
       console.error('[AuthController] googleCallback failed:', error);

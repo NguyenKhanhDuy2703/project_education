@@ -9,10 +9,11 @@
  * - Post-submission completion celebration dialog
  * - Zero icon dependency — pure typographic clarity, semantic badges, and shadcn design tokens
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { labApi } from '@/features/lab/api/lab.api';
+import { seriesApi } from '@/features/lab/api/series.api';
 import { useLabWorker } from '@/features/lab/hooks/useLabWorker';
 import { WorkerResultPanel } from '@/features/lab/components/WorkerResultPanel';
 import { UpgradeModal } from '@/features/lab/components/UpgradeModal';
@@ -38,12 +39,47 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 import { useAppSelector } from '@/stores/store';
 import { can } from '@/features/auth/permissions';
 import type { AxiosError } from 'axios';
 import Editor from '@monaco-editor/react';
 import { renderMarkdown } from '../admin/_utils/renderMarkdown';
-import type { QuizQuestion, LabSubmissionRecord } from '@/types/lab.types';
+import type { QuizQuestion, LabSubmissionRecord, LabSummary } from '@/types/lab.types';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Play,
+  CloudUpload,
+  CheckCircle2,
+  Clock,
+  BookOpen,
+  KeyRound,
+  Lock,
+  History,
+  Copy,
+  Check,
+  Code2,
+  RotateCcw,
+  CheckSquare,
+  Terminal,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  Layers,
+  Search,
+} from 'lucide-react';
 
 export function LabWorkspacePage() {
   const { labId } = useParams<{ labId: string }>();
@@ -65,6 +101,11 @@ export function LabWorkspacePage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSaved, setIsSaved] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Quick Lab Switcher Drawer state
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [labSearchQuery, setLabSearchQuery] = useState('');
 
   // SQL query mock execution state
   const [sqlExecuted, setSqlExecuted] = useState(false);
@@ -92,6 +133,70 @@ export function LabWorkspacePage() {
     enabled: Boolean(lab?.id && user),
   });
 
+  // Fetch parent series to know adjacent labs for < and > navigation
+  const { data: seriesData } = useQuery({
+    queryKey: ['series', lab?.series?.slug],
+    queryFn: () => seriesApi.getBySlug(lab!.series!.slug),
+    enabled: Boolean(lab?.series?.slug),
+  });
+
+  const seriesLabs = useMemo(() => seriesData?.labs || [], [seriesData?.labs]);
+  const currentLabIndex = useMemo(() => {
+    if (!seriesLabs.length || !lab) return -1;
+    return seriesLabs.findIndex((l) => l.id === lab.id || l.slug === lab.slug);
+  }, [seriesLabs, lab]);
+
+  const prevLab = currentLabIndex > 0 ? seriesLabs[currentLabIndex - 1] : null;
+  const nextLab = currentLabIndex >= 0 && currentLabIndex < seriesLabs.length - 1 ? seriesLabs[currentLabIndex + 1] : null;
+
+  const isSolved = useMemo(() => {
+    return submissions.some((s) => s.status === 'passed');
+  }, [submissions]);
+
+  const solvedLabsCount = useMemo(() => {
+    return seriesLabs.filter((item) => {
+      if (item.userStatus === 'passed') return true;
+      if (item.id === lab?.id && isSolved) return true;
+      return false;
+    }).length;
+  }, [seriesLabs, lab?.id, isSolved]);
+
+  const seriesProgressPercent = seriesLabs.length > 0 ? Math.round((solvedLabsCount / seriesLabs.length) * 100) : 0;
+
+  const filteredSeriesLabs = useMemo(() => {
+    if (!labSearchQuery.trim()) return seriesLabs;
+    const q = labSearchQuery.toLowerCase();
+    return seriesLabs.filter(
+      (l) =>
+        l.title.toLowerCase().includes(q) ||
+        (l.difficulty && l.difficulty.toLowerCase().includes(q)) ||
+        (l.sandboxType && l.sandboxType.toLowerCase().includes(q))
+    );
+  }, [seriesLabs, labSearchQuery]);
+
+  const handleSwitchLab = (targetLab: LabSummary) => {
+    setIsDrawerOpen(false);
+    if (targetLab.slug !== lab?.slug && targetLab.id !== lab?.id) {
+      navigate(`/labs/${targetLab.slug || targetLab.id}`);
+    }
+  };
+
+  // Instant SPA Lab Transition: Reset code editor, quiz state and test outputs when switching labs
+  useEffect(() => {
+    if (lab?.initialSnippet !== undefined) {
+      setCode(lab.initialSnippet);
+      setIsSaved(true);
+    } else {
+      setCode('');
+    }
+    setCurrentQuizIndex(0);
+    setSelectedQuizAnswers({});
+    setCheckedQuizQuestions({});
+    setSqlExecuted(false);
+    setSqlResultData([]);
+    setRightBottomTab('testcase');
+  }, [lab?.id, lab?.initialSnippet]);
+
   const is403 = (error as AxiosError)?.response?.status === 403;
 
   const handleEditorMount = useCallback(() => {
@@ -107,7 +212,17 @@ export function LabWorkspacePage() {
     }
   };
 
-  const handleRun = () => {
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
+
+  const handleRun = useCallback(() => {
     if (!lab) return;
 
     if (lab.sandboxType === 'sql_worker') {
@@ -131,7 +246,19 @@ export function LabWorkspacePage() {
       run(code, lab.testScript || '');
       setRightBottomTab('result');
     }
-  };
+  }, [lab, code, workerStatus, run]);
+
+  // Keyboard shortcut Ctrl+Enter / Cmd+Enter to Run Code
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleRun();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRun]);
 
   const submitMutation = useMutation({
     mutationFn: () =>
@@ -249,48 +376,248 @@ export function LabWorkspacePage() {
   const progressPercent = Math.round(((currentQuizIndex + 1) / quizList.length) * 100);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)] bg-background">
-      {/* ── 1. Top Navigation Bar (LeetCode Style, No Icons) ────────────── */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-semibold px-2">
-            <Link to="/series">
-              Lab Catalog
-            </Link>
-          </Button>
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
+      {/* ── 1. Single Unified Top Header (LeetCode-Style) ────────────── */}
+      <header className="h-12 border-b border-border bg-card flex items-center justify-between px-3 shrink-0 gap-3">
+        {/* Left: Brand, Problem List & < > Nav */}
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-foreground tracking-tight hover:opacity-90 transition-opacity mr-1 shrink-0"
+          >
+            <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground font-mono font-bold text-[11px] shadow-xs">
+              <Code2 className="size-3.5" />
+            </span>
+            <span className="hidden sm:inline">study<span className="text-primary">·</span>web</span>
+          </Link>
 
-          <span className="text-muted-foreground/30 font-mono text-xs">|</span>
+          <div className="h-4 w-px bg-border/70 hidden sm:block" />
 
-          <h1 className="text-xs sm:text-sm font-bold text-foreground truncate max-w-[260px] sm:max-w-md">
-            {lab.title}
-          </h1>
+          {/* Lab List Drawer Trigger & Left Slide-over Drawer */}
+          <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2.5 text-xs font-semibold gap-1.5 text-muted-foreground hover:text-foreground shrink-0 hover:bg-muted/60"
+                title="Curriculum & Lab List"
+              >
+                <Layers className="size-3.5 text-primary" />
+                <span>Lab List</span>
+                <ChevronDown className="size-3 text-muted-foreground opacity-60" />
+              </Button>
+            </SheetTrigger>
 
-          <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0 font-semibold uppercase">
-            {lab.sandboxType === 'sql_worker' ? 'SQL' : isQuizletMode ? 'Quizlet' : 'JavaScript'}
-          </Badge>
+            <SheetContent
+              side="left"
+              className="w-full sm:max-w-md p-0 flex flex-col gap-0 border-r border-border bg-card"
+            >
+              <SheetHeader className="p-4 border-b border-border bg-muted/20 shrink-0">
+                <div className="flex items-center gap-2.5 pr-6">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Layers className="size-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <SheetTitle className="text-sm font-bold text-foreground truncate">
+                      {lab?.series?.title || 'Topic Curriculum'}
+                    </SheetTitle>
+                    <SheetDescription className="text-[11px] text-muted-foreground truncate">
+                      {seriesLabs.length} labs in this curriculum
+                    </SheetDescription>
+                  </div>
+                </div>
 
-          {lab.isProOnly && (
-            <Badge variant="secondary" className="text-[10px] font-bold h-5 px-2 shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-              PRO
-            </Badge>
-          )}
+                {/* Progress Bar */}
+                <div className="mt-3 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-muted-foreground font-medium">Topic Progress</span>
+                    <span className="font-semibold text-primary">
+                      {solvedLabsCount}/{seriesLabs.length} solved ({seriesProgressPercent}%)
+                    </span>
+                  </div>
+                  <Progress value={seriesProgressPercent} className="h-1.5" />
+                </div>
+
+                {/* Search Input */}
+                <div className="relative mt-3">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search labs in this topic..."
+                    value={labSearchQuery}
+                    onChange={(e) => setLabSearchQuery(e.target.value)}
+                    className="h-8 pl-8 text-xs bg-background border-border/80"
+                  />
+                </div>
+              </SheetHeader>
+
+              {/* Scrollable Labs List */}
+              <ScrollArea className="flex-1 overflow-y-auto p-2">
+                <div className="space-y-1">
+                  {filteredSeriesLabs.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-muted-foreground">
+                      No labs match &ldquo;{labSearchQuery}&rdquo;
+                    </div>
+                  ) : (
+                    filteredSeriesLabs.map((item, idx) => {
+                      const isCurrent = item.id === lab?.id || item.slug === lab?.slug;
+                      const itemSolved = item.userStatus === 'passed' || (isCurrent && isSolved);
+
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleSwitchLab(item)}
+                          className={cn(
+                            'w-full text-left p-2.5 rounded-lg text-xs transition-all flex items-start gap-2.5 cursor-pointer border',
+                            isCurrent
+                              ? 'bg-primary/10 border-primary/40 font-semibold text-foreground shadow-2xs'
+                              : 'border-transparent hover:bg-muted/60 text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          {/* Solved / Order index indicator */}
+                          <div className="pt-0.5 shrink-0">
+                            {itemSolved ? (
+                              <CheckCircle2 className="size-4 text-emerald-500 fill-emerald-500/10" />
+                            ) : (
+                              <span
+                                className={cn(
+                                  'size-4 rounded-full border text-[10px] font-mono flex items-center justify-center',
+                                  isCurrent
+                                    ? 'border-primary text-primary font-bold'
+                                    : 'border-muted-foreground/40 text-muted-foreground'
+                                )}
+                              >
+                                {idx + 1}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Lab Title & Metadata */}
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span
+                                className={cn(
+                                  'truncate text-xs leading-tight',
+                                  isCurrent ? 'text-primary font-bold' : 'text-foreground'
+                                )}
+                              >
+                                {item.title}
+                              </span>
+                              {isCurrent && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] px-1 py-0 h-4 border-primary/40 text-primary bg-primary/5 uppercase font-bold shrink-0"
+                                >
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {item.difficulty && (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    'text-[9px] px-1 py-0 h-4 uppercase font-semibold',
+                                    item.difficulty === 'beginner'
+                                      ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/5'
+                                      : item.difficulty === 'intermediate'
+                                      ? 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5'
+                                      : 'text-rose-600 dark:text-rose-400 border-rose-500/20 bg-rose-500/5'
+                                  )}
+                                >
+                                  {item.difficulty}
+                                </Badge>
+                              )}
+
+                              <span className="text-[10px] text-muted-foreground uppercase font-mono">
+                                {item.sandboxType === 'sql_worker'
+                                  ? 'SQL'
+                                  : item.sandboxType === 'quizlet'
+                                  ? 'Quiz'
+                                  : 'JS'}
+                              </span>
+
+                              {item.isProOnly && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] px-1 py-0 h-4 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold"
+                                >
+                                  PRO
+                                </Badge>
+                              )}
+
+                              {item.estimatedMinutes && (
+                                <span className="text-[10px] text-muted-foreground ml-auto">
+                                  {item.estimatedMinutes}m
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </ScrollArea>
+
+              {/* Footer with Catalog Link */}
+              <div className="p-3 border-t border-border bg-muted/20 flex items-center justify-between shrink-0">
+                <Link
+                  to="/series"
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 font-medium"
+                >
+                  <ChevronLeft className="size-3.5" />
+                  <span>All Series Catalog</span>
+                </Link>
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  study<span className="text-primary font-bold">·</span>web
+                </span>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Previous / Next Lab buttons */}
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!prevLab}
+              onClick={() => prevLab && navigate(`/labs/${prevLab.slug || prevLab.id}`)}
+              className="size-7 text-muted-foreground hover:text-foreground disabled:opacity-30"
+              title={prevLab ? `Previous: ${prevLab.title}` : 'No previous lab'}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!nextLab}
+              onClick={() => nextLab && navigate(`/labs/${nextLab.slug || nextLab.id}`)}
+              className="size-7 text-muted-foreground hover:text-foreground disabled:opacity-30"
+              title={nextLab ? `Next: ${nextLab.title}` : 'No next lab'}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
         </div>
 
-        {/* Action CTAs */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-muted-foreground hidden md:inline mr-1">
-            {lab.estimatedMinutes} mins
-          </span>
-
+        {/* Center: Run & Submit Actions (LeetCode Signature Center Controls) */}
+        <div className="flex items-center gap-2">
           {!isQuizletMode && (
             <Button
               size="sm"
               variant="outline"
               onClick={handleRun}
               disabled={workerStatus === 'running'}
-              className="h-8 text-xs font-semibold"
+              className="h-7 text-xs font-semibold gap-1.5 border-border bg-muted/40 hover:bg-muted shadow-2xs px-3"
+              title="Run Code (Ctrl+Enter)"
             >
-              {workerStatus === 'running' ? 'Running…' : 'Run Code [Ctrl+Enter]'}
+              <Play className="size-3.5 fill-current text-primary" />
+              <span>{workerStatus === 'running' ? 'Running…' : 'Run'}</span>
+              <kbd className="hidden lg:inline-block text-[10px] font-mono text-muted-foreground bg-background px-1 py-0.2 rounded border border-border">
+                Ctrl+↵
+              </kbd>
             </Button>
           )}
 
@@ -298,10 +625,46 @@ export function LabWorkspacePage() {
             size="sm"
             onClick={() => submitMutation.mutate()}
             disabled={submitMutation.isPending}
-            className="h-8 text-xs font-bold shadow-xs bg-primary text-primary-foreground"
+            className="h-7 text-xs font-bold gap-1.5 shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 transition-colors"
+            title="Submit Solution"
           >
-            {submitMutation.isPending ? 'Submitting…' : 'Submit Solution'}
+            {submitMutation.isPending ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <CloudUpload className="size-3.5" />
+            )}
+            <span>Submit</span>
           </Button>
+        </div>
+
+        {/* Right: Timer, Fullscreen, User Info */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-md border border-border/50">
+            <Clock className="size-3 text-muted-foreground" />
+            <span>{lab.estimatedMinutes || lab.durationMinutes || 20}m</span>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleFullscreen}
+            className="size-7 text-muted-foreground hover:text-foreground hidden sm:flex"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          >
+            {isFullscreen ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+          </Button>
+
+          {user && (
+            <div className="flex items-center gap-2 pl-2 border-l border-border/70">
+              <span className="text-xs font-medium text-muted-foreground hidden xl:block">{user.name}</span>
+              <Badge
+                variant={user.role === 'admin' ? 'destructive' : user.role === 'userPro' ? 'default' : 'secondary'}
+                className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 h-5"
+              >
+                {user.role}
+              </Badge>
+            </div>
+          )}
         </div>
       </header>
 
@@ -310,19 +673,61 @@ export function LabWorkspacePage() {
         {/* ── LEFT PANE: Description / Solution / Submissions ──────────── */}
         <aside className="w-full md:w-[45%] lg:w-[42%] border-b md:border-b-0 md:border-r border-border flex flex-col bg-card overflow-hidden shrink-0">
           <Tabs value={leftTab} onValueChange={(v) => setLeftTab(v as any)} className="flex flex-col h-full">
-            <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/30 p-1 h-9">
-              <TabsTrigger value="description" className="text-xs font-medium">
-                Instructions
+            <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/30 p-1 h-9 gap-1">
+              <TabsTrigger value="description" className="text-xs font-medium gap-1.5">
+                <BookOpen className="size-3.5" />
+                <span>Instructions</span>
               </TabsTrigger>
-              <TabsTrigger value="solution" className="text-xs font-medium">
-                Solution {hasSolutionAccess ? '(PRO)' : '[PRO Locked]'}
+              <TabsTrigger value="solution" className="text-xs font-medium gap-1.5">
+                {hasSolutionAccess ? (
+                  <KeyRound className="size-3.5 text-emerald-500" />
+                ) : (
+                  <Lock className="size-3.5 text-amber-500" />
+                )}
+                <span>Solution {hasSolutionAccess ? '(PRO)' : '[PRO Locked]'}</span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="text-xs font-medium">
-                Submissions ({submissions.length})
+              <TabsTrigger value="history" className="text-xs font-medium gap-1.5">
+                <History className="size-3.5" />
+                <span>Submissions ({submissions.length})</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="description" className="flex-1 overflow-y-auto p-5 m-0 text-sm">
+              {/* LeetCode-style Problem Header Block */}
+              <div className="space-y-3 pb-4 mb-4 border-b border-border/70">
+                <div className="flex items-start justify-between gap-3">
+                  <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight leading-snug">
+                    {currentLabIndex >= 0 ? `${currentLabIndex + 1}. ` : ''}{lab.title}
+                  </h1>
+                  {isSolved && (
+                    <Badge variant="outline" className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30 gap-1 text-[11px] font-bold shrink-0">
+                      <CheckCircle2 className="size-3" />
+                      <span>Solved</span>
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/5">
+                    {lab.difficulty || 'Easy'}
+                  </Badge>
+                  <Badge variant="outline" className="text-[11px] font-semibold text-muted-foreground bg-muted/20">
+                    {lab.sandboxType === 'sql_worker' ? 'SQL' : isQuizletMode ? 'Quizlet' : 'JavaScript'}
+                  </Badge>
+                  {lab.isProOnly && (
+                    <Badge variant="secondary" className="text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      PRO
+                    </Badge>
+                  )}
+                  {lab.series && (
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[220px]">
+                      in <Link to={`/series/${lab.series.slug}`} className="hover:text-foreground underline underline-offset-2">{lab.series.title}</Link>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Markdown Content with tables and syntax highlighting */}
               <div
                 className="prose prose-sm dark:prose-invert max-w-none text-foreground leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: renderMarkdown(lab.instructions) }}
@@ -338,11 +743,16 @@ export function LabWorkspacePage() {
                     </Badge>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => handleCopySolution(lab.solution || lab.initialSnippet)}
-                      className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                      className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
                     >
-                      {copiedSolution ? 'Copied' : 'Copy Code'}
+                      {copiedSolution ? (
+                        <Check className="size-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="size-3" />
+                      )}
+                      <span>{copiedSolution ? 'Copied!' : 'Copy Code'}</span>
                     </Button>
                   </div>
 
@@ -567,22 +977,25 @@ export function LabWorkspacePage() {
               {/* Editor sub-header */}
               <div className="flex items-center justify-between px-4 py-1.5 border-b border-border bg-card text-xs text-muted-foreground shrink-0">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[11px] font-medium">
-                    {editorLanguage === 'sql' ? 'PostgreSQL 16' : 'JavaScript ES2024'}
+                  <Badge variant="outline" className="text-[11px] font-medium gap-1.5 py-0.5">
+                    <Code2 className="size-3 text-primary" />
+                    <span>{editorLanguage === 'sql' ? 'PostgreSQL 16' : 'JavaScript ES2024'}</span>
                   </Badge>
                   <span className="text-muted-foreground/30">•</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {isSaved ? 'Auto-saved' : 'Saving…'}
-                  </span>
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>{isSaved ? 'Auto-saved' : 'Saving…'}</span>
+                  </div>
                 </div>
 
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleResetCode}
-                  className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-2"
+                  className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-2 gap-1.5 font-medium"
                 >
-                  Reset Code
+                  <RotateCcw className="size-3" />
+                  <span>Reset Code</span>
                 </Button>
               </div>
 
@@ -615,12 +1028,14 @@ export function LabWorkspacePage() {
                 onValueChange={(v) => setRightBottomTab(v as any)}
                 className="h-56 border-t border-border bg-card flex flex-col shrink-0 overflow-hidden"
               >
-                <TabsList className="justify-start rounded-none border-b border-border bg-muted/30 p-1 h-8 shrink-0">
-                  <TabsTrigger value="testcase" className="text-xs font-medium">
-                    Sample Test Cases
+                <TabsList className="justify-start rounded-none border-b border-border bg-muted/30 p-1 h-8 shrink-0 gap-1">
+                  <TabsTrigger value="testcase" className="text-xs font-medium gap-1.5">
+                    <CheckSquare className="size-3.5 text-primary" />
+                    <span>Sample Test Cases</span>
                   </TabsTrigger>
-                  <TabsTrigger value="result" className="text-xs font-medium">
-                    Execution Output {sqlExecuted ? '(Executed)' : ''}
+                  <TabsTrigger value="result" className="text-xs font-medium gap-1.5">
+                    <Terminal className="size-3.5 text-primary" />
+                    <span>Execution Output {sqlExecuted ? '(Executed)' : ''}</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -772,20 +1187,35 @@ export function LabWorkspacePage() {
 
 function WorkspaceSkeleton() {
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)]">
-      <div className="h-11 border-b border-border bg-card px-4 flex items-center gap-3">
-        <Skeleton className="h-4 w-28" />
-        <Skeleton className="h-4 w-48" />
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-background">
+      <div className="h-12 border-b border-border bg-card px-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-5 w-20" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-7 w-16" />
+          <Skeleton className="h-7 w-20" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-12" />
+          <Skeleton className="h-5 w-20" />
+        </div>
       </div>
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-2/5 border-r border-border p-5 space-y-3">
-          <Skeleton className="h-5 w-1/3" />
+        <div className="w-[42%] border-r border-border p-5 space-y-4">
+          <Skeleton className="h-6 w-3/4" />
+          <div className="flex gap-2">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-16" />
+          </div>
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-32 w-full" />
         </div>
         <div className="flex-1 bg-muted/10 p-5 space-y-4">
-          <Skeleton className="h-8 w-1/4" />
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-6 w-1/4" />
+          <Skeleton className="h-80 w-full" />
         </div>
       </div>
     </div>

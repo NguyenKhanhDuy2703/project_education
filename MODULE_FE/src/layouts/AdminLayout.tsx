@@ -12,18 +12,25 @@ export function AdminLayout() {
   const location = useLocation();
   const isStudioRoute = location.pathname.includes('/admin/labs/');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background text-foreground flex">
         {/* Left Sidebar (Desktop fixed + Mobile drawer) */}
         <AdminSidebar
+          collapsed={collapsed}
+          onToggleCollapse={() => setCollapsed(!collapsed)}
           mobileOpen={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
         />
 
         {/* Main area: offset by sidebar width on desktop */}
-        <div className="flex flex-col flex-1 min-w-0 ml-0 md:ml-60">
+        <div
+          className={`flex flex-col flex-1 min-w-0 ml-0 ${
+            collapsed ? 'md:ml-16' : 'md:ml-60'
+          } transition-all duration-200`}
+        >
           {/* Sticky Topbar with breadcrumb & mobile hamburger trigger */}
           <AdminTopbar
             onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}

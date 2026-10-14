@@ -5,6 +5,8 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { timingSafeEqual } from 'crypto';
+import type { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -80,6 +82,40 @@ async function bootstrap() {
   // 6. Swagger Documentation
   const swaggerConfig = configService.get('swagger');
   if (swaggerConfig?.enabled) {
+    const rawPrefix = swaggerConfig.prefix || 'api/docs';
+    const normalizedPrefix = rawPrefix.startsWith('/') ? rawPrefix : `/${rawPrefix}`;
+
+    // Apply HTTP Basic Auth if user & password are configured in environment
+    if (swaggerConfig.user && swaggerConfig.password) {
+      app.use((req: Request, res: Response, next: NextFunction) => {
+        if (req.originalUrl.startsWith(normalizedPrefix)) {
+          const authHeader = req.headers.authorization;
+          if (!authHeader || !authHeader.startsWith('Basic ')) {
+            res.setHeader('WWW-Authenticate', 'Basic realm="StudyIT API Documentation"');
+            return res.status(401).send('Authentication required to access API documentation');
+          }
+
+          try {
+            const b64Credentials = authHeader.split(' ')[1];
+            const credentials = Buffer.from(b64Credentials, 'base64').toString('utf8');
+            const [username, password] = credentials.split(':');
+
+            const isUserValid = safeStringCompare(username || '', swaggerConfig.user);
+            const isPasswordValid = safeStringCompare(password || '', swaggerConfig.password);
+
+            if (!isUserValid || !isPasswordValid) {
+              res.setHeader('WWW-Authenticate', 'Basic realm="StudyIT API Documentation"');
+              return res.status(401).send('Invalid credentials');
+            }
+          } catch {
+            res.setHeader('WWW-Authenticate', 'Basic realm="StudyIT API Documentation"');
+            return res.status(401).send('Invalid authentication header');
+          }
+        }
+        next();
+      });
+    }
+
     const documentBuilder = new DocumentBuilder()
       .setTitle(swaggerConfig.title)
       .setDescription(swaggerConfig.description)
@@ -88,7 +124,7 @@ async function bootstrap() {
       .addCookieAuth('accessToken')
       .build();
     const document = SwaggerModule.createDocument(app, documentBuilder);
-    SwaggerModule.setup(swaggerConfig.prefix, app, document);
+    SwaggerModule.setup(rawPrefix, app, document);
   }
 
   const port = configService.get<number>('app.port');
@@ -102,3 +138,15 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+/**
+ * Constant-time string comparison to prevent timing attack vulnerabilities.
+ */
+function safeStringCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+  return timingSafeEqual(bufA, bufB);
+}
