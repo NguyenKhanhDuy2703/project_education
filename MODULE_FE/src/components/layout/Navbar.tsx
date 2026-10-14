@@ -59,26 +59,7 @@ export function Navbar() {
     { name: 'Roadmaps', href: '/roadmaps', icon: Compass },
   ];
 
-  const navLinks: NavLinkItem[] = (() => {
-    const links = [...baseNavLinks];
-    if (isContributorOrAbove) {
-      links.push({
-        name: 'Contributor Studio',
-        href: '/contributor',
-        icon: PenTool,
-        badge: 'CREATOR',
-      });
-    }
-    if (isAdmin) {
-      links.push({
-        name: 'Admin Studio',
-        href: '/admin',
-        icon: Shield,
-        badge: 'ADMIN',
-      });
-    }
-    return links;
-  })();
+  const navLinks: NavLinkItem[] = baseNavLinks;
 
   const getInitials = (name?: string) => {
     if (!name) return 'U';
