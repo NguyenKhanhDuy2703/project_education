@@ -1,149 +1,149 @@
 ---
 doc_type: workflow
-title: Sơ đồ Luồng Quản trị Thẻ Topic Toàn Hệ thống (Admin Topic Governance Flow)
+title: Sequence Diagram - System-Wide Topic Tag Governance (Admin Topic Governance Flow)
 project: study-web
 version: "1.0"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Quản trị Admin, Quản lý Thẻ Topic Dùng chung (Topic Tags), Kiểm soát Chất lượng và Đồng bộ Thẻ
+scope: Admin Subsystem, Centralized Topic Tag Taxonomy, Quality Control, and Cross-Platform Tag Synchronization
 date: 2026-10-14
-source_file: "MODULE_FE/src/features/topics, MODULE_FE/src/pages/admin/AdminContentPage.tsx, MODULE_BE/src/modules/topics"
+source_file: "MODULE_FE/src/services/topicTags.service.ts, MODULE_FE/src/pages/admin/_components/AdminTopicTagsModal.tsx, MODULE_BE/src/modules/catalog"
 status: final
-language: vi
+language: en
 related_docs: [02-catalog-topic-discovery.md, 05-create-series.md, 07-content-review-and-publish.md]
 ---
 
-# Sơ đồ Luồng Quản trị Thẻ Topic Toàn Hệ thống (Admin Topic Governance Flow)
+# Sequence Diagram: System-Wide Topic Tag Governance (Admin Topic Governance Flow)
 
-## 1. Thông tin tài liệu (Document Information)
+## 1. Document Information
 
-| Thuộc tính | Chi tiết |
+| Attribute | Details |
 |---|---|
-| **Tên tài liệu** | Sơ đồ Luồng Quản trị Thẻ Topic Toàn Hệ thống |
+| **Document Title** | System-Wide Topic Tag Governance Workflow |
 | **Version** | v1.0 |
-| **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Chu trình quản trị tập trung danh mục Thẻ Topic (Topic Tags) của Admin: Tạo mới thẻ, chỉnh sửa màu sắc/tên, xóa thẻ không dùng, ngăn chặn tình trạng rác thẻ và đồng bộ danh mục thẻ sang cho Contributor gắn vào bài học và Catalog để học viên lọc |
-| **Thời gian** | 2026-10-14 |
-| **Tham chiếu từ** | `MODULE_FE/src/features/topics/components/TopicTagsModal.tsx`, `MODULE_FE/src/features/topics/services/topicTags.service.ts`, `MODULE_BE/src/modules/topics/topics.controller.ts` |
+| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
+| **Scope** | Centralized administration of the platform-wide Topic Tags taxonomy by Administrators: Tag creation, slug auto-generation, hex color tagging, unused tag deprecation, tag pollution prevention, and real-time custom event synchronization across Contributor authoring studios and Public Catalog filters |
+| **Date** | 2026-10-14 |
+| **Source Reference** | `MODULE_FE/src/pages/admin/_components/AdminTopicTagsModal.tsx`, `MODULE_FE/src/services/topicTags.service.ts` |
 
 ---
 
-## 2. Nội dung chính (Content)
+## 2. Core Content
 
-### 2.1. Tóm tắt luồng (TL;DR)
-- **Vấn đề giải quyết**: Trước đây người dùng có thể tự gõ tạo thẻ tùy ý, dẫn đến tình trạng rác thẻ (tag pollution), trùng lặp thẻ (ví dụ `#javascript`, `#js`, `#Javascript`) và gây rối loạn cho thanh lọc khóa học.
-- **Quy tắc Quản trị mới**:
-  - **Chỉ Admin** mới có quyền Tạo, Sửa, Xóa các Thẻ Topic chính thống trong hệ thống.
-  - **Contributor & Tác giả** chỉ việc chọn từ danh mục Thẻ đã được chuẩn hóa để gắn vào Series / Bài Lab của mình.
-  - **Học viên** dùng các Thẻ này trên Trang chủ Catalog để lọc nội dung theo chuyên đề.
-- **Cơ chế Đồng bộ**:
-  - Khi Admin tạo hoặc sửa Thẻ trong Modal `Manage Topic Tags`, hệ thống kích hoạt sự kiện phát thanh (Event Broadcast) `topic-tags-updated`.
-  - Toàn bộ các component đang mở (như Catalog Filter, Modal tạo Series, Studio tạo bài Lab) tự động cập nhật danh sách thẻ mới mà không cần F5 reload trình duyệt.
+### 2.1. Workflow Summary (TL;DR)
+- **Problem Addressed**: Unrestricted freeform user tagging previously caused severe tag pollution and duplicates (e.g. `#javascript`, `#js`, `#Javascript`), degrading search and filter usability.
+- **Centralized Governance Rules**:
+  - **Admin Exclusive Mutation**: Only Administrators possess privileges to Create, Update, or Delete official system Topic Tags.
+  - **Contributor Role as Tag Consumer**: Authors and Contributors select from approved standardized tags when publishing Series and Labs.
+  - **Learner Filter Hub**: Learners utilize canonical tags on the Homepage/Catalog to discover targeted learning paths.
+- **Real-Time Synchronization**:
+  - Whenever an Admin modifies tags in the `AdminTopicTagsModal`, the system fires a browser event `topic-tags-updated`.
+  - Active components (Catalog Filters, Create Series Modal, Lab Studio) automatically refresh their tag lists in real-time without requiring a page reload.
 
 ---
 
-### 2.2. Phân công & Vai trò (Who does what)
+### 2.2. Roles & Responsibilities (Who Does What)
 
-| Thực thể | Loại | Vai trò & Trách nhiệm trong luồng |
+| Entity | Type | Roles & Responsibilities |
 |---|---|---|
-| **Admin** | Actor | Truy cập `/admin/content`, mở modal "Manage Topic Tags", quản lý danh mục thẻ |
-| **Contributor** | Actor | Tiêu thụ thẻ (Consumer): Gắn các thẻ sẵn có vào khóa học và bài lab |
-| **TopicTagsModal** | Client UI | Giao diện quản lý thẻ: Xem danh sách, tạo thẻ mới (tên, slug, mã màu hex), sửa và xóa |
-| **TopicTagsService** | Client Service | Cache danh mục thẻ, cung cấp phương thức CRUD, phát event `topic-tags-updated` |
-| **Topics Controller & Service** | NestJS Backend | Xác thực quyền Admin (`RequireRole(['admin'])`), kiểm tra ràng buộc khóa ngoại trước khi xóa thẻ |
-| **PostgreSQL Database** | Storage | Bảng `topics` và quan hệ nhiều - nhiều `series_topics`, `lab_topics` |
+| **Administrator** | Actor | Accesses Admin Studio, launches "Manage Topic Tags", and curates taxonomy |
+| **Contributor** | Actor | Tag Consumer: Assigns curated tags to courses and exercises |
+| **AdminTopicTagsModal** | Client UI | Modal UI for tag CRUD: Name, slug, hex color picker, usage metrics, and deletion |
+| **TopicTagsService** | Client Service | In-memory tag cache, CRUD methods, and `topic-tags-updated` event dispatching |
+| **Topics Controller & Service** | NestJS Backend | Enforces `@Roles('admin')` authorization and validates foreign key integrity |
+| **PostgreSQL Database** | Storage | Houses `topics` entity and relations `series_topics`, `lab_topics` |
 
 ---
 
-### 2.3. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.3. Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Admin as Quản trị viên (Admin)
-    participant AUI as Admin Content Page (/admin/content)
-    participant Modal as TopicTagsModal
+    actor Admin as Administrator
+    participant AUI as Admin Overview Page
+    participant Modal as AdminTopicTagsModal
     participant TagSvc as TopicTagsService (FE)
-    participant BE as NestJS Backend (TopicsModule)
+    participant BE as NestJS Backend (Topics/Catalog)
     participant DB as PostgreSQL
     participant Catalog as Public Catalog / Contributor Forms
 
-    Note over Admin, Catalog: 1. Mở giao diện Quản trị Thẻ Topic
-    Admin->>AUI: Truy cập `/admin/content`
-    Admin->>AUI: Bấm nút "Manage Topic Tags" tại góc header
-    AUI->>Modal: Mở popup quản trị thẻ (isOpen = true)
-    Modal->>TagSvc: Lấy danh sách thẻ hiện tại
+    Note over Admin, Catalog: 1. Launching Topic Tag Management
+    Admin->>AUI: Access Admin Dashboard
+    Admin->>AUI: Click "Manage Topic Tags" button
+    AUI->>Modal: Open management modal dialog (isOpen = true)
+    Modal->>TagSvc: Retrieve current tag catalog
     TagSvc->>BE: GET /api/topics
     BE->>DB: SELECT t.*, COUNT(st.series_id) as series_count FROM topics t LEFT JOIN series_topics st ... GROUP BY t.id
-    DB-->>BE: Danh sách thẻ kèm số lượng bài học đang sử dụng
+    DB-->>BE: Return tags with associated series usage counts
     BE-->>TagSvc: 200 OK [ { id, name, slug, color, seriesCount } ]
-    TagSvc-->>Modal: Render bảng danh sách thẻ gọn gàng
+    TagSvc-->>Modal: Render structured tag taxonomy table
 
-    Note over Admin, Catalog: 2. Thao tác Tạo Thẻ Topic mới
-    Admin->>Modal: Nhập Tên thẻ: "System Design", Màu sắc: "#8B5CF6", Mô tả: "Kiến trúc hệ thống quy mô lớn"
-    Modal->>Modal: Tự động chuẩn hóa slug: "system-design"
-    Admin->>Modal: Bấm "Tạo Thẻ (Create Tag)"
+    Note over Admin, Catalog: 2. Creating a Canonical Topic Tag
+    Admin->>Modal: Enter Name: "System Design", Color: "#8B5CF6", Description: "Large-scale systems"
+    Modal->>Modal: Auto-generate slug: "system-design"
+    Admin->>Modal: Click "Create Tag" button
     Modal->>BE: POST /api/topics { name, slug, color, description }
-    BE->>BE: Kiểm tra JWT role = 'admin'
+    BE->>BE: Verify admin role from JWT
     BE->>DB: INSERT INTO topics (name, slug, color, description) VALUES (...)
-    DB-->>BE: Thêm thẻ mới thành công
+    DB-->>BE: Tag record created successfully
     BE-->>Modal: 201 Created { id: "topic-sys-des", name: "System Design", ... }
     
-    Note over Modal, Catalog: 3. Phát thanh đồng bộ thời gian thực (Realtime Event Broadcast)
-    Modal->>TagSvc: Cập nhật cache thẻ nội bộ
+    Note over Modal, Catalog: 3. Real-Time Broadcast Synchronization
+    Modal->>TagSvc: Update internal tag cache
     TagSvc->>Catalog: Dispatch Window CustomEvent('topic-tags-updated')
-    Catalog->>Catalog: Tự động re-render thanh Tag Pills & dropdown chọn thẻ của Contributor
-    Modal-->>Admin: Hiển thị Toast "Thẻ System Design đã được tạo thành công!"
+    Catalog->>Catalog: Re-render Tag Pills bar & Contributor tag dropdowns
+    Modal-->>Admin: Display Toast: "Tag 'System Design' created successfully!"
 
-    Note over Admin, Catalog: 4. Thao tác Xóa Thẻ (Ràng buộc An toàn Dữ liệu)
-    Admin->>Modal: Bấm nút Xóa tại thẻ "Legacy JS"
-    alt Thẻ đang được sử dụng bởi các Series hoặc Labs (seriesCount > 0)
-        Modal-->>Admin: Cảnh báo Modal: "Thẻ này đang được gắn cho 3 khóa học. Bạn có chắc muốn xóa?"
-        Admin->>Modal: Xác nhận Xóa
+    Note over Admin, Catalog: 4. Deleting a Tag (Referential Integrity Check)
+    Admin->>Modal: Click Delete icon on tag "Legacy JS"
+    alt Tag is currently utilized by Series or Labs (seriesCount > 0)
+        Modal-->>Admin: Warning Dialog: "This tag is assigned to 3 courses. Confirm deletion?"
+        Admin->>Modal: Confirm Deletion
         Modal->>BE: DELETE /api/topics/:id
-        BE->>DB: Xóa bản ghi trong series_topics và topics (Cascade)
-        DB-->>BE: Xóa thành công
+        BE->>DB: Remove associations in series_topics and delete topic
+        DB-->>BE: Deletion committed
         BE-->>Modal: 200 OK
         Modal->>TagSvc: Dispatch CustomEvent('topic-tags-updated')
-        Modal-->>Admin: Toast "Thẻ đã được gỡ bỏ khỏi hệ thống"
+        Modal-->>Admin: Toast: "Tag removed from system"
     end
 ```
 
 ---
 
-### 2.4. Phân tích Kỹ thuật Chi tiết
+### 2.4. Technical Specifications & Architecture Details
 
-1. **Chuẩn hóa Phân loại (Taxonomy Normalization)**:
-   - Mỗi thẻ topic có thuộc tính `color` (dạng hex code: `#3B82F6`, `#10B981`...) giúp hiển thị huy hiệu (Badge) đẹp mắt, đồng bộ màu sắc trên toàn bộ giao diện từ Catalog, Drawer chi tiết cho đến Studio làm bài.
-2. **Cơ chế Event Bus nhẹ nhàng (CustomEvent)**:
-   - Thay vì phải phụ thuộc vào websocket phức tạp cho việc cập nhật thẻ, ứng dụng sử dụng kiến trúc `window.dispatchEvent(new CustomEvent('topic-tags-updated'))`.
-   - Bất kỳ màn hình nào đang lắng nghe sự kiện này (như `HomePage` hay `CreateSeriesModal`) đều sẽ nạp lại danh sách tag ngay lập tức.
-3. **Bảo mật Phân quyền (Admin Only Mutation)**:
-   - Các API tạo, sửa, xóa thẻ đều được bảo vệ bởi Decorator `@UseGuards(JwtAuthGuard, RolesGuard)` và `@Roles(UserRole.ADMIN)`.
-   - Người dùng thường hoặc Contributor chỉ có quyền gọi `GET /api/topics` để đọc dữ liệu.
+1. **Taxonomy Normalization**:
+   - Each topic tag carries a valid `color` attribute (hex code: `#3B82F6`, `#10B981`, etc.) ensuring consistent visual styling across badges on Catalog cards, Drawer roadmaps, and Practice Workspaces.
+2. **Lightweight CustomEvent Architecture**:
+   - Utilizes `window.dispatchEvent(new CustomEvent('topic-tags-updated'))` instead of heavy WebSocket channels for internal UI synchronization.
+   - Any listening component (such as `HomePage` or `CreateSeriesModal`) automatically triggers background re-fetching upon receipt.
+3. **Strict Authorization**:
+   - Mutating endpoints (Create, Update, Delete) are locked behind `@UseGuards(JwtAuthGuard, RolesGuard)` requiring `@Roles(UserRole.ADMIN)`.
+   - General learners and contributors possess read-only access via `GET /api/topics`.
 
 ---
 
-### 2.5. Xử lý Ngoại lệ (Edge Cases)
+### 2.5. Edge Cases & Exception Handling
 
-| Tình huống ngoại lệ | Phản hồi hệ thống | Trải nghiệm người dùng |
+| Edge Case | System Response | User Experience |
 |---|---|---|
-| **Tên thẻ hoặc Slug bị trùng lặp** | Database trả về lỗi ràng buộc Unique constraint | Modal báo lỗi: *"Tên thẻ hoặc Slug này đã tồn tại trong hệ thống"* |
-| **Mã màu hex không đúng định dạng** | Regex kiểm tra `/^#([0-9A-F]{3}){1,2}$/i` | Form highlight viền đỏ ô chọn màu |
-| **Xóa thẻ đang có hàng nghìn bài học** | Backend thực hiện transaction xóa an toàn hoặc gán thẻ về Default | Admin nhận xác nhận hai lớp (Confirmation Dialog) trước khi thực hiện |
+| **Duplicate Tag Name or Slug** | Database raises unique constraint violation | Modal highlights field: *"This tag name or slug already exists"* |
+| **Invalid Hex Color String** | RegEx validation `/^#([0-9A-F]{3}){1,2}$/i` | Highlights color input in red with formatting hint |
+| **Tag Deletion with Active Courses** | Cascade removal with safety check | Two-step confirmation dialog prevents accidental taxonomy loss |
 
 ---
 
-## 3. Tài liệu tham khảo & Liên kết (References)
+## 3. References & Source Links
 
-- **Mã nguồn Frontend**:
-  - Modal Quản lý Thẻ: [MODULE_FE/src/features/topics/components/TopicTagsModal.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/topics/components/TopicTagsModal.tsx)
-  - Service Thẻ Topic: [MODULE_FE/src/features/topics/services/topicTags.service.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/topics/services/topicTags.service.ts)
-  - Trang Quản lý Nội dung Admin: [MODULE_FE/src/pages/admin/AdminContentPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/AdminContentPage.tsx)
-- **Mã nguồn Backend**:
-  - Topics Controller: [MODULE_BE/src/modules/topics/topics.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/topics/topics.controller.ts)
-  - Prisma Schema Bảng Topics: [MODULE_BE/prisma/schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
-- **Tài liệu liên quan**:
-  - Khám phá Khóa học theo Thẻ: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
-  - Tạo Series & Gắn Thẻ Topic: [05-create-series.md](file:///d:/Projects/study-web/docs/workflows/05-create-series.md)
+- **Frontend Codebase**:
+  - Admin Topic Tags Modal: [AdminTopicTagsModal.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/AdminTopicTagsModal.tsx)
+  - Topic Tags Service: [topicTags.service.ts](file:///d:/Projects/study-web/MODULE_FE/src/services/topicTags.service.ts)
+  - Admin Topic Hierarchy: [AdminTopicHierarchy.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/AdminTopicHierarchy.tsx)
+- **Backend Codebase**:
+  - Database Schema: [schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
+- **Related Workflows**:
+  - Course Discovery by Tag: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
+  - Create Series with Tags: [05-create-series.md](file:///d:/Projects/study-web/docs/workflows/05-create-series.md)
+  - Review & Publishing: [07-content-review-and-publish.md](file:///d:/Projects/study-web/docs/workflows/07-content-review-and-publish.md)

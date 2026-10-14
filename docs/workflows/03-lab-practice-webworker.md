@@ -1,144 +1,144 @@
 ---
 doc_type: workflow
-title: Sơ đồ Luồng Thực hành Bài Lab & Sandbox Web Worker (In-Browser Execution Flow)
+title: Sequence Diagram - Lab Practice & Web Worker Execution Sandbox (In-Browser Execution Flow)
 project: study-web
 version: "1.1"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Không gian Thực hành (Lab Workspace), Monaco Editor, Sandbox Web Worker và Timeout Guard
+scope: Lab Workspace Subsystem, Monaco Editor Integration, Web Worker Execution Sandbox, and Timeout Guard
 date: 2026-10-14
-source_file: "MODULE_FE/src/features/labs, MODULE_FE/src/workers"
+source_file: "MODULE_FE/src/features/labs, MODULE_FE/src/features/lab/workers"
 status: final
-language: vi
+language: en
 related_docs: [02-catalog-topic-discovery.md, 04-lab-submission-progress.md, 06-create-lab-studio.md]
 ---
 
-# Sơ đồ Luồng Thực hành Bài Lab & Sandbox Web Worker (In-Browser Execution Flow)
+# Sequence Diagram: Lab Practice & Web Worker Execution Sandbox (In-Browser Execution Flow)
 
-## 1. Thông tin tài liệu (Document Information)
+## 1. Document Information
 
-| Thuộc tính | Chi tiết |
+| Attribute | Details |
 |---|---|
-| **Tên tài liệu** | Sơ đồ Luồng Thực hành Bài Lab & Sandbox Web Worker |
+| **Document Title** | Lab Practice & Web Worker Execution Sandbox Workflow |
 | **Version** | v1.1 |
-| **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Trải nghiệm học viên trong giao diện Làm bài Lab (`/practice/:labId`): Nạp đề bài Markdown, cấu hình Monaco Editor, cơ chế chạy thử nghiệm mã nguồn (JavaScript / SQL / Quiz) bên trong luồng nền Web Worker và bảo vệ treo tab với Timeout Guard |
-| **Thời gian** | 2026-10-14 |
-| **Tham chiếu từ** | `MODULE_FE/src/pages/PracticeLabPage.tsx`, `MODULE_FE/src/features/labs/components/LabWorkspaceLayout.tsx`, `MODULE_FE/src/workers/runner.worker.ts` |
+| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
+| **Scope** | Learner experience in the Interactive Lab Workspace (`/practice/:labId`): Markdown theory rendering, Monaco Code Editor setup, background thread code execution (JavaScript / SQL / Quiz) inside an isolated Web Worker, and tab freeze protection via a 2-second Timeout Guard |
+| **Date** | 2026-10-14 |
+| **Source Reference** | `MODULE_FE/src/pages/PracticeLabPage.tsx`, `MODULE_FE/src/features/lab/components/LabWorkspace.tsx`, `MODULE_FE/src/features/lab/workers/lab-runner.worker.ts` |
 
 ---
 
-## 2. Nội dung chính (Content)
+## 2. Core Content
 
-### 2.1. Tóm tắt luồng (TL;DR)
-- **Đầu vào**: Học viên mở trang bài lab (`/practice/:labId`), đọc lý thuyết & đề bài Markdown ở panel bên trái, viết giải pháp trong Monaco Code Editor ở panel bên phải.
-- **Thực thi**:
-  - Học viên bấm nút **"Run Code" (Chạy thử)** hoặc dùng phím tắt `Ctrl + Enter`.
-  - Frontend khởi tạo một `Web Worker` riêng biệt trên luồng nền của OS, chuyển mã giải pháp kèm kịch bản kiểm thử (Test Cases).
-  - Main thread kích hoạt bộ đếm thời gian an toàn **Timeout Guard (2000ms)**.
-- **Kết quả**:
-  - Nếu code chạy xong trước 2000ms: Worker tổng hợp số test case Passed/Failed, thời gian chạy (ms), console logs và gửi về Main Thread để render lên UI Test Console.
-  - Nếu code có vòng lặp vô tận (`while(true)`): Hết 2000ms, Main Thread cưỡng chế ngắt luồng `worker.terminate()`, báo lỗi "Time Limit Exceeded" mà không làm đơ trình duyệt.
+### 2.1. Workflow Summary (TL;DR)
+- **Input**: Learner accesses a lab page (`/practice/:labId`), reviews Markdown instructions on the left panel, and writes code solutions in the Monaco Code Editor on the right panel.
+- **Execution**:
+  - Learner clicks **"Run Code"** or triggers shortcut `Ctrl + Enter`.
+  - Frontend spawns an isolated OS background `Web Worker`, transmitting the learner solution alongside automated test case suites.
+  - Main thread initiates a **Timeout Guard (2000ms)** countdown timer.
+- **Output**:
+  - If execution completes within 2000ms: Worker aggregates test cases (Passed/Failed), execution duration (ms), captured console logs, and signals the Main Thread to update the Test Output Console.
+  - If code contains an infinite loop (`while (true)`): At 2000ms, Main Thread forcibly invokes `worker.terminate()`, rendering a "Time Limit Exceeded" alert without freezing the browser UI.
 
 ---
 
-### 2.2. Phân công & Vai trò (Who does what)
+### 2.2. Roles & Responsibilities (Who Does What)
 
-| Thực thể | Loại | Vai trò & Trách nhiệm trong luồng |
+| Entity | Type | Roles & Responsibilities |
 |---|---|---|
-| **Học viên** | Actor | Đọc lý thuyết, viết code giải bài, bấm "Run Code" hoặc "Submit" |
-| **LabWorkspaceLayout** | Client UI | Bố cục 2 panel (Lý thuyết / Đề bài bên trái, Code Editor + Console bên phải) |
-| **Monaco Editor** | Code Editor | Hỗ trợ syntax highlighting, autocompletion, gõ phím tắt |
-| **Worker Bridge** | Client Engine | Đóng gói mã nguồn & test cases thành message, quản lý vòng đời Web Worker |
-| **Web Worker Sandbox** | OS Background Thread | Môi trường cô lập thực thi JavaScript/SQL, không có quyền truy cập DOM/Cookies |
-| **Timeout Guard (2s)** | Safety Mechanism | Ngắt luồng ngay lập tức nếu thời gian chạy vượt quá ngưỡng an toàn |
-| **Test Output Console** | Client UI | Hiển thị chi tiết từng test case (Status, Input, Expected, Actual, Execution Time) |
+| **Learner** | Actor | Reads instructions, writes code, triggers "Run Code" or submits solution |
+| **Lab Workspace Layout** | Client UI | Two-pane layout (Theory/Guide on left, Monaco Editor + Test Console on right) |
+| **Monaco Editor** | Code Editor | Provides syntax highlighting, auto-completion, line numbers, and keyboard shortcuts |
+| **Worker Bridge** | Client Engine | Bundles user code and test cases into structured messages, manages Worker lifecycle |
+| **Web Worker Sandbox** | OS Background Thread | Isolated execution environment for JavaScript/SQL, devoid of DOM, storage, or cookie access |
+| **Timeout Guard (2s)** | Safety Mechanism | Forcibly terminates the worker if execution runtime exceeds safe thresholds |
+| **Test Output Console** | Client UI | Renders granular test results (Status, Input, Expected, Actual, Duration, Logs) |
 
 ---
 
-### 2.3. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.3. Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Học viên
-    participant UI as LabWorkspaceLayout (React)
+    actor User as Learner / Student
+    participant UI as Lab Workspace (React)
     participant Editor as Monaco Editor
     participant Bridge as Worker Bridge (Main Thread)
     participant Worker as Web Worker (Background Thread)
     participant Guard as Timeout Guard (2000ms)
     participant Console as Test Output Console
 
-    Note over User, Console: 1. Nạp môi trường làm bài
-    User->>UI: Truy cập `/practice/:labId`
-    UI->>UI: Nạp starterCode vào Editor và Markdown vào panel Lý thuyết
-    UI-->>User: Giao diện sẵn sàng làm bài
-
-    Note over User, Console: 2. Viết code & Kích hoạt Chạy thử (Run Code)
-    User->>Editor: Viết hàm giải quyết bài toán
-    User->>UI: Bấm nút "Run Code" (hoặc Ctrl+Enter)
+    Note over User, Console: 1. Workspace Initialization
+    User->>UI: Navigate to `/practice/:labId`
+    UI->>UI: Populate starterCode in Editor and render Markdown instructions
+    UI-->>User: Interactive workspace ready
+    
+    Note over User, Console: 2. Code Composition & Trial Execution
+    User->>Editor: Writes solution logic
+    User->>UI: Click "Run Code" button (or Ctrl+Enter)
     UI->>Bridge: executeCode({ userCode, testCases, sandboxType })
-    Bridge->>Console: Đặt trạng thái "Running tests..." (Spinner)
-    Bridge->>Worker: Khởi tạo Web Worker & postMessage(payload)
-    Bridge->>Guard: Bật bộ đếm an toàn setTimeout 2000ms
+    Bridge->>Console: Set status to "Running tests..." (Spinner active)
+    Bridge->>Worker: Instantiate Web Worker & postMessage(payload)
+    Bridge->>Guard: Start safety countdown (setTimeout 2000ms)
 
-    Note over Worker: Worker thực thi độc lập trên OS thread riêng
+    Note over Worker: Worker executes on isolated OS background thread
 
-    alt Trường hợp 1: Code chạy hợp lệ & hoàn thành trước 2000ms
-        Worker->>Worker: Nạp userCode, lần lượt chạy từng Test Case assert
+    alt Case 1: Valid Execution Completed within 2000ms
+        Worker->>Worker: Evaluate userCode against test case assertions
         Worker-->>Bridge: postMessage({ type: 'SUCCESS', results: [...], logs: [...] })
-        Bridge->>Guard: clearTimeout(timeoutId) (Hủy ngắt an toàn)
-        Bridge->>Worker: worker.terminate() (Giải phóng RAM)
-        Bridge->>Console: Render kết quả từng case (Passed xanh / Failed đỏ)
-        Console-->>User: Hiển thị "3/3 Tests Passed (42ms)"
-    else Trường hợp 2: Code gặp lỗi Runtime / Syntax Error
+        Bridge->>Guard: clearTimeout(timeoutId) (Disarm safety guard)
+        Bridge->>Worker: worker.terminate() (Release memory)
+        Bridge->>Console: Render test report (Passed green / Failed red)
+        Console-->>User: Display "3/3 Tests Passed (42ms)"
+    else Case 2: Runtime Exception / Syntax Error
         Worker-->>Bridge: postMessage({ type: 'ERROR', message: "ReferenceError: x is not defined" })
         Bridge->>Guard: clearTimeout(timeoutId)
         Bridge->>Worker: worker.terminate()
-        Bridge->>Console: Báo lỗi runtime stack trace
-        Console-->>User: Hiển thị thông báo lỗi cụ thể để học viên sửa
-    else Trường hợp 3: Vòng lặp vô tận (while true)
-        Note over Worker: Worker bị treo cứng trong vòng lặp vô tận
-        Guard-->>Bridge: 2000ms trôi qua! Báo động Timeout kích hoạt!
-        Bridge->>Worker: Cưỡng chế ngắt luồng ngay lập tức: worker.terminate()
-        Bridge->>Console: Báo lỗi "Time Limit Exceeded: Quá thời gian cho phép 2.0 giây"
-        Console-->>User: Cảnh báo đỏ. Tab trình duyệt vẫn cuộn mượt mà không bị đơ
+        Bridge->>Console: Render runtime stack trace
+        Console-->>User: Display actionable error message for debugging
+    else Case 3: Infinite Loop Detection (while true)
+        Note over Worker: Worker thread locked in infinite cycle
+        Guard-->>Bridge: 2000ms elapsed! Timeout alert triggered!
+        Bridge->>Worker: Forcibly abort thread: worker.terminate()
+        Bridge->>Console: Render "Time Limit Exceeded: Execution took longer than 2.0s"
+        Console-->>User: Red warning alert. Browser tab remains responsive and smooth
     end
 ```
 
 ---
 
-### 2.4. Phân tích Kỹ thuật Chi tiết
+### 2.4. Technical Specifications & Architecture Details
 
-1. **Lý do kiến trúc Web Worker client-side**:
-   - Tiết kiệm chi phí máy chủ: Không cần duy trì cụm server Docker/K8s tốn kém hàng tháng để compile các bài tập nhỏ.
-   - Độ trễ gần bằng 0: Toàn bộ quá trình chạy thử diễn ra trực tiếp trên CPU của người dùng, phản hồi trong vài chục mili-giây.
-2. **Nguyên lý An toàn Sandbox**:
-   - `window`, `document`, `localStorage`, `sessionStorage`, `cookies` hoàn toàn không tồn tại trong ngữ cảnh Dedicated Worker.
-   - Mã độc từ người dùng không thể can thiệp vào DOM, không thể đánh cắp token hay chèn script XSS.
-3. **Quản lý Vòng đời Worker**:
-   - Mỗi lần bấm "Run Code", một instance Worker mới được tạo ra và luôn bị hủy (`terminate()`) ngay khi có kết quả hoặc khi hết thời gian, đảm bảo không rò rỉ bộ nhớ (memory leaks).
+1. **Client-Side Web Worker Architecture Rationales**:
+   - Zero Server Overhead: Eliminates expensive remote Docker/Kubernetes container orchestration clusters for client-side evaluation exercises.
+   - Near-Zero Latency: Tests execute directly on learner hardware, delivering results within tens of milliseconds.
+2. **Sandbox Isolation Security**:
+   - `window`, `document`, `localStorage`, `sessionStorage`, and `cookies` are strictly inaccessible in a Dedicated Worker scope.
+   - User-submitted malicious code cannot manipulate the application DOM, steal tokens, or mount cross-site scripting (XSS) attacks.
+3. **Worker Lifecycle Management**:
+   - Each execution instance generates an ephemeral Worker thread that is unconditionally killed (`terminate()`) immediately upon task resolution or timeout expiration, preventing memory leaks.
 
 ---
 
-### 2.5. Xử lý Ngoại lệ (Edge Cases)
+### 2.5. Edge Cases & Exception Handling
 
-| Tình huống ngoại lệ | Phản hồi hệ thống | Trải nghiệm người dùng |
+| Edge Case | System Response | User Experience |
 |---|---|---|
-| **Vòng lặp vô tận hoặc đệ quy quá sâu** | Timeout Guard (2000ms) kích hoạt | Báo lỗi Time Limit Exceeded, trả quyền điều khiển về editor ngay |
-| **Ghi đè hoặc phá hủy prototype chuẩn (`Array.prototype`)** | Worker bị cô lập hoàn toàn | Mỗi lần chạy là một Worker mới, không ảnh hưởng đến các lần chạy kế tiếp hay tab khác |
-| **Console log spam quá nhiều dòng** | Worker giới hạn mảng log tối đa 100 dòng | Cắt bớt phần thừa và thông báo *"Output truncated..."* |
+| **Infinite Loop / Deep Recursion** | Timeout Guard (2000ms) terminates worker | Renders Time Limit Exceeded error and instantly restores editor controls |
+| **Prototype Mutation (`Array.prototype`)** | Dedicated Worker thread scope isolation | Disposed upon run completion; subsequent runs and host application are unharmed |
+| **Excessive Console Log Flooding** | Worker caps log collection at 100 entries | Excess logs truncated with notice *"Output truncated to 100 lines..."* |
 
 ---
 
-## 3. Tài liệu tham khảo & Liên kết (References)
+## 3. References & Source Links
 
-- **Mã nguồn Frontend**:
-  - Giao diện Workspace: [MODULE_FE/src/features/labs/components/LabWorkspaceLayout.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/labs/components/LabWorkspaceLayout.tsx)
-  - File Web Worker Runner: [MODULE_FE/src/workers/runner.worker.ts](file:///d:/Projects/study-web/MODULE_FE/src/workers/runner.worker.ts)
-  - Khung Kết quả Test: [MODULE_FE/src/features/labs/components/TestOutputPanel.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/labs/components/TestOutputPanel.tsx)
-- **Tài liệu liên quan**:
-  - Khám phá Khóa học & Mở Lab: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
-  - Nộp bài Lab & Ghi nhận Tiến độ: [04-lab-submission-progress.md](file:///d:/Projects/study-web/docs/workflows/04-lab-submission-progress.md)
-  - Studio Tạo bài Lab cho Contributor: [06-create-lab-studio.md](file:///d:/Projects/study-web/docs/workflows/06-create-lab-studio.md)
+- **Frontend Codebase**:
+  - Lab Workspace: [LabWorkspace.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/components/LabWorkspace.tsx)
+  - Web Worker Runner: [lab-runner.worker.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/workers/lab-runner.worker.ts)
+  - Test Output Panel: [TestOutputPanel.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/components/TestOutputPanel.tsx)
+- **Related Workflows**:
+  - Course Discovery & Lab Access: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
+  - Submission & Progress Tracking: [04-lab-submission-progress.md](file:///d:/Projects/study-web/docs/workflows/04-lab-submission-progress.md)
+  - Two-Step Lab Studio: [06-create-lab-studio.md](file:///d:/Projects/study-web/docs/workflows/06-create-lab-studio.md)

@@ -1,150 +1,150 @@
 ---
 doc_type: workflow
-title: Sơ đồ Luồng Studio Tạo Bài Lab 2 Bước (Practice Lab Studio Creation Flow)
+title: Sequence Diagram - Two-Step Lab Creation Studio (Practice Lab Studio Creation Flow)
 project: study-web
 version: "1.0"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Contributor Studio, Trình soạn thảo 2 bước (Lý thuyết Markdown + Cấu hình Bài tập), Kiểm thử Solution Runner và Validation
+scope: Contributor Studio Subsystem, Two-Step Lab Authoring (Markdown Theory + Exercise Setup), Solution Test Runner & Verification Gate
 date: 2026-10-14
-source_file: "MODULE_FE/src/pages/contributor/CreateLabPage.tsx, MODULE_FE/src/features/contributor/components/lab-studio"
+source_file: "MODULE_FE/src/pages/contributor/ContributorCreatePage.tsx, MODULE_BE/src/modules/labs"
 status: final
-language: vi
+language: en
 related_docs: [03-lab-practice-webworker.md, 05-create-series.md, 07-content-review-and-publish.md]
 ---
 
-# Sơ đồ Luồng Studio Tạo Bài Lab 2 Bước (Practice Lab Studio Creation Flow)
+# Sequence Diagram: Two-Step Lab Creation Studio (Practice Lab Studio Creation Flow)
 
-## 1. Thông tin tài liệu (Document Information)
+## 1. Document Information
 
-| Thuộc tính | Chi tiết |
+| Attribute | Details |
 |---|---|
-| **Tên tài liệu** | Sơ đồ Luồng Studio Tạo Bài Lab 2 Bước |
+| **Document Title** | Two-Step Lab Creation Studio Workflow |
 | **Version** | v1.0 |
-| **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Chu trình thiết kế bài tập của Contributor / Instructor qua Studio 2 bước: Bước 1 (Soạn thảo Lý thuyết Markdown với Live Preview song song), Bước 2 (Cấu hình Bài tập theo bản chất JS/SQL/Quizlet, danh sách Test Cases và Chạy thử Solution trước khi xuất bản) |
-| **Thời gian** | 2026-10-14 |
-| **Tham chiếu từ** | Bản thiết kế UX/UI Studio mới, `MODULE_FE/src/pages/contributor/CreateLabPage.tsx`, `MODULE_BE/src/modules/labs/labs.controller.ts` |
+| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
+| **Scope** | Authoring workflow for Contributors and Instructors in the Two-Step Studio: Step 1 (Theory authoring via synchronized Split-View Markdown Editor & Live Preview) and Step 2 (Interactive Exercise Builder for JS/SQL/Quizlet, automated Test Case composition, and mandatory Pre-flight Solution Runner verification before publishing) |
+| **Date** | 2026-10-14 |
+| **Source Reference** | `MODULE_FE/src/pages/contributor/ContributorCreatePage.tsx`, `MODULE_BE/src/modules/labs/labs.controller.ts` |
 
 ---
 
-## 2. Nội dung chính (Content)
+## 2. Core Content
 
-### 2.1. Tóm tắt luồng (TL;DR)
-- **Bước 1 — Lý thuyết & Hướng dẫn (Theory & Guidelines)**:
-  - Cột trái (~280px): Thuộc tính chung (Thuộc Series nào, Tiêu đề Lab, Thời lượng ước tính, Loại Sandbox JS/SQL/Quizlet, Cờ yêu cầu PRO) và Checklist điều kiện.
-  - Cột phải chia đôi: Khung soạn Markdown bên trái | Khung Live Preview rendered bên phải, cuộn đồng bộ.
-  - Mẫu template thông minh nạp sẵn theo định dạng bài.
-- **Bước 2 — Cấu hình Bài tập & Kiểm thử (Exercise & Test Configuration)**:
-  - Khung Lý thuyết thu gọn ở một bên để đối chiếu yêu cầu.
-  - Khung Cấu hình theo từng loại:
-    - **JS / SQL**: Starter Code (mã khung cho học viên), Solution Code (lời giải chuẩn của tác giả), Test Cases (danh sách từng case trực quan, gồm Description, Input, Expected Output).
-    - **Quizlet**: Soạn danh sách câu hỏi trắc nghiệm, các lựa chọn A/B/C/D và đánh dấu đáp án đúng.
-  - **Cơ chế Chạy thử Solution (Test Solution Runner)**: Bắt buộc chạy thử Lời giải chuẩn với toàn bộ Test Cases. Chỉ khi 100% Passed mới kích hoạt nút **"Submit for Review"** hoặc **"Publish"**, chặn hoàn toàn bài tập rác hoặc test case sai.
+### 2.1. Workflow Summary (TL;DR)
+- **Step 1 — Theory & Guidelines**:
+  - Left Sidebar (~280px): Global properties (Parent Series assignment, Lab Title, estimated duration, Sandbox type [JS / SQL / Quizlet], PRO access flag) and validation checklist.
+  - Right Split Screen: Markdown raw source editor on the left with a synchronized live-rendered HTML preview on the right.
+  - Format-specific smart templates pre-populate boilerplate instructions.
+- **Step 2 — Exercise Setup & Pre-flight Testing**:
+  - Collapsible Theory reference pane retained for ongoing context.
+  - Tailored builder configurations:
+    - **JS / SQL**: Starter Code (skeleton provided to students), Solution Code (clean reference implementation), and Test Case cards (Description, Input assertions, Expected Output).
+    - **Quizlet**: Multiple-choice question authoring with answer options (A/B/C/D) and correct answer designation.
+  - **Mandatory Pre-flight Solution Test Runner**: The author is required to execute the reference Solution Code against all defined test assertions. The **"Submit for Review"** / **"Publish"** actions remain disabled until 100% of test cases pass, eliminating defective exercises.
 
 ---
 
-### 2.2. Phân công & Vai trò (Who does what)
+### 2.2. Roles & Responsibilities (Who Does What)
 
-| Thực thể | Loại | Vai trò & Trách nhiệm trong luồng |
+| Entity | Type | Roles & Responsibilities |
 |---|---|---|
-| **Contributor / Instructor** | Actor | Soạn lý thuyết, cấu hình bài tập, nhập test cases và chạy thử nghiệm lời giải |
-| **Step 1: Theory Studio** | Client UI | Split-view Markdown Editor & Live Preview, checklist kiểm tra độ dài |
-| **Step 2: Exercise Studio** | Client UI | Form nhập Starter Code, Solution Code, danh sách Test Cases dạng cards |
-| **Solution Test Runner** | Client Engine | Nạp Solution Code và Test Cases vào Sandbox Web Worker để xác minh trước |
-| **Labs Controller & Service** | NestJS Backend | Lưu bản nháp (Draft), lưu trữ test cases và trạng thái gửi duyệt |
-| **PostgreSQL Database** | Storage | Bảng `labs`, `test_cases`, `lab_solutions` |
+| **Contributor / Instructor** | Actor | Authors theory, defines starter and solution code, sets test cases, and executes verification runs |
+| **Step 1: Theory Studio** | Client UI | Split-view Markdown Editor with synchronized live preview and length checks |
+| **Step 2: Exercise Studio** | Client UI | Configures Starter Code, Solution Code, and visual test case assertion cards |
+| **Solution Test Runner** | Client Engine | Dispatches Solution Code and Test Cases to the Web Worker Sandbox for client-side evaluation |
+| **Labs Controller & Service** | NestJS Backend | Persists drafts, validates test case schemas, and handles review submission workflows |
+| **PostgreSQL Database** | Storage | Houses `labs`, `test_cases`, and `lab_solutions` tables |
 
 ---
 
-### 2.3. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.3. Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Contributor as Contributor / Tác giả
+    actor Contributor as Contributor / Author
     participant Studio1 as Step 1: Theory Studio
     participant Studio2 as Step 2: Exercise Studio
     participant Runner as Solution Test Runner (Worker)
     participant BE as NestJS Backend (LabsModule)
     participant DB as PostgreSQL
 
-    Note over Contributor, DB: Giai đoạn 1: Soạn thảo Lý thuyết & Hướng dẫn
-    Contributor->>Studio1: Chọn Parent Series & Loại Sandbox (ví dụ: SQL)
-    Studio1->>Studio1: Nạp Smart Template (Lý thuyết, Cú pháp, Đề bài mẫu)
-    Contributor->>Studio1: Viết nội dung Markdown tại cột Soạn thảo
-    Studio1-->>Contributor: Live Preview hiển thị song song theo thời gian thực
-    Studio1->>Studio1: Kiểm tra Checklist (Title ✓, Series ✓, Theory ≥ 100 ký tự ✓)
-    Contributor->>Studio1: Bấm nút "Tiếp theo: Cấu hình bài tập →"
+    Note over Contributor, DB: Phase 1: Markdown Theory & Instruction Authoring
+    Contributor->>Studio1: Select Parent Series & Sandbox Type (e.g. SQL)
+    Studio1->>Studio1: Pre-populate Smart Template (Theory, Syntax, Example Prompt)
+    Contributor->>Studio1: Composes instructional content in Markdown editor
+    Studio1-->>Contributor: Live preview updates continuously in real-time
+    Studio1->>Studio1: Validate checklist (Title ✓, Series ✓, Length ≥ 100 chars ✓)
+    Contributor->>Studio1: Click "Next: Exercise Setup →"
 
-    Note over Contributor, DB: Giai đoạn 2: Cấu hình Bài tập & Test Cases
-    Studio1->>Studio2: Chuyển sang Step 2 (Giữ panel lý thuyết thu gọn để đối chiếu)
-    Contributor->>Studio2: Điền Starter Code (Khung query ban đầu cho học viên)
-    Contributor->>Studio2: Điền Solution Code (Truy vấn hoàn chỉnh chính xác)
-    loop Thêm từng Test Case
-        Contributor->>Studio2: Bấm "+ Thêm Test Case"
-        Contributor->>Studio2: Nhập: Tên case, Input giả lập, Expected Output mong đợi
+    Note over Contributor, DB: Phase 2: Exercise Configuration & Test Cases
+    Studio1->>Studio2: Transition to Step 2 (Retain collapsed theory pane for reference)
+    Contributor->>Studio2: Provide Starter Code (Initial skeleton query for students)
+    Contributor->>Studio2: Provide Solution Code (Complete authoritative reference implementation)
+    loop Add Test Cases
+        Contributor->>Studio2: Click "+ Add Test Case"
+        Contributor->>Studio2: Enter: Case Name, Simulated Input, Expected Output
     end
 
-    Note over Contributor, DB: Giai đoạn 3: Bắt buộc Chạy thử Solution trước khi nộp
-    Contributor->>Studio2: Bấm nút "Chạy thử Solution với Tests"
-    Studio2->>Runner: Gửi SolutionCode + Danh sách Test Cases
-    Runner->>Runner: Thực thi kiểm thử trong Sandbox Web Worker
+    Note over Contributor, DB: Phase 3: Mandatory Pre-flight Solution Verification
+    Contributor->>Studio2: Click "Run Solution with Tests"
+    Studio2->>Runner: Transmit SolutionCode + Test Cases payload
+    Runner->>Runner: Execute test suite inside Web Worker Sandbox
     
-    alt Có ít nhất 1 Test Case thất bại hoặc Lỗi cú pháp
-        Runner-->>Studio2: Kết quả: ✗ Test #3 Failed (Expected: 5 rows, Got: 4 rows)
-        Studio2-->>Contributor: Bảng cảnh báo đỏ! Vô hiệu hóa nút Publish / Submit
-        Note over Contributor, Studio2: Tác giả phát hiện lỗi sớm và điều chỉnh lại Test hoặc Solution
-    else Toàn bộ Test Cases đều Vượt qua (100% Passed)
-        Runner-->>Studio2: Kết quả: ✓ 4/4 Tests Passed (Thời gian chạy: 38ms)
-        Studio2-->>Contributor: Bảng thông báo xanh hoàn hảo!
-        Studio2->>Studio2: Mở khóa nút "Gửi duyệt bài (Submit for Review)" / "Publish"
+    alt At Least One Assertion Fails or Syntax Exception
+        Runner-->>Studio2: Test Failure: ✗ Case #3 Failed (Expected: 5 rows, Got: 4 rows)
+        Studio2-->>Contributor: Highlight failure details; keep Submit/Publish buttons disabled
+        Note over Contributor, Studio2: Author reviews stack trace and refines Test or Solution
+    else All Test Cases Pass (100% Passed)
+        Runner-->>Studio2: Success: ✓ 4/4 Tests Passed (Execution time: 38ms)
+        Studio2-->>Contributor: Render green verification confirmation
+        Studio2->>Studio2: Unlock "Submit for Review" / "Publish" buttons
     end
 
-    Note over Contributor, DB: Giai đoạn 4: Lưu trữ & Gửi duyệt
-    Contributor->>Studio2: Bấm nút "Gửi duyệt bài" (hoặc "Lưu bản nháp")
+    Note over Contributor, DB: Phase 4: Persistence & Submission
+    Contributor->>Studio2: Click "Submit for Review" (or "Save Draft")
     Studio2->>BE: POST /api/labs/studio { theoryMarkdown, starterCode, solutionCode, testCases, ... }
     BE->>DB: INSERT INTO labs + INSERT INTO test_cases
-    DB-->>BE: Lưu trữ thành công
+    DB-->>BE: Persisted records successfully
     BE-->>Studio2: 200 OK { labId: "lab-sql-new", status: "submitted" }
-    Studio2-->>Contributor: Hiển thị Toast thông báo thành công và chuyển về My Content
+    Studio2-->>Contributor: Display success toast and redirect to My Content overview
 ```
 
 ---
 
-### 2.4. Phân tích Kỹ thuật Chi tiết
+### 2.4. Technical Specifications & Architecture Details
 
-1. **Khắc phục triệt để vấn đề "Soạn mù" (Zero-context problem)**:
-   - Trước đây: Ô Starter / Test / Solution bị để trống, test script là 1 chuỗi script nối dài, không có nút chạy thử nghiệm. Nhiều bài lab bị lỗi cú pháp ngay khi phát hành mà người tạo không hề hay biết.
-   - Hiện tại: Thiết kế theo **bản chất từng loại bài**. Test script được chuẩn hóa thành mảng đối tượng `testCases: Array<{ id, name, input, expectedOutput, isHidden }>`, có thể thêm/bớt/sửa từng dòng trực quan.
-2. **Cổng kiểm định bắt buộc (Mandatory Pre-flight Test Gate)**:
-   - Hệ thống ngăn chặn dữ liệu rác hoặc kịch bản kiểm thử vô lý bằng cách yêu cầu `solutionVerified === true`.
-   - Nút "Submit for Review" hoặc "Publish" bị `disabled` kèm tooltip hướng dẫn: *"Bạn cần chạy thử Solution thành công trước khi có thể gửi duyệt hoặc xuất bản bài học"*.
-3. **Bộ nhớ nháp tự động (Auto-draft saving)**:
-   - Trong quá trình soạn thảo, nội dung được định kỳ lưu vào `localStorage` mỗi 30 giây để tránh mất mát nếu vô tình tắt trình duyệt hoặc mất kết nối.
+1. **Resolution of the "Blind Authoring" Problem**:
+   - Legacy workflow lacked live testing or discrete test case fields.
+   - The two-step studio formalizes test cases into an array of structured objects: `testCases: Array<{ id, name, input, expectedOutput, isHidden }>`, enabling visual row editing.
+2. **Mandatory Pre-flight Verification Gate**:
+   - The UI enforces `solutionVerified === true`.
+   - The "Submit for Review" button remains disabled with a clarifying tooltip: *"You must successfully verify your solution against all test cases before submitting."*
+3. **Automatic Local Draft Preservation**:
+   - While editing, the client automatically backs up the working document into `localStorage` every 30 seconds to prevent data loss.
 
 ---
 
-### 2.5. Xử lý Ngoại lệ (Edge Cases)
+### 2.5. Edge Cases & Exception Handling
 
-| Tình huống ngoại lệ | Phản hồi hệ thống | Trải nghiệm người dùng |
+| Edge Case | System Response | User Experience |
 |---|---|---|
-| **Solution chạy quá 2 giây (Timeout)** | Worker Timeout Guard ngắt luồng | Báo lỗi Time Limit Exceeded trên Solution, nhắc tác giả tối ưu thuật toán |
-| **Test case có input rỗng hoặc sai kiểu dữ liệu** | Form validation bắt lỗi ngay tại hàng test case | Viền đỏ ô input kèm thông báo *"Vui lòng nhập giá trị đầu vào cho case này"* |
-| **Người dùng bấm Back hoặc chuyển tab khi chưa lưu** | Trình duyệt kích hoạt sự kiện `beforeunload` | Hiển thị hộp thoại cảnh báo: *"Các thay đổi chưa lưu có thể bị mất. Bạn có chắc chắn muốn rời đi?"* |
+| **Solution Runtime Exceeds 2 Seconds** | Worker Timeout Guard triggers | Flags Time Limit Exceeded on Solution, advising query/algorithm optimization |
+| **Empty or Malformed Test Case Input** | Form validation highlights card | Red border on input card with alert *"Please provide an input value for this assertion"* |
+| **Unsaved Navigation (Tab Switch / Back)** | Triggers browser `beforeunload` event | Displays modal: *"You have unsaved changes. Are you sure you want to exit?"* |
 
 ---
 
-## 3. Tài liệu tham khảo & Liên kết (References)
+## 3. References & Source Links
 
-- **Mã nguồn Frontend**:
-  - Trang Tạo Lab: [MODULE_FE/src/pages/contributor/CreateLabPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/contributor/CreateLabPage.tsx)
-  - Runner Worker kiểm thử: [MODULE_FE/src/workers/runner.worker.ts](file:///d:/Projects/study-web/MODULE_FE/src/workers/runner.worker.ts)
-- **Mã nguồn Backend**:
-  - Labs Controller: [MODULE_BE/src/modules/labs/labs.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/labs/labs.controller.ts)
-  - Schema Bài Lab & Test: [MODULE_BE/prisma/schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
-- **Tài liệu liên quan**:
-  - Luồng Tạo Series: [05-create-series.md](file:///d:/Projects/study-web/docs/workflows/05-create-series.md)
-  - Luồng Duyệt & Xuất bản Nội dung: [07-content-review-and-publish.md](file:///d:/Projects/study-web/docs/workflows/07-content-review-and-publish.md)
-  - Chạy Web Worker Sandbox: [03-lab-practice-webworker.md](file:///d:/Projects/study-web/docs/workflows/03-lab-practice-webworker.md)
+- **Frontend Codebase**:
+  - Contributor Create Lab Page: [ContributorCreatePage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/contributor/ContributorCreatePage.tsx)
+  - Markdown Editor with Preview: [MarkdownEditorWithPreview.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/MarkdownEditorWithPreview.tsx)
+  - JS Worker Builder: [JsWorkerExerciseBuilder.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/JsWorkerExerciseBuilder.tsx)
+- **Backend Codebase**:
+  - Labs Controller: [labs.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/labs/labs.controller.ts)
+- **Related Workflows**:
+  - Series Creation: [05-create-series.md](file:///d:/Projects/study-web/docs/workflows/05-create-series.md)
+  - Content Review & Publishing: [07-content-review-and-publish.md](file:///d:/Projects/study-web/docs/workflows/07-content-review-and-publish.md)
+  - Web Worker Sandbox Execution: [03-lab-practice-webworker.md](file:///d:/Projects/study-web/docs/workflows/03-lab-practice-webworker.md)

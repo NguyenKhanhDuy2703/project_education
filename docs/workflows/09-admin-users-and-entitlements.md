@@ -1,148 +1,146 @@
 ---
 doc_type: workflow
-title: Sơ đồ Luồng Quản trị Người dùng & Phân quyền Đặc quyền (Admin Users & Entitlements Flow)
+title: Sequence Diagram - Admin User Governance & Entitlement Overrides (Admin Users & Entitlements Flow)
 project: study-web
 version: "1.0"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Quản trị Admin, Quản lý Người dùng, Phân bổ Vai trò (Role) và Ghi đè Quyền hạn (Feature Overrides)
+scope: Admin Subsystem, User Management, Role Allocation, Session Revocation, and Feature Entitlement Overrides
 date: 2026-10-14
-source_file: "MODULE_FE/src/pages/admin/AdminUsersPage.tsx, MODULE_FE/src/features/admin/components/AdminUsersTab.tsx, MODULE_BE/src/modules/users"
+source_file: "MODULE_FE/src/pages/admin, MODULE_BE/src/modules/users"
 status: final
-language: vi
+language: en
 related_docs: [01-auth-login-to-home.md, 10-admin-user-groups-split-view.md, 07-content-review-and-publish.md]
 ---
 
-# Sơ đồ Luồng Quản trị Người dùng & Phân quyền Đặc quyền (Admin Users & Entitlements Flow)
+# Sequence Diagram: Admin User Governance & Entitlement Overrides (Admin Users & Entitlements Flow)
 
-## 1. Thông tin tài liệu (Document Information)
+## 1. Document Information
 
-| Thuộc tính | Chi tiết |
+| Attribute | Details |
 |---|---|
-| **Tên tài liệu** | Sơ đồ Luồng Quản trị Người dùng & Phân quyền Đặc quyền |
+| **Document Title** | Admin User Governance & Entitlement Overrides Workflow |
 | **Version** | v1.0 |
-| **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Trải nghiệm quản trị tài khoản tại `/admin/users`: Tra cứu người dùng, phân trang 10 dòng/trang, thay đổi vai trò (User, UserPro, Contributor, Admin), khóa/mở khóa tài khoản (Suspend/Active), và cấp quyền hạn đặc biệt (Feature Overrides / Direct Entitlements) kèm hạn sử dụng |
-| **Thời gian** | 2026-10-14 |
-| **Tham chiếu từ** | `MODULE_FE/src/features/admin/components/AdminUsersTab.tsx`, `MODULE_BE/src/modules/users/users.controller.ts`, `MODULE_BE/src/modules/audit-logs` |
+| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
+| **Scope** | Comprehensive user administration workflow in Admin Studio: Multi-attribute user lookup, 10 items/page pagination, role promotions (`user`, `user_pro`, `contributor`, `admin`), account suspension with immediate session revocation, and fine-grained Direct Feature Overrides with expiration limits |
+| **Date** | 2026-10-14 |
+| **Source Reference** | `MODULE_BE/src/modules/users/users.controller.ts`, `MODULE_BE/src/modules/users/users.service.ts` |
 
 ---
 
-## 2. Nội dung chính (Content)
+## 2. Core Content
 
-### 2.1. Tóm tắt luồng (TL;DR)
-- **Đầu vào**: Quản trị viên truy cập `/admin/users`.
-- **Hiển thị & Tra cứu**:
-  - Giao diện nạp danh sách người dùng với thanh tìm kiếm (Họ tên, SĐT, Email), bộ lọc theo Role (`user`, `user_pro`, `contributor`, `admin`) và Trạng thái (`active`, `suspended`).
-  - Áp dụng phân trang chuẩn mực 10 người dùng/trang (`DataTablePagination`).
-- **Thao tác Nghiệp vụ**:
-  1. **Đổi vai trò (Change Role)**: Nâng cấp học viên thành `contributor` (để họ có thể soạn bài) hoặc bổ nhiệm `admin`.
-  2. **Khóa tài khoản (Suspend)**: Vô hiệu hóa quyền truy cập khi vi phạm chính sách; chặn đăng nhập và thu hồi phiên làm việc tức thì.
-  3. **Ghi đè quyền trực tiếp (Direct Feature Overrides)**: Cấp riêng lẻ một tính năng nâng cao (ví dụ: `FEATURE_AI_MENTOR`, `FEATURE_EXPORT_PDF`) cho một người dùng cụ thể mà không cần họ phải mua toàn bộ gói dịch vụ.
+### 2.1. Workflow Summary (TL;DR)
+- **Input**: Administrator opens `/admin` and navigates to the Users tab.
+- **Display & Querying**:
+  - Fetches the user directory with query filters (Name, Phone, Email), Role filters (`user`, `user_pro`, `contributor`, `admin`), and Status filters (`active`, `suspended`).
+  - Standardized 10 users/page pagination (`DataTablePagination`).
+- **Core Operations**:
+  1. **Change Role**: Promotes a learner to `contributor` (enabling authoring tools) or designates an `admin`.
+  2. **Suspend Account**: Revokes access for policy violations; terminates active refresh tokens for immediate session eviction.
+  3. **Direct Feature Overrides**: Grants specific advanced features (e.g. `FEATURE_AI_MENTOR`, `FEATURE_EXPORT_PDF`) to targeted individuals with optional expiration limits, bypassing blanket subscription requirements.
 
 ---
 
-### 2.2. Phân công & Vai trò (Who does what)
+### 2.2. Roles & Responsibilities (Who Does What)
 
-| Thực thể | Loại | Vai trò & Trách nhiệm trong luồng |
+| Entity | Type | Roles & Responsibilities |
 |---|---|---|
-| **Admin** | Actor | Thực hiện tìm kiếm, điều chỉnh vai trò, cấp quyền hoặc khóa tài khoản |
-| **AdminUsersTab** | Client UI | Render danh sách user, thanh phân trang shadcn, dialog đổi role và modal ghi đè quyền |
-| **Users Controller & Service** | NestJS Backend | Xác thực quyền admin, xử lý mutation cập nhật database |
-| **AuditLogsService** | Audit Ledger | Ghi vết hành động của Admin: `USER_ROLE_CHANGE`, `USER_SUSPEND`, `USER_OVERRIDE` |
-| **PostgreSQL Database** | Storage | Bảng `users`, `user_entitlements`, `audit_logs` |
+| **Administrator** | Actor | Performs user lookups, manages roles, issues overrides, or suspends accounts |
+| **Admin Users View** | Client UI | Renders user list, pagination controls, role change dropdowns, and override dialogs |
+| **Users Controller & Service** | NestJS Backend | Enforces admin authorization, handles database mutations |
+| **Audit Log System** | Audit Ledger | Records administrative events: `USER_ROLE_CHANGE`, `USER_SUSPEND`, `USER_OVERRIDE` |
+| **PostgreSQL Database** | Storage | Houses `users`, `user_entitlements`, and `audit_logs` |
 
 ---
 
-### 2.3. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.3. Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Admin as Quản trị viên (Admin)
-    participant UI as AdminUsersTab (/admin/users)
-    participant Modal as UserDetails & Override Modal
+    actor Admin as Administrator
+    participant UI as Admin Users View (/admin)
+    participant Modal as UserDetails & Override Dialog
     participant BE as NestJS Backend (UsersModule)
     participant Audit as AuditLog Service
     participant DB as PostgreSQL
 
-    Note over Admin, DB: 1. Nạp danh sách & Phân trang 10 người dùng
-    Admin->>UI: Truy cập `/admin/users` (hoặc chuyển trang 2)
+    Note over Admin, DB: 1. Loading User Directory (10 Items / Page)
+    Admin->>UI: Access Users tab (or switch to Page 2)
     UI->>BE: GET /api/users?page=2&limit=10&role=all&search=
     BE->>DB: SELECT * FROM users ORDER BY created_at DESC LIMIT 10 OFFSET 10
-    DB-->>BE: 10 bản ghi người dùng + Tổng số trang (totalPages)
+    DB-->>BE: 10 user records + total metadata
     BE-->>UI: 200 OK { data: [...], meta: { page: 2, totalPages: 15, totalItems: 148 } }
-    UI-->>Admin: Hiển thị bảng kèm phân trang shadcn chính xác
+    UI-->>Admin: Render responsive table with pagination controls
 
-    Note over Admin, DB: 2. Thao tác Nâng cấp quyền Contributor
-    Admin->>UI: Bấm vào action menu của User "Hoàng Nam", chọn "Change Role"
-    UI->>UI: Mở Select Dialog chọn Role mới = "contributor"
-    Admin->>UI: Bấm "Lưu thay đổi"
+    Note over Admin, DB: 2. Role Promotion to Contributor
+    Admin->>UI: Click action menu on user "John Doe", select "Change Role"
+    UI->>UI: Open Select Dialog with new role = "contributor"
+    Admin->>UI: Click "Save Changes"
     UI->>BE: PATCH /api/users/:id/role { role: "contributor" }
     BE->>DB: UPDATE users SET role = 'contributor' WHERE id = :id
     BE->>Audit: Ghi log: Admin A changed role of User B to 'contributor'
-    DB-->>BE: Cập nhật thành công
+    DB-->>BE: Updated successfully
     BE-->>UI: 200 OK { id, role: "contributor" }
-    UI-->>Admin: Badge chuyển thành tím "Contributor" + Toast thành công!
+    UI-->>Admin: Badge updates to purple "Contributor" with success toast
 
-    Note over Admin, DB: 3. Ghi đè Quyền hạn Đặc biệt (Feature Overrides)
-    Admin->>UI: Bấm nút "Entitlements" trên dòng của User
-    UI->>Modal: Mở modal cấu hình Feature Overrides
-    Admin->>Modal: Tích chọn "FEATURE_SQL_LABS", Hạn dùng: 2026-12-31
-    Admin->>Modal: Bấm "Xác nhận cấp quyền"
+    Note over Admin, DB: 3. Granting Direct Feature Overrides
+    Admin->>UI: Click "Entitlements" button on user row
+    UI->>Modal: Open Feature Overrides configuration modal
+    Admin->>Modal: Check "FEATURE_SQL_LABS", Expiry: 2026-12-31
+    Admin->>Modal: Click "Confirm Override"
     Modal->>BE: POST /api/users/:id/entitlements/override { featureKey: "FEATURE_SQL_LABS", expiresAt: "2026-12-31" }
     BE->>DB: INSERT INTO user_entitlements (user_id, feature_key, expires_at) VALUES (...) ON CONFLICT DO UPDATE
-    BE->>Audit: Ghi log: Admin A granted override FEATURE_SQL_LABS to User B
-    DB-->>BE: Ghi nhận thành công
+    BE->>Audit: Log: Admin A granted override FEATURE_SQL_LABS to User B
+    DB-->>BE: Record upserted
     BE-->>Modal: 200 OK
-    Modal-->>Admin: Toast "Đã cấp đặc quyền thành công!"
+    Modal-->>Admin: Toast: "Entitlement override granted successfully!"
 
-    Note over Admin, DB: 4. Thao tác Khóa Tài khoản (Suspend)
-    Admin->>UI: Bấm "Suspend User" tại người dùng vi phạm
-    UI->>BE: POST /api/users/:id/suspend { reason: "Spam comment" }
+    Note over Admin, DB: 4. Account Suspension & Session Invalidation
+    Admin->>UI: Click "Suspend User" on violating account
+    UI->>BE: POST /api/users/:id/suspend { reason: "Policy violation" }
     BE->>DB: UPDATE users SET status = 'suspended', refresh_token_hash = NULL WHERE id = :id
-    BE->>Audit: Ghi log: Admin A suspended User B
-    DB-->>BE: Thu hồi phiên thành công
+    BE->>Audit: Log: Admin A suspended User B
+    DB-->>BE: Session revoked successfully
     BE-->>UI: 200 OK
-    UI-->>Admin: Badge chuyển sang đỏ "Suspended"
+    UI-->>Admin: Badge updates to red "Suspended"
 ```
 
 ---
 
-### 2.4. Phân tích Kỹ thuật Chi tiết
+### 2.4. Technical Specifications & Architecture Details
 
-1. **Kiến trúc Phân quyền Linh hoạt (Role-based vs Direct-entitlement)**:
-   - Thay vì ràng buộc cứng mọi tính năng vào một Role duy nhất, hệ thống kết hợp 2 tầng:
-     - **Tầng 1 (Role cơ bản)**: Quyết định quyền truy cập các portal lớn (`/admin/*`, `/contributor/*`).
-     - **Tầng 2 (Feature Overrides)**: Bảng `user_entitlements` cho phép bật/tắt từng tính năng độc lập (ví dụ mở quyền cho một học sinh giỏi học thử bài Lab nâng cao có hạn dùng 30 ngày).
-2. **Thu hồi Phiên ngay lập tức (Instant Session Invalidation)**:
-   - Khi tài khoản bị `suspended`, backend lập tức gán `refresh_token_hash = NULL` trong CSDL.
-   - Khi token cũ hết hạn 15 phút, người dùng bị khóa không thể refresh phiên và bị buộc đăng xuất ngay lập tức.
-3. **Phân trang Tối ưu Hiệu năng (Shadcn DataTablePagination)**:
-   - Tích hợp số trang hiển thị dạng `[1] [2] ... [10]`, nút Prev/Next, hỗ trợ truy cập trực tiếp trang bất kỳ mà không phải tải toàn bộ tập dữ liệu đồ sộ về client.
+1. **Dual-Tier Authorization Model (Role-Based vs Direct-Entitlement)**:
+   - **Tier 1 (Base Roles)**: Governs access to primary portal applications (`/admin/*`, `/contributor/*`).
+   - **Tier 2 (Feature Overrides)**: The `user_entitlements` table enables enabling/disabling individual modular capabilities (e.g. granting access to an advanced SQL lab series for a 30-day trial).
+2. **Instant Session Invalidation**:
+   - Suspending a user immediately clears `refresh_token_hash = NULL` in PostgreSQL.
+   - Upon the 15-minute expiration of the active Access Token, the client cannot refresh and is immediately logged out.
+3. **High-Performance Pagination**:
+   - Implements `DataTablePagination` with discrete page indicators (`[1] [2] ... [10]`), allowing direct random-access navigation without over-fetching large datasets.
 
 ---
 
-### 2.5. Xử lý Ngoại lệ (Edge Cases)
+### 2.5. Edge Cases & Exception Handling
 
-| Tình huống ngoại lệ | Phản hồi hệ thống | Trải nghiệm người dùng |
+| Edge Case | System Response | User Experience |
 |---|---|---|
-| **Admin tự khóa tài khoản của chính mình** | Backend chặn với lỗi `400 Bad Request: Cannot suspend self` | Giao diện cảnh báo *"Bạn không thể tự khóa tài khoản của chính mình"* |
-| **Hạ quyền của Admin duy nhất còn lại trong hệ thống** | Backend kiểm tra số lượng admin tối thiểu (≥ 1) | Chặn thao tác và cảnh báo *"Hệ thống phải có ít nhất 1 Quản trị viên"* |
-| **Ghi đè quyền với ngày hết hạn trong quá khứ** | Form validate ngày hết hạn phải `> now()` | Báo lỗi kiểm tra định dạng ngày |
+| **Admin Self-Suspension Attempt** | Backend rejects with `400 Bad Request: Cannot suspend self` | UI renders error: *"You cannot suspend your own administrative account"* |
+| **Demoting Last Remaining Admin** | Backend enforces minimum count (count ≥ 1) | Mutation rejected: *"System requires at least one active Administrator"* |
+| **Override with Past Expiration Date** | Form validates expiration date `> now()` | Highlights date picker in red with validation message |
 
 ---
 
-## 3. Tài liệu tham khảo & Liên kết (References)
+## 3. References & Source Links
 
-- **Mã nguồn Frontend**:
-  - Trang Quản lý Users: [MODULE_FE/src/pages/admin/AdminUsersPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/AdminUsersPage.tsx)
-  - Tab Danh sách Người dùng: [MODULE_FE/src/features/admin/components/AdminUsersTab.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/admin/components/AdminUsersTab.tsx)
-  - Component Phân trang: [MODULE_FE/src/components/ui/data-table-pagination.tsx](file:///d:/Projects/study-web/MODULE_FE/src/components/ui/data-table-pagination.tsx)
-- **Mã nguồn Backend**:
-  - Users Controller: [MODULE_BE/src/modules/users/users.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/users/users.controller.ts)
-  - Audit Logs Service: [MODULE_BE/src/modules/audit-logs/audit-logs.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/audit-logs/audit-logs.service.ts)
-- **Tài liệu liên quan**:
-  - Xác thực & Phiên làm việc: [01-auth-login-to-home.md](file:///d:/Projects/study-web/docs/workflows/01-auth-login-to-home.md)
-  - Quản trị Nhóm Người dùng 2 Bảng: [10-admin-user-groups-split-view.md](file:///d:/Projects/study-web/docs/workflows/10-admin-user-groups-split-view.md)
+- **Frontend Codebase**:
+  - Pagination Component: [data-table-pagination.tsx](file:///d:/Projects/study-web/MODULE_FE/src/components/ui/data-table-pagination.tsx)
+- **Backend Codebase**:
+  - Users Controller: [users.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/users/users.controller.ts)
+  - Users Service: [users.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/users/users.service.ts)
+  - Database Schema: [schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
+- **Related Workflows**:
+  - Authentication & Session: [01-auth-login-to-home.md](file:///d:/Projects/study-web/docs/workflows/01-auth-login-to-home.md)
+  - Split-View Group Management: [10-admin-user-groups-split-view.md](file:///d:/Projects/study-web/docs/workflows/10-admin-user-groups-split-view.md)
