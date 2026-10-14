@@ -10,17 +10,18 @@ async function main() {
 
   // 1. Seed Personas
   const adminUser = await prisma.user.upsert({
-    where: { phone: '0900000001' },
+    where: { email: 'nguyenkhanhduy270304@gmail.com' },
     update: {
       role: UserRole.admin,
-      email: 'admin@studyweb.dev',
-      name: 'Super Admin',
+      name: 'Nguyễn Khánh Duy',
+      isActive: true,
+      password: defaultPasswordHash,
     },
     create: {
-      id: 'u0000000-0000-0000-0000-000000000001',
-      name: 'Super Admin',
-      email: 'admin@studyweb.dev',
-      phone: '0900000001',
+      id: '1e154f74-4e46-4f81-b03d-e5fe949f27ae',
+      name: 'Nguyễn Khánh Duy',
+      email: 'nguyenkhanhduy270304@gmail.com',
+      phone: '0889266484',
       password: defaultPasswordHash,
       role: UserRole.admin,
       isActive: true,
@@ -33,6 +34,7 @@ async function main() {
       role: UserRole.contributor,
       email: 'contributor@studyweb.dev',
       name: 'Alex Contributor',
+      password: defaultPasswordHash,
     },
     create: {
       id: 'u0000000-0000-0000-0000-000000000002',
@@ -44,6 +46,53 @@ async function main() {
       isActive: true,
     },
   });
+
+  const additionalContributorsData = [
+    {
+      id: 'b38a7563-cebc-47b1-952c-9495a152859d',
+      name: 'Trang Lieu',
+      email: 'lieutrang236@gmail.com',
+      phone: 'google_109052768646977192191',
+      googleId: '109052768646977192191',
+    },
+    {
+      id: 'c8104283-1830-4358-a5b6-5aeac68a5085',
+      name: 'Phan Nguyễn Anh Thư',
+      email: 'anhthuphan0102@gmail.com',
+      phone: '0911309340',
+      googleId: null,
+    },
+    {
+      id: 'be3c51ca-0ad2-4a34-a3d3-df229d675afa',
+      name: 'Đinh Ngọc Hân',
+      email: 'ngochawn123@gmail.com',
+      phone: '0905965498',
+      googleId: null,
+    },
+  ];
+
+  for (const c of additionalContributorsData) {
+    await prisma.user.upsert({
+      where: { email: c.email },
+      update: {
+        role: UserRole.contributor,
+        name: c.name,
+        isActive: true,
+        googleId: c.googleId,
+        phone: c.phone,
+      },
+      create: {
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        phone: c.phone,
+        googleId: c.googleId,
+        role: UserRole.contributor,
+        isActive: true,
+        password: defaultPasswordHash,
+      },
+    });
+  }
 
   const proStudent = await prisma.user.upsert({
     where: { phone: '0900000003' },
@@ -326,6 +375,14 @@ async function main() {
     update: {},
     create: { userId: contributorUser.id, groupId: grpContributor.id },
   });
+
+  for (const c of additionalContributorsData) {
+    await prisma.userGroupMember.upsert({
+      where: { userId_groupId: { userId: c.id, groupId: grpContributor.id } },
+      update: {},
+      create: { userId: c.id, groupId: grpContributor.id },
+    });
+  }
 
   await prisma.userGroupMember.upsert({
     where: { userId_groupId: { userId: proStudent.id, groupId: grpVip.id } },

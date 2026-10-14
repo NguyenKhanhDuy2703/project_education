@@ -40,9 +40,14 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       if (!user) {
         // Check if user already registered with this email via local credentials
         const existingByEmail = await this.usersService.findByEmail(email);
+        const isSuperadmin = email.toLowerCase() === 'nguyenkhanhduy270304@gmail.com';
         if (existingByEmail) {
           // Link googleId to the existing user account
-          user = await this.usersService.update(existingByEmail.id, { googleId, avatarUrl });
+          user = await this.usersService.update(existingByEmail.id, {
+            googleId,
+            avatarUrl,
+            ...(isSuperadmin ? { role: UserRole.admin } : {}),
+          });
         } else {
           // Create new user account via Google OAuth
           user = await this.usersService.create({
@@ -50,10 +55,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
             email,
             googleId,
             avatarUrl,
-            role: UserRole.user,
+            role: isSuperadmin ? UserRole.admin : UserRole.user,
             phone: `google_${googleId}`, // Placeholder to satisfy unique phone constraint
           });
         }
+      } else if (email.toLowerCase() === 'nguyenkhanhduy270304@gmail.com' && user.role !== UserRole.admin) {
+        user = await this.usersService.update(user.id, { role: UserRole.admin });
       }
 
       done(null, user);
