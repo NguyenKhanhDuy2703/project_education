@@ -160,10 +160,12 @@ export class AuthService {
     }
   }
 
-  async logout(token: string): Promise<{ message: string }> {
-    const user = await this.usersService.findByRefreshToken(token);
-    if (user) {
-      await this.usersService.updateRefreshToken(user.id, null);
+  async logout(token?: string | null): Promise<{ message: string }> {
+    if (token) {
+      const user = await this.usersService.findByRefreshToken(token);
+      if (user) {
+        await this.usersService.updateRefreshToken(user.id, null);
+      }
     }
     return { message: 'Logged out successfully' };
   }
