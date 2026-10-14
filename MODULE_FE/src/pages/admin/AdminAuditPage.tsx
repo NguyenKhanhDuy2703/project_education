@@ -12,11 +12,11 @@ export function AdminAuditPage() {
               <FileText className="size-5" />
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Security &amp; Action Audit Trail
+              Audit Logs
             </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Tamper-resistant audit ledger capturing all administrative changes, subscription assignments, and overrides.
+            System audit trail of administrative events and security overrides.
           </p>
         </div>
       </div>

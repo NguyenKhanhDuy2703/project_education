@@ -12,11 +12,11 @@ export function AdminUsersPage() {
               <Users className="size-5" />
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              User Directory &amp; Role Management
+              Users
             </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Search accounts, elevate roles to administrator, suspend accounts, and manage granular feature overrides.
+            Manage user accounts, role allocations, access statuses, and permissions.
           </p>
         </div>
       </div>

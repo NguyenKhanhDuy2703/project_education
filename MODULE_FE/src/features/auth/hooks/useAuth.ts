@@ -12,14 +12,26 @@ export const useAuth = () => {
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginCredentials) => authApi.login(credentials),
     onSuccess: (data) => {
-      dispatch(setAuth({ user: data.user, accessToken: data.accessToken }));
+      dispatch(
+        setAuth({
+          user: data.user,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+        })
+      );
     },
   });
 
   const registerMutation = useMutation({
     mutationFn: (credentials: RegisterCredentials) => authApi.register(credentials),
     onSuccess: (data) => {
-      dispatch(setAuth({ user: data.user, accessToken: data.accessToken }));
+      dispatch(
+        setAuth({
+          user: data.user,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+        })
+      );
     },
   });
 
@@ -36,6 +48,7 @@ export const useAuth = () => {
   }, [currentUserQuery.data, dispatch]);
 
   const logout = () => {
+    authApi.logout().catch(() => {});
     dispatch(logoutAction());
   };
 

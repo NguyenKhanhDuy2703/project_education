@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useAppSelector } from '@/stores/store';
+import { useAppSelector, useAppDispatch } from '@/stores/store';
+import { openCreateDialog } from '@/stores/slices/contributor.slice';
 import { seriesApi } from '@/features/lab/api/series.api';
 import { labApi } from '@/features/lab/api/lab.api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 
 export function ContributorDashboardPage() {
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
 
   // Filter content by current author from real API
@@ -52,20 +54,22 @@ export function ContributorDashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Contributor Workspace
+            Overview
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Author and manage interactive labs, and track review feedback from platform administrators.
+            Overview of your authored series, interactive labs, and review feedback.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Link to="/contributor/create">
-            <Button size="sm" className="h-8 text-xs font-semibold gap-1.5 shadow-xs">
-              <PlusCircle className="size-3.5" />
-              Create Content
-            </Button>
-          </Link>
+          <Button
+            onClick={() => dispatch(openCreateDialog())}
+            size="sm"
+            className="h-8 text-xs font-semibold gap-1.5 shadow-xs"
+          >
+            <PlusCircle className="size-3.5" />
+            <span>Create Content</span>
+          </Button>
         </div>
       </div>
 
@@ -208,11 +212,14 @@ export function ContributorDashboardPage() {
             {authorSeries.length === 0 && authorLabs.length === 0 ? (
               <div className="p-8 text-center text-xs text-muted-foreground space-y-2">
                 <p>You have not authored any content yet.</p>
-                <Link to="/contributor/create">
-                  <Button size="sm" variant="outline" className="text-xs">
-                    Create your first content
-                  </Button>
-                </Link>
+                <Button
+                  onClick={() => dispatch(openCreateDialog())}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                >
+                  Create your first content
+                </Button>
               </div>
             ) : (
               authorSeries.slice(0, 5).map((s) => (

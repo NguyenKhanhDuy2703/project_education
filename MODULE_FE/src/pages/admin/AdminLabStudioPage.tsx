@@ -1,40 +1,55 @@
 /**
  * AdminLabStudioPage — /admin/labs/new hoặc /admin/labs/:labId/edit
+ * Also mounted at /contributor/labs/new and /contributor/labs/:labId/edit
  *
- * Trình thuật sĩ 2 Bước tuần tự (2-Step Stepper Wizard):
- * - BƯỚC 1: Tạo Kiến thức & Nội dung Lý thuyết (Content First bằng Markdown phong phú)
- * - BƯỚC 2: Thiết lập Bài tập theo Thể loại (Format SQL hoặc Format Quizlet hỗ trợ tối đa 30 câu, định dạng Markdown)
- * - Zero icons, powered by shadcn/ui.
+ * Trình tạo bài thực hành thông minh (Practice Lab Creation Studio):
+ * - BƯỚC 1: Theory & Guidelines (Bố cục 2 cột: Cột trái hẹp 280px thông tin chung & checklist, Cột phải Split 50/50 Markdown + Live Preview cuộn đồng bộ)
+ * - BƯỚC 2: Cấu hình bài tập theo bản chất từng loại (JS Worker với test cards & Web Worker runner, SQL với Schema DDL, Starter Query, Test Grid sinh tự động, Quizlet 3 cột với live student preview & undo)
+ * - Header cố định duy nhất 1 nút Publish / Gửi duyệt với Cổng kiểm duyệt Pre-publish Checklist Gate.
  */
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { seriesApi } from '@/features/lab/api/series.api';
 import { labApi } from '@/features/lab/api/lab.api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import type { CreateLabInput, QuizQuestion } from '@/types/lab.types';
-import { renderMarkdown } from './_utils/renderMarkdown';
+import {
+  ArrowLeft,
+  Save,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  ShieldAlert,
+  SlidersHorizontal,
+} from 'lucide-react';
+import type { CreateLabInput } from '@/types/lab.types';
+import { MarkdownEditorWithPreview } from './_components/MarkdownEditorWithPreview';
+import { JsWorkerExerciseBuilder } from './_components/JsWorkerExerciseBuilder';
+import { SqlExerciseBuilder } from './_components/SqlExerciseBuilder';
+import { QuizletExerciseBuilder } from './_components/QuizletExerciseBuilder';
+
+const DRAFT_STORAGE_PREFIX = 'studyweb_lab_draft_';
 
 export function AdminLabStudioPage() {
   const { labId } = useParams<{ labId?: string }>();
   const [searchParams] = useSearchParams();
   const seriesIdFromQuery = searchParams.get('seriesId') || '';
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const isEditing = !!labId && labId !== 'new';
+  const isContributor = location.pathname.startsWith('/contributor');
+  const returnUrl = isContributor ? '/contributor/content' : '/admin/content';
 
-  // ── Stepper: Step 1 (Content First) vs Step 2 (Exercises) ────────────────
+  // ── Stepper: Step 1 (Theory & Guidelines) vs Step 2 (Exercise Configuration) ──
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-
-  // Markdown Preview tabs
-  const [theoryPreviewTab, setTheoryPreviewTab] = useState<'edit' | 'preview'>('edit');
-  const [activeQuizIndex, setActiveQuizIndex] = useState<number>(0);
-  const [quizPreviewMode, setQuizPreviewMode] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
 
   // Form State
   const [form, setForm] = useState<CreateLabInput>({
@@ -42,7 +57,17 @@ export function AdminLabStudioPage() {
     title: '',
     sandboxType: 'sql_worker',
     objective: '',
-    instructions: '# 1. Core Theory\n\nSummarize essential concepts and background knowledge.\n\n## 2. Lab Requirements\n\nWrite queries or answer verification questions below...',
+    instructions: `# 1. Lý thuyết Cốt lõi
+
+Giải thích ngắn gọn và trực quan các khái niệm cần nắm vững trước khi thực hành.
+
+## 2. Cú pháp & Ví dụ Mẫu
+\`\`\`sql
+SELECT id, full_name FROM customers WHERE total_spent > 1000;
+\`\`\`
+
+## 3. Yêu cầu Bài Thực hành
+Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu chí trong phần bài tập.`,
     initialSnippet: '',
     testScript: '',
     solution: '',
@@ -55,10 +80,10 @@ export function AdminLabStudioPage() {
     quizQuestions: [
       {
         id: 'q1',
-        question: 'Question 1: Enter question text (supports `Markdown` and code blocks)...',
-        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+        question: 'Câu hỏi 1: Nhập nội dung câu hỏi trắc nghiệm (hỗ trợ `Markdown`)...',
+        options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
         correctIndex: 0,
-        explanation: 'Explain why this option is correct based on the theory in Step 1.',
+        explanation: 'Giải thích vì sao lựa chọn A là chính xác.',
       },
     ],
   });
@@ -76,6 +101,7 @@ export function AdminLabStudioPage() {
     enabled: isEditing,
   });
 
+  // Load existing lab data
   useEffect(() => {
     if (existingLab) {
       const labAny = existingLab as any;
@@ -94,30 +120,37 @@ export function AdminLabStudioPage() {
         isActive: labAny.isActive !== false,
         sqlSchema: existingLab.sqlSchema || '',
         sampleData: existingLab.sampleData || [],
-        quizQuestions: existingLab.quizQuestions && existingLab.quizQuestions.length > 0
-          ? existingLab.quizQuestions
-          : [
-              {
-                id: 'q1',
-                question: 'Question 1: Enter question text...',
-                options: ['Option A', 'Option B', 'Option C', 'Option D'],
-                correctIndex: 0,
-                explanation: 'Explain correct answer...',
-              },
-            ],
+        quizQuestions:
+          existingLab.quizQuestions && existingLab.quizQuestions.length > 0
+            ? existingLab.quizQuestions
+            : [
+                {
+                  id: 'q1',
+                  question: 'Câu hỏi 1: Nhập nội dung câu hỏi...',
+                  options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
+                  correctIndex: 0,
+                  explanation: '',
+                },
+              ],
       });
     } else if (seriesIdFromQuery && !form.seriesId) {
       setForm((prev) => ({ ...prev, seriesId: seriesIdFromQuery }));
     }
   }, [existingLab, seriesIdFromQuery]);
 
-  // Nhận diện Topic cha và đồng nhất thể loại bài tập
+  // Inherit format from parent series if creating new
   const selectedSeriesId = form.seriesId || seriesIdFromQuery;
   const parentTopic = seriesList.find((s) => s.id === selectedSeriesId);
 
   useEffect(() => {
     if (parentTopic && !isEditing) {
-      const topicFormat = parentTopic.formatType || (parentTopic.slug.includes('sql') ? 'sql_worker' : parentTopic.slug.includes('quiz') ? 'quizlet' : 'js_worker');
+      const topicFormat =
+        parentTopic.formatType ||
+        (parentTopic.slug.includes('sql')
+          ? 'sql_worker'
+          : parentTopic.slug.includes('quiz')
+          ? 'quizlet'
+          : 'js_worker');
       setForm((prev) => ({
         ...prev,
         seriesId: parentTopic.id,
@@ -125,6 +158,110 @@ export function AdminLabStudioPage() {
       }));
     }
   }, [parentTopic?.id, parentTopic?.formatType, isEditing]);
+
+  // ── Auto-save Draft to localStorage ─────────────────────────────────────
+  const draftKey = `${DRAFT_STORAGE_PREFIX}${labId || 'new'}`;
+
+  // Check and restore draft for new lab
+  useEffect(() => {
+    if (!isEditing) {
+      try {
+        const savedDraft = localStorage.getItem(draftKey);
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed && parsed.title && window.confirm('Tìm thấy bản nháp chưa xuất bản từ phiên làm việc trước. Bạn có muốn khôi phục không?')) {
+            setForm(parsed);
+            setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          }
+        }
+      } catch (err) {
+        console.error('Lỗi đọc bản nháp:', err);
+      }
+    }
+  }, [isEditing, draftKey]);
+
+  // Auto-save debounced
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(form));
+        setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      } catch (err) {
+        // quota exceeded or private mode
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [form, draftKey]);
+
+  // Explicit save draft button
+  const handleManualSaveDraft = () => {
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(form));
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setLastSavedTime(nowStr);
+      setToast({
+        message: `Đã lưu bản nháp vào bộ nhớ trình duyệt lúc ${nowStr}.`,
+        type: 'success',
+      });
+    } catch (err) {
+      setToast({ message: 'Không thể lưu bản nháp vào trình duyệt.', type: 'error' });
+    }
+  };
+
+  // ── Pre-publish Validation Checklist ────────────────────────────────────
+  const validationChecklist = useMemo(() => {
+    const hasSeries = Boolean(form.seriesId);
+    const hasTitle = form.title.trim().length >= 5;
+    const hasTheory = form.instructions.trim().length >= 100;
+
+    let hasExerciseConfig = false;
+    let exerciseReason = '';
+
+    if (form.sandboxType === 'sql_worker') {
+      const hasSchema = (form.sqlSchema || '').trim().length >= 20;
+      const hasSolution = (form.solution || '').trim().length >= 10;
+      hasExerciseConfig = hasSchema && hasSolution;
+      if (!hasSchema) exerciseReason = 'Thiếu Lược đồ DDL/DML bảng';
+      else if (!hasSolution) exerciseReason = 'Thiếu câu truy vấn Solution mẫu';
+    } else if (form.sandboxType === 'js_worker') {
+      const hasStarter = (form.initialSnippet || '').trim().length >= 10;
+      const hasSolution = (form.solution || '').trim().length >= 10;
+      const hasTestScript = (form.testScript || '').trim().length >= 10;
+      hasExerciseConfig = hasStarter && hasSolution && hasTestScript;
+      if (!hasStarter) exerciseReason = 'Thiếu Starter Code cho học viên';
+      else if (!hasSolution) exerciseReason = 'Thiếu Reference Solution';
+      else if (!hasTestScript) exerciseReason = 'Thiếu Test cases kiểm thử';
+    } else if (form.sandboxType === 'quizlet') {
+      const questions = form.quizQuestions || [];
+      const allValid =
+        questions.length > 0 &&
+        questions.every(
+          (q) =>
+            q.question.trim().length > 5 &&
+            q.options.length >= 2 &&
+            q.options.every((opt) => opt.trim().length > 0) &&
+            q.correctIndex >= 0 &&
+            q.correctIndex < q.options.length
+        );
+      hasExerciseConfig = allValid;
+      if (questions.length === 0) exerciseReason = 'Chưa có câu hỏi trắc nghiệm';
+      else if (!allValid) exerciseReason = 'Có câu hỏi chưa đủ 2 đáp án hoặc chưa chọn đáp án đúng';
+    } else {
+      hasExerciseConfig = true; // article only
+    }
+
+    const isAllValid = hasSeries && hasTitle && hasTheory && hasExerciseConfig;
+
+    return {
+      hasSeries,
+      hasTitle,
+      hasTheory,
+      hasExerciseConfig,
+      exerciseReason,
+      isAllValid,
+    };
+  }, [form]);
 
   // Mutations
   const saveMutation = useMutation({
@@ -135,195 +272,119 @@ export function AdminLabStudioPage() {
       return labApi.create(form);
     },
     onSuccess: () => {
+      // Clear draft on publish
+      try {
+        localStorage.removeItem(draftKey);
+      } catch (e) {}
+
       queryClient.invalidateQueries({ queryKey: ['admin-series-detail'] });
       queryClient.invalidateQueries({ queryKey: ['admin-series'] });
+      queryClient.invalidateQueries({ queryKey: ['contributor-series'] });
+      queryClient.invalidateQueries({ queryKey: ['contributor-labs'] });
+
       setToast({
-        message: isEditing ? 'Practice lab updated successfully!' : 'Practice lab created and published successfully!',
+        message: isEditing ? 'Cập nhật bài thực hành thành công!' : 'Xuất bản bài thực hành thành công!',
         type: 'success',
       });
       setTimeout(() => {
-        navigate('/admin/content');
+        navigate(returnUrl);
       }, 1200);
     },
     onError: (err: any) => {
       setToast({
-        message: err?.response?.data?.message || 'An error occurred while saving the practice lab.',
+        message: err?.response?.data?.message || 'Đã có lỗi xảy ra khi lưu bài thực hành.',
         type: 'error',
       });
     },
   });
 
-  // Presets Handlers
-  const handleApplyPreset = (type: 'sql' | 'quizlet' | 'js' | 'blog') => {
-    if (type === 'sql') {
-      setForm((prev) => ({
-        ...prev,
-        sandboxType: 'sql_worker',
-        title: prev.title || 'Filter VIP Customers with SQL WHERE Clause',
-        sqlSchema: `CREATE TABLE customers (
-  id INT PRIMARY KEY,
-  full_name VARCHAR(100),
-  total_spent DECIMAL(12, 2),
-  city VARCHAR(50)
-);
-
-INSERT INTO customers VALUES 
-(1, 'Alice Johnson', 1500.00, 'New York'),
-(2, 'Bob Smith', 800.00, 'Chicago'),
-(3, 'Charlie Brown', 2200.00, 'San Francisco'),
-(4, 'Diana Prince', 3100.00, 'Seattle');`,
-        initialSnippet: '-- Write a SELECT query to get customers with total_spent > $1,000:\nSELECT id, full_name, total_spent \nFROM customers \nWHERE ...;',
-        solution: 'SELECT id, full_name, total_spent \nFROM customers \nWHERE total_spent > 1000 \nORDER BY total_spent DESC;',
-      }));
-    } else if (type === 'quizlet') {
-      setForm((prev) => ({
-        ...prev,
-        sandboxType: 'quizlet',
-        title: prev.title || 'Database Indexing & Performance Quiz',
-        quizQuestions: [
-          {
-            id: 'q1',
-            question: 'Which index type is default in **PostgreSQL** when creating a primary key (`PRIMARY KEY`)?',
-            options: ['Hash Index', 'B-Tree Index', 'GIN Index', 'BRIN Index'],
-            correctIndex: 1,
-            explanation: '`B-Tree` is the default and optimal index structure for equality and range comparisons (`=`, `<`, `>`, `<=`, `>=`).',
-          },
-          {
-            id: 'q2',
-            question: 'When is it **MOST BENEFICIAL** to create an Index on a relational database column?',
-            options: [
-              'Columns with very low cardinality (e.g. boolean flags)',
-              'Columns frequently evaluated in `WHERE` filters and `JOIN` conditions',
-              'Any random column in large tables',
-              'Never create indexes because they consume disk space',
-            ],
-            correctIndex: 1,
-            explanation: 'Indexes should prioritize selective columns (**High Cardinality**) frequently queried in filters and joins.',
-          },
-        ],
-      }));
-    } else if (type === 'js') {
-      setForm((prev) => ({
-        ...prev,
-        sandboxType: 'js_worker',
-        title: prev.title || 'Normalize US Phone Numbers with Regex',
-        initialSnippet: 'function normalizePhone(phone) {\n  // Your code here\n  return "";\n}',
-        testScript: `assert("Area code format", normalizePhone("1234567890") === "+11234567890");`,
-        solution: 'function normalizePhone(phone) {\n  if (phone.length === 10) return "+1" + phone;\n  return phone;\n}',
-      }));
-    } else if (type === 'blog') {
-      setForm((prev) => ({
-        ...prev,
-        sandboxType: 'markdown_only',
-        title: prev.title || 'Microservices Architecture & Event-Driven Patterns Overview',
-      }));
+  const handlePublish = () => {
+    if (!validationChecklist.isAllValid) {
+      if (!validationChecklist.hasSeries) {
+        setToast({ message: 'Vui lòng chọn Chuyên đề / Series cha.', type: 'error' });
+        setCurrentStep(1);
+        return;
+      }
+      if (!validationChecklist.hasTitle) {
+        setToast({ message: 'Vui lòng nhập Tiêu đề bài lab (tối thiểu 5 ký tự).', type: 'error' });
+        setCurrentStep(1);
+        return;
+      }
+      if (!validationChecklist.hasTheory) {
+        setToast({ message: 'Nội dung Lý thuyết cần tối thiểu 100 ký tự.', type: 'error' });
+        setCurrentStep(1);
+        return;
+      }
+      if (!validationChecklist.hasExerciseConfig) {
+        setToast({ message: `Chưa hoàn tất Bước 2: ${validationChecklist.exerciseReason}`, type: 'error' });
+        setCurrentStep(2);
+        return;
+      }
     }
+
+    saveMutation.mutate();
   };
 
-  // ── Quizlet Multi-Question Builder (Max 30 Questions) ──────────────────────
-  const quizQuestions: QuizQuestion[] = form.quizQuestions || [];
-
-  const handleAddQuizQuestion = () => {
-    if (quizQuestions.length >= 30) {
-      alert('A lab can contain a maximum of 30 multiple-choice questions.');
-      return;
-    }
-    const newIndex = quizQuestions.length + 1;
-    const newQ: QuizQuestion = {
-      id: `q-${Date.now()}`,
-      question: `Question ${newIndex}: Enter question prompt (supports **Markdown**)...`,
-      options: ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctIndex: 0,
-      explanation: '',
-    };
-    const nextList = [...quizQuestions, newQ];
-    setForm({ ...form, quizQuestions: nextList });
-    setActiveQuizIndex(nextList.length - 1);
-  };
-
-  const handleUpdateCurrentQuiz = (updated: Partial<QuizQuestion>) => {
-    const nextList = [...quizQuestions];
-    nextList[activeQuizIndex] = { ...nextList[activeQuizIndex], ...updated };
-    setForm({ ...form, quizQuestions: nextList });
-  };
-
-  const handleUpdateCurrentQuizOption = (optIndex: number, val: string) => {
-    const nextList = [...quizQuestions];
-    const opts = [...nextList[activeQuizIndex].options];
-    opts[optIndex] = val;
-    nextList[activeQuizIndex].options = opts;
-    setForm({ ...form, quizQuestions: nextList });
-  };
-
-  const handleRemoveCurrentQuiz = () => {
-    if (quizQuestions.length <= 1) {
-      alert('A quiz must have at least 1 question.');
-      return;
-    }
-    const nextList = quizQuestions.filter((_, i) => i !== activeQuizIndex);
-    setForm({ ...form, quizQuestions: nextList });
-    setActiveQuizIndex(Math.max(0, activeQuizIndex - 1));
-  };
-
-  // Step 1 Validation before moving to Step 2
   const handleProceedToStep2 = () => {
     if (!form.title.trim()) {
-      setToast({ message: 'Please enter a Lab Title before proceeding.', type: 'error' });
+      setToast({ message: 'Vui lòng nhập Tiêu đề bài lab.', type: 'error' });
       return;
     }
     if (!form.seriesId) {
-      setToast({ message: 'Please select a parent Topic / Series.', type: 'error' });
+      setToast({ message: 'Vui lòng chọn Chuyên đề / Series cha.', type: 'error' });
       return;
     }
-    if (!form.instructions.trim()) {
-      setToast({ message: 'Please write the Theory & Instructions in Step 1.', type: 'error' });
+    if (form.instructions.trim().length < 100) {
+      setToast({ message: 'Nội dung Lý thuyết cần tối thiểu 100 ký tự trước khi cấu hình bài tập.', type: 'error' });
       return;
     }
     setCurrentStep(2);
   };
 
-  const currentQuiz = quizQuestions[activeQuizIndex] || quizQuestions[0];
-
   const formatTypeName = {
-    sql_worker: 'SQL Format',
-    quizlet: 'Quizlet Format',
-    js_worker: 'JavaScript Format',
-    markdown_only: 'Article Format',
+    sql_worker: 'SQL Database',
+    quizlet: 'Trắc nghiệm Quizlet',
+    js_worker: 'JavaScript Worker',
+    markdown_only: 'Bài đọc Lý thuyết',
   }[form.sandboxType || 'sql_worker'];
 
   if (isEditing && isLoadingLab) {
     return (
       <div className="container mx-auto p-12 text-center text-sm text-muted-foreground">
-        Loading practice lab...
+        Đang tải thông tin bài thực hành...
       </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* ── Top Header & Stepper Navigator Bar ──────────────────────────── */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-3 border-b border-border bg-card shrink-0">
+      {/* ── UNIFIED FIXED TOP HEADER ───────────────────────────────── */}
+      <header className="sticky top-0 z-40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-2.5 border-b border-border bg-card/95 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-semibold px-2">
-            <Link to="/admin/content">
-              Back to Content Studio
+          <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-semibold px-2 gap-1">
+            <Link to={returnUrl}>
+              <ArrowLeft className="size-3.5" />
+              <span>{isContributor ? 'Về Quản lý Nội dung' : 'Về Content Studio'}</span>
             </Link>
           </Button>
 
-          <span className="text-muted-foreground/30 font-mono text-xs">|</span>
+          <span className="text-muted-foreground/30 font-mono text-xs hidden sm:inline">|</span>
 
-          {/* Stepper Indicator */}
-          <div className="flex items-center gap-2">
+          {/* Stepper Wizard Indicator */}
+          <div className="flex items-center gap-1.5 bg-muted/40 p-0.5 rounded-xl border border-border">
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                 currentStep === 1
-                  ? 'bg-primary text-primary-foreground shadow-xs'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
+                  ? 'bg-background text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Step 1: Theory &amp; Guidelines
+              <span className="size-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-mono">
+                1
+              </span>
+              <span>Lý thuyết &amp; Hướng dẫn</span>
             </button>
 
             <span className="text-muted-foreground/40 font-mono text-xs">→</span>
@@ -331,83 +392,100 @@ INSERT INTO customers VALUES
             <button
               type="button"
               onClick={handleProceedToStep2}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                 currentStep === 2
-                  ? 'bg-primary text-primary-foreground shadow-xs'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
+                  ? 'bg-background text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Step 2: Configure Exercise ({formatTypeName})
+              <span className="size-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-mono">
+                2
+              </span>
+              <span>Bài tập ({formatTypeName})</span>
             </button>
           </div>
         </div>
 
-        {/* Quick Presets & Final Actions */}
-        <div className="flex items-center gap-2">
+        {/* Right Actions: Auto-save status, Save Draft, and Single Publish Button */}
+        <div className="flex items-center gap-2.5">
+          {lastSavedTime && (
+            <span className="text-[11px] text-muted-foreground hidden md:inline flex items-center gap-1">
+              <Clock className="size-3 text-emerald-600 dark:text-emerald-400" />
+              <span>Đã lưu {lastSavedTime}</span>
+            </span>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleManualSaveDraft}
+            className="h-8 text-xs font-medium gap-1 text-muted-foreground hover:text-foreground"
+          >
+            <Save className="size-3.5" />
+            <span>Lưu nháp</span>
+          </Button>
+
+          {/* Single Unified Publish / Submit Button with Pre-publish Checklist Gate */}
           {currentStep === 1 ? (
-            <>
-              <span className="text-[11px] text-muted-foreground mr-1 hidden lg:inline">Quick Templates:</span>
-              <Button type="button" variant="outline" size="sm" onClick={() => handleApplyPreset('sql')} className="h-7 text-xs px-2 font-mono">
-                SQL
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => handleApplyPreset('quizlet')} className="h-7 text-xs px-2 font-mono">
-                Quizlet
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => handleApplyPreset('js')} className="h-7 text-xs px-2 font-mono">
-                JS
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => handleApplyPreset('blog')} className="h-7 text-xs px-2 font-mono">
-                Blog
-              </Button>
-
-              <div className="h-4 w-px bg-border mx-1" />
-
-              <Button
-                size="sm"
-                onClick={handleProceedToStep2}
-                className="h-8 text-xs font-bold px-4 bg-primary text-primary-foreground shadow-xs"
-              >
-                Proceed: Step 2 (Exercise) →
-              </Button>
-            </>
+            <Button
+              size="sm"
+              onClick={handleProceedToStep2}
+              className="h-8 text-xs font-bold px-4 gap-1.5 bg-primary text-primary-foreground shadow-xs"
+            >
+              <span>Tiếp tục: Cấu hình bài tập</span>
+              <ChevronRight className="size-3.5" />
+            </Button>
           ) : (
-            <>
+            <div className="relative group">
               <Button
-                variant="outline"
                 size="sm"
-                onClick={() => setCurrentStep(1)}
-                className="h-8 text-xs font-semibold px-3"
+                onClick={handlePublish}
+                disabled={saveMutation.isPending || !validationChecklist.isAllValid}
+                className={`h-8 text-xs font-bold px-4 gap-1.5 shadow-xs transition-all ${
+                  validationChecklist.isAllValid
+                    ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed border border-border'
+                }`}
               >
-                ← Back to Step 1
+                <CheckCircle2 className="size-3.5" />
+                <span>
+                  {saveMutation.isPending
+                    ? 'Đang lưu...'
+                    : isEditing
+                    ? 'Lưu thay đổi'
+                    : isContributor
+                    ? 'Gửi duyệt bài lab'
+                    : 'Xuất bản bài lab'}
+                </span>
               </Button>
 
-              {isEditing && (
-                <Button variant="outline" size="sm" asChild className="h-8 text-xs font-semibold">
-                  <Link to={`/labs/${labId}`} target="_blank">
-                    Preview in Workspace
-                  </Link>
-                </Button>
+              {/* Tooltip explaining disabled state */}
+              {!validationChecklist.isAllValid && (
+                <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-popover text-popover-foreground border border-border rounded-xl shadow-xl text-xs z-50 hidden group-hover:block pointer-events-none animate-in fade-in-50">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400 mb-1.5">
+                    <ShieldAlert className="size-3.5" />
+                    <span>Chưa đủ điều kiện xuất bản</span>
+                  </div>
+                  <ul className="space-y-1 text-[11px] text-muted-foreground list-disc list-inside">
+                    {!validationChecklist.hasSeries && <li>Chưa chọn Chuyên đề (Series)</li>}
+                    {!validationChecklist.hasTitle && <li>Tiêu đề cần tối thiểu 5 ký tự</li>}
+                    {!validationChecklist.hasTheory && <li>Lý thuyết cần tối thiểu 100 ký tự</li>}
+                    {!validationChecklist.hasExerciseConfig && <li>{validationChecklist.exerciseReason}</li>}
+                  </ul>
+                </div>
               )}
-
-              <Button
-                size="sm"
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending}
-                className="h-8 text-xs font-bold px-4 bg-primary text-primary-foreground shadow-xs"
-              >
-                {saveMutation.isPending ? 'Saving…' : isEditing ? 'Save Changes' : 'Publish Practice Lab'}
-              </Button>
-            </>
+            </div>
           )}
         </div>
       </header>
 
       {/* Toast Alert */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 max-w-sm">
-          <Alert variant={toast.type === 'error' ? 'destructive' : 'default'} className="bg-card shadow-lg">
+        <div className="fixed top-14 right-6 z-50 max-w-sm animate-in fade-in slide-in-from-top-2">
+          <Alert variant={toast.type === 'error' ? 'destructive' : 'default'} className="bg-card shadow-lg border">
             <AlertTitle className="text-xs font-bold">
-              {toast.type === 'success' ? 'Success' : 'Error'}
+              {toast.type === 'success' ? 'Thành công' : 'Lỗi kiểm tra'}
             </AlertTitle>
             <AlertDescription className="text-xs mt-0.5">
               {toast.message}
@@ -416,472 +494,327 @@ INSERT INTO customers VALUES
         </div>
       )}
 
-      {/* ── STEP 1: THEORY & INSTRUCTIONS (CONTENT FIRST) ───── */}
+      {/* ── STEP 1: THEORY & GUIDELINES (BỐ CỤC 2 CỘT CHIA ĐÔI) ───────────── */}
       {currentStep === 1 && (
-        <div className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-6">
-          {/* Metadata Block */}
-          <div className="p-5 rounded-2xl border border-border bg-card shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <div>
-                <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">
-                  1. General Information &amp; Lab Domain
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Define the lab title, parent topic, and exercise execution type configured in Step 2.
-                </p>
-              </div>
-              <Badge variant="outline" className="font-mono text-xs">
-                STEP 1 / 2
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-              <div className="sm:col-span-6">
-                <label className="text-xs font-semibold text-foreground">Parent Topic *</label>
-                <select
-                  required
-                  value={form.seriesId}
-                  onChange={(e) => {
-                    const nextTopic = seriesList.find((s) => s.id === e.target.value);
-                    const nextFormat = nextTopic?.formatType || (nextTopic?.slug.includes('sql') ? 'sql_worker' : nextTopic?.slug.includes('quiz') ? 'quizlet' : 'js_worker');
-                    setForm({
-                      ...form,
-                      seriesId: e.target.value,
-                      sandboxType: nextFormat || form.sandboxType,
-                    });
-                  }}
-                  className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
-                >
-                  <option value="">-- Select Parent Topic --</option>
-                  {seriesList.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.title} ({s.formatType === 'sql_worker' ? 'SQL' : s.formatType === 'quizlet' ? 'Quizlet' : 'JS'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="sm:col-span-6">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-foreground">Exercise Sandbox Type *</label>
-                  <Badge variant="secondary" className="text-[10px] font-bold">
-                    INHERITED FROM PARENT
-                  </Badge>
-                </div>
-                <div className="w-full mt-1 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground flex items-center justify-between font-medium">
-                  <span>
-                    {form.sandboxType === 'sql_worker'
-                      ? 'SQL Queries (Database Sandbox)'
-                      : form.sandboxType === 'quizlet'
-                      ? 'Quizlet Assessment (Multiple Choice)'
-                      : form.sandboxType === 'js_worker'
-                      ? 'JavaScript Code (Web Worker)'
-                      : 'Theory Article (Markdown Only)'}
-                  </span>
-                  <Badge variant="outline" className="font-mono text-[10px] uppercase">
-                    {form.sandboxType}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 pt-1">
-              <div className="sm:col-span-8">
-                <label className="text-xs font-semibold text-foreground">Lab Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g. Filter VIP Customers with SQL WHERE"
-                  className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-foreground">Duration (Minutes)</label>
-                <input
-                  type="number"
-                  value={form.durationMinutes}
-                  onChange={(e) => setForm({ ...form, durationMinutes: parseInt(e.target.value, 10) || 20 })}
-                  className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
-                />
-              </div>
-
-              <div className="sm:col-span-2 flex items-center pt-6">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={form.isProOnly}
-                    onChange={(e) => setForm({ ...form, isProOnly: e.target.checked })}
-                    className="rounded text-primary focus:ring-primary size-4"
-                  />
-                  Require PRO
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Theory Markdown Editor Block */}
-          <div className="p-5 rounded-2xl border border-border bg-card shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <div>
-                <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">
-                  2. Lesson Instructions &amp; Conceptual Guidelines (Markdown Content) *
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Learners review this theoretical material before attempting the practical exercise in Step 2.
-                </p>
-              </div>
-
-              <Tabs value={theoryPreviewTab} onValueChange={(v) => setTheoryPreviewTab(v as any)}>
-                <TabsList className="h-7 p-0.5">
-                  <TabsTrigger value="edit" className="text-xs px-3">
-                    Write Markdown
-                  </TabsTrigger>
-                  <TabsTrigger value="preview" className="text-xs px-3">
-                    Live Preview
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-
-            {theoryPreviewTab === 'edit' ? (
-              <textarea
-                required
-                rows={14}
-                value={form.instructions}
-                onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                placeholder="# 1. Core Concepts...&#10;&#10;## Problem Statement & Guidelines..."
-                className="w-full font-mono text-xs sm:text-sm bg-background border border-border rounded-xl p-4 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed shadow-xs"
-              />
-            ) : (
-              <div
-                className="w-full min-h-[300px] bg-background border border-border rounded-xl p-6 prose prose-sm dark:prose-invert max-w-none text-foreground leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(form.instructions) }}
-              />
-            )}
-
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground">
-                After drafting theory guidelines, click proceed to configure the practical exercise.
-              </span>
+        <div className="flex-1 flex flex-col lg:flex-row p-4 lg:p-6 gap-6 max-w-7xl mx-auto w-full items-start">
+          {/* Cột trái hẹp (~280px, collapsible): Thông tin chung & Checklist */}
+          <div
+            className={`transition-all duration-200 shrink-0 ${
+              isSidebarCollapsed ? 'w-full lg:w-12' : 'w-full lg:w-[280px]'
+            }`}
+          >
+            {isSidebarCollapsed ? (
               <Button
                 type="button"
-                onClick={handleProceedToStep2}
-                className="text-xs font-bold px-4"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="w-full h-10 p-0 text-muted-foreground hover:text-foreground"
+                title="Mở rộng cột thông tin chung"
               >
-                Proceed: Step 2 (Exercise Configuration) →
+                <SlidersHorizontal className="size-4" />
               </Button>
-            </div>
+            ) : (
+              <div className="p-4 rounded-2xl border border-border bg-card shadow-xs space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-border">
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    Thông tin Chung
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsSidebarCollapsed(true)}
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hidden lg:flex"
+                    title="Thu gọn cột"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                  </Button>
+                </div>
+
+                {/* Series selector */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
+                    Chuyên đề (Series) *
+                  </label>
+                  <select
+                    required
+                    value={form.seriesId}
+                    onChange={(e) => {
+                      const nextTopic = seriesList.find((s) => s.id === e.target.value);
+                      const nextFormat =
+                        nextTopic?.formatType ||
+                        (nextTopic?.slug.includes('sql')
+                          ? 'sql_worker'
+                          : nextTopic?.slug.includes('quiz')
+                          ? 'quizlet'
+                          : 'js_worker');
+                      setForm({
+                        ...form,
+                        seriesId: e.target.value,
+                        sandboxType: nextFormat || form.sandboxType,
+                      });
+                    }}
+                    className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                  >
+                    <option value="">-- Chọn Series cha --</option>
+                    {seriesList.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.title}
+                      </option>
+                    ))}
+                  </select>
+                  {parentTopic && (
+                    <div className="pt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <span>Thuộc thẻ:</span>
+                      <Badge variant="outline" className="text-[10px] font-semibold uppercase">
+                        🏷️ {parentTopic.category || 'General'}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sandbox format */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
+                    Loại hình bài tập *
+                  </label>
+                  <select
+                    value={form.sandboxType}
+                    onChange={(e) => setForm({ ...form, sandboxType: e.target.value as any })}
+                    className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                  >
+                    <option value="sql_worker">SQL Database</option>
+                    <option value="js_worker">JavaScript Worker</option>
+                    <option value="quizlet">Trắc nghiệm Quizlet</option>
+                    <option value="markdown_only">Bài đọc Lý thuyết</option>
+                  </select>
+                </div>
+
+                {/* Lab Title */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
+                    Tiêu đề bài Lab *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    placeholder="vd: Lọc khách hàng VIP bằng SQL WHERE"
+                    className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                  />
+                </div>
+
+                {/* Duration & Pro */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block mb-1">
+                      Thời lượng
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={form.durationMinutes}
+                        onChange={(e) =>
+                          setForm({ ...form, durationMinutes: parseInt(e.target.value, 10) || 20 })
+                        }
+                        className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <span className="absolute right-2.5 top-1.5 text-[10px] text-muted-foreground">phút</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col justify-end pb-1.5">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={form.isProOnly}
+                        onChange={(e) => setForm({ ...form, isProOnly: e.target.checked })}
+                        className="rounded text-primary focus:ring-primary size-3.5"
+                      />
+                      <span>Gói PRO</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* ── Live Completion Checklist ───────────────────────── */}
+                <div className="pt-3 border-t border-border space-y-2">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    Tiêu chuẩn hoàn tất (Checklist)
+                  </span>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Series cha:</span>
+                      {validationChecklist.hasSeries ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
+                          ✓ Đã chọn
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-[11px]">○ Chưa chọn</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Tiêu đề (≥ 5 ký tự):</span>
+                      {validationChecklist.hasTitle ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
+                          ✓ Đạt chuẩn
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-[11px]">○ {form.title.trim().length}/5</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Lý thuyết (≥ 100 ký tự):</span>
+                      {validationChecklist.hasTheory ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
+                          ✓ Đạt chuẩn
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-[11px]">
+                          ○ {form.instructions.trim().length}/100
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Cột phải: Split view 50/50 Markdown Editor & Live Preview với toolbar */}
+          <div className="flex-1 min-w-0 w-full">
+            <MarkdownEditorWithPreview
+              value={form.instructions}
+              onChange={(val) => setForm({ ...form, instructions: val })}
+              sandboxType={form.sandboxType}
+              minHeight="540px"
+              placeholder="# 1. Lý thuyết cốt lõi...&#10;&#10;## 2. Cú pháp & Ví dụ...&#10;&#10;## 3. Yêu cầu bài tập..."
+            />
           </div>
         </div>
       )}
 
-      {/* ── STEP 2: CONFIGURE EXERCISES (EXERCISES) ────── */}
+      {/* ── STEP 2: CONFIGURE EXERCISE BY SANDBOX TYPE ────────────────────── */}
       {currentStep === 2 && (
-        <div className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-6">
-          {/* Header of Step 2 */}
-          <div className="p-4 rounded-xl border border-border bg-card flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="font-mono text-xs">
-                  STEP 2 / 2
-                </Badge>
-                <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">
-                  Configure Practice Exercise: {formatTypeName}
+        <div className="flex-1 p-4 lg:p-6 max-w-6xl mx-auto w-full space-y-6">
+          {/* Active Type Banner */}
+          <div className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="font-mono text-xs font-bold">
+                BƯỚC 2 / 2
+              </Badge>
+              <div>
+                <h2 className="text-sm font-bold text-foreground">
+                  Cấu hình Bài tập: <span className="text-primary">{formatTypeName}</span>
                 </h2>
+                <p className="text-xs text-muted-foreground">
+                  Đang thiết lập cho bài lab: <strong>"{form.title || 'Chưa đặt tiêu đề'}"</strong>
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Configuring for: <strong>"{form.title}"</strong>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentStep(1)}
+              className="h-8 text-xs font-semibold gap-1"
+            >
+              <ArrowLeft className="size-3.5" />
+              <span>Quay lại Bước 1 (Lý thuyết)</span>
+            </Button>
+          </div>
+
+          {/* FORMAT A: SQL DATABASE BUILDER */}
+          {form.sandboxType === 'sql_worker' && (
+            <SqlExerciseBuilder
+              sqlSchema={form.sqlSchema || ''}
+              onSqlSchemaChange={(val) => setForm({ ...form, sqlSchema: val })}
+              initialSnippet={form.initialSnippet || ''}
+              onInitialSnippetChange={(val) => setForm({ ...form, initialSnippet: val })}
+              solution={form.solution || ''}
+              onSolutionChange={(val) => setForm({ ...form, solution: val })}
+              sampleData={form.sampleData || []}
+              onSampleDataChange={(val) => setForm({ ...form, sampleData: val })}
+            />
+          )}
+
+          {/* FORMAT B: JAVASCRIPT WORKER BUILDER */}
+          {form.sandboxType === 'js_worker' && (
+            <JsWorkerExerciseBuilder
+              initialSnippet={form.initialSnippet || ''}
+              onInitialSnippetChange={(val) => setForm({ ...form, initialSnippet: val })}
+              solution={form.solution || ''}
+              onSolutionChange={(val) => setForm({ ...form, solution: val })}
+              testScript={form.testScript || ''}
+              onTestScriptChange={(val) => setForm({ ...form, testScript: val })}
+            />
+          )}
+
+          {/* FORMAT C: QUIZLET MULTI-QUESTION BUILDER */}
+          {form.sandboxType === 'quizlet' && (
+            <QuizletExerciseBuilder
+              questions={form.quizQuestions || []}
+              onChange={(nextQuestions) => setForm({ ...form, quizQuestions: nextQuestions })}
+            />
+          )}
+
+          {/* FORMAT D: MARKDOWN ONLY (BLOG / THEORY) */}
+          {form.sandboxType === 'markdown_only' && (
+            <div className="p-8 rounded-2xl border border-border bg-card text-center space-y-2">
+              <h3 className="text-sm font-bold text-foreground">Chế độ Bài đọc Lý thuyết</h3>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                Thể loại này không yêu cầu cấu hình bài tập thực hành. Học viên sẽ đọc nội dung lý thuyết ở Bước 1 và đánh dấu hoàn thành bài học.
+              </p>
+            </div>
+          )}
+
+          {/* Pre-publish Readiness Status Summary */}
+          <div className="p-5 rounded-2xl border border-border bg-card/60 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Trạng thái Kiểm duyệt Xuất bản
+                </span>
+                {validationChecklist.isAllValid ? (
+                  <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+                    SẴN SÀNG XUẤT BẢN ✓
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-amber-500/40 text-amber-600 text-[10px] font-bold">
+                    CẦN BỔ SUNG THÔNG TIN ⚠
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {validationChecklist.isAllValid
+                  ? 'Tất cả tiêu chuẩn (Lý thuyết, Lời giải mẫu, Bộ test cases) đã hoàn tất và sẵn sàng phục vụ học viên.'
+                  : `Chưa thể xuất bản: ${validationChecklist.exerciseReason || 'Vui lòng hoàn tất đầy đủ các mục kiểm tra.'}`}
               </p>
             </div>
 
             <Button
-              variant="outline"
               size="sm"
-              onClick={() => setCurrentStep(1)}
-              className="text-xs font-semibold"
+              onClick={handlePublish}
+              disabled={saveMutation.isPending || !validationChecklist.isAllValid}
+              className={`h-9 text-xs font-bold px-5 gap-1.5 shadow-xs shrink-0 ${
+                validationChecklist.isAllValid
+                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed border border-border'
+              }`}
             >
-              ← Back to Step 1 (Theory)
-            </Button>
-          </div>
-
-          {/* ── FORMAT A: SQL PRACTICE BUILDER ──────────────────────────── */}
-          {form.sandboxType === 'sql_worker' && (
-            <div className="p-6 rounded-2xl border border-border bg-card shadow-xs space-y-5">
-              <div className="space-y-1">
-                <h3 className="text-sm font-bold text-foreground">
-                  SQL Database Challenge
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Provide table creation schema, seed data, and model solution for automated query validation.
-                </p>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Initial Database Schema (CREATE TABLE &amp; INSERT INTO) *</span>
-                  <span className="font-mono text-[11px] text-muted-foreground">PostgreSQL DDL</span>
-                </label>
-                <textarea
-                  rows={6}
-                  value={form.sqlSchema || ''}
-                  onChange={(e) => setForm({ ...form, sqlSchema: e.target.value })}
-                  placeholder="CREATE TABLE customers (id INT, full_name VARCHAR, total_spent DECIMAL);&#10;INSERT INTO customers VALUES (1, 'Alice Smith', 1500000);"
-                  className="w-full mt-1.5 font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-foreground">
-                    Starter Code (Initial Snippet)
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={form.initialSnippet || ''}
-                    onChange={(e) => setForm({ ...form, initialSnippet: e.target.value })}
-                    placeholder="-- Write a query to select customers...&#10;SELECT id, full_name, total_spent FROM customers WHERE ...;"
-                    className="w-full mt-1.5 font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-foreground">
-                    Model Solution *
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={form.solution || ''}
-                    onChange={(e) => setForm({ ...form, solution: e.target.value })}
-                    placeholder="SELECT id, full_name, total_spent FROM customers WHERE total_spent > 1000000 ORDER BY total_spent DESC;"
-                    className="w-full mt-1.5 font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── FORMAT B: QUIZLET MULTI-QUESTION BUILDER (MAX 30 QUESTIONS) ─ */}
-          {form.sandboxType === 'quizlet' && (
-            <div className="p-6 rounded-2xl border border-border bg-card shadow-xs space-y-6">
-              {/* Question list counter & Add action */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">
-                    Quizlet Assessment Questions (Markdown supported, up to 30 questions)
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Current: <strong>{quizQuestions.length} / 30</strong> questions
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={quizQuestions.length >= 30}
-                    onClick={handleAddQuizQuestion}
-                    className="h-8 text-xs font-bold"
-                  >
-                    + Add Question ({quizQuestions.length}/30)
-                  </Button>
-                </div>
-              </div>
-
-              {/* Question Stepper Pills (1, 2, 3... 30) */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {quizQuestions.map((q, idx) => (
-                  <button
-                    key={q.id || idx}
-                    type="button"
-                    onClick={() => setActiveQuizIndex(idx)}
-                    className={`size-8 rounded-lg text-xs font-bold transition-all ${
-                      activeQuizIndex === idx
-                        ? 'bg-primary text-primary-foreground shadow-xs'
-                        : 'bg-muted text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
-              </div>
-
-              {/* Active Question Editor Card */}
-              {currentQuiz && (
-                <div className="p-5 rounded-2xl border border-border bg-background space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-border">
-                    <span className="text-xs font-bold text-foreground">
-                      Editing: Question {activeQuizIndex + 1} of {quizQuestions.length}
-                    </span>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setQuizPreviewMode(!quizPreviewMode)}
-                        className="h-7 text-xs px-2"
-                      >
-                        {quizPreviewMode ? 'Switch to Edit' : 'Preview Question Markdown'}
-                      </Button>
-                      {quizQuestions.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleRemoveCurrentQuiz}
-                          className="h-7 text-xs px-2 text-destructive hover:bg-destructive/10"
-                        >
-                          Delete This Question
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Question Prompt (Markdown supported) */}
-                  <div>
-                    <label className="text-xs font-semibold text-foreground">
-                      Question Prompt (Supports Markdown: bold, code blocks, tables) *
-                    </label>
-                    {quizPreviewMode ? (
-                      <div
-                        className="w-full mt-1.5 p-3.5 bg-card border border-border rounded-xl text-xs sm:text-sm prose prose-sm dark:prose-invert max-w-none min-h-[70px]"
-                        dangerouslySetInnerHTML={{ __html: renderMarkdown(currentQuiz.question) }}
-                      />
-                    ) : (
-                      <textarea
-                        rows={3}
-                        required
-                        value={currentQuiz.question}
-                        onChange={(e) => handleUpdateCurrentQuiz({ question: e.target.value })}
-                        placeholder="e.g. Which index structure is default in PostgreSQL when creating a `PRIMARY KEY`?"
-                        className="w-full mt-1.5 font-mono text-xs sm:text-sm bg-card border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
-                      />
-                    )}
-                  </div>
-
-                  {/* 4 Choices */}
-                  <div className="space-y-2 pt-1">
-                    <label className="text-xs font-semibold text-foreground">
-                      4 Answer Choices (Select radio button for correct option) *
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {currentQuiz.options.map((opt, optIdx) => (
-                        <div
-                          key={optIdx}
-                          className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${
-                            currentQuiz.correctIndex === optIdx
-                              ? 'border-emerald-500/40 bg-emerald-500/5'
-                              : 'border-border bg-card'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={`quiz-correct-${activeQuizIndex}`}
-                            checked={currentQuiz.correctIndex === optIdx}
-                            onChange={() => handleUpdateCurrentQuiz({ correctIndex: optIdx })}
-                            className="size-4 text-primary"
-                            title="Mark as correct answer"
-                          />
-                          <span className="font-mono text-xs font-bold text-muted-foreground w-4">
-                            {String.fromCharCode(65 + optIdx)}.
-                          </span>
-                          <input
-                            type="text"
-                            required
-                            value={opt}
-                            onChange={(e) => handleUpdateCurrentQuizOption(optIdx, e.target.value)}
-                            placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                            className="flex-1 bg-transparent border-0 text-xs sm:text-sm text-foreground focus:outline-none font-medium"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Detailed Explanation */}
-                  <div>
-                    <label className="text-xs font-semibold text-foreground">
-                      Detailed Explanation (Markdown supported — displayed upon submission)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={currentQuiz.explanation || ''}
-                      onChange={(e) => handleUpdateCurrentQuiz({ explanation: e.target.value })}
-                      placeholder="Explain why this option is correct based on the theory in Step 1..."
-                      className="w-full mt-1.5 font-mono text-xs bg-card border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── FORMAT C: JAVASCRIPT WORKER BUILDER ─────────────────────── */}
-          {form.sandboxType === 'js_worker' && (
-            <div className="p-6 rounded-2xl border border-border bg-card shadow-xs space-y-4">
-              <h3 className="text-sm font-bold text-foreground">JavaScript Worker Challenge</h3>
-              <div>
-                <label className="text-xs font-semibold text-foreground">Starter Code (Initial Snippet)</label>
-                <textarea
-                  rows={3}
-                  value={form.initialSnippet || ''}
-                  onChange={(e) => setForm({ ...form, initialSnippet: e.target.value })}
-                  placeholder="function solve() { ... }"
-                  className="w-full mt-1.5 font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground">Automated Test Script (assert)</label>
-                <textarea
-                  rows={3}
-                  value={form.testScript || ''}
-                  onChange={(e) => setForm({ ...form, testScript: e.target.value })}
-                  placeholder="assert('Test 1', solve() === true);"
-                  className="w-full mt-1.5 font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground">Reference Solution</label>
-                <textarea
-                  rows={3}
-                  value={form.solution || ''}
-                  onChange={(e) => setForm({ ...form, solution: e.target.value })}
-                  placeholder="function solve() { return true; }"
-                  className="w-full mt-1.5 font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* ── FORMAT D: BLOG ONLY ─────────────────────────────────────── */}
-          {form.sandboxType === 'markdown_only' && (
-            <div className="p-6 rounded-2xl border border-border bg-card shadow-xs text-xs text-muted-foreground">
-              Article-only mode: Students read the theory material in Step 1 and mark as complete without writing code.
-            </div>
-          )}
-
-          {/* Bottom Actions */}
-          <div className="flex items-center justify-between pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentStep(1)}
-              className="text-xs font-semibold"
-            >
-              ← Back to Step 1 (Theory)
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-              className="text-xs font-bold px-5 bg-primary text-primary-foreground shadow-xs"
-            >
-              {saveMutation.isPending ? 'Saving…' : isEditing ? 'Save Changes' : 'Publish Practice Lab'}
+              <CheckCircle2 className="size-4" />
+              <span>
+                {saveMutation.isPending
+                  ? 'Đang lưu...'
+                  : isEditing
+                  ? 'Lưu thay đổi'
+                  : isContributor
+                  ? 'Gửi duyệt bài lab'
+                  : 'Xuất bản bài lab'}
+              </span>
             </Button>
           </div>
         </div>

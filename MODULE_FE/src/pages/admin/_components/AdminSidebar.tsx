@@ -1,3 +1,4 @@
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@/stores/store';
 import { logout } from '@/stores/slices/auth.slice';
@@ -20,28 +21,59 @@ import {
   LogOut,
   ExternalLink,
   Shield,
+  MessageSquareQuote,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
+interface NavSection {
+  title?: string;
+  items: {
+    label: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: string;
+  }[];
 }
 
 export interface AdminSidebarProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
   mobileOpen?: boolean;
   onClose?: () => void;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { label: 'Review Queue', href: '/admin/review', icon: ClipboardCheck },
-  { label: 'Catalog Oversight', href: '/admin/content', icon: Layers },
-  { label: 'Users', href: '/admin/users', icon: Users },
-  { label: 'Plans & Groups', href: '/admin/plans', icon: CreditCard },
-  { label: 'Audit Trail', href: '/admin/audit', icon: FileText },
+const NAV_SECTIONS: NavSection[] = [
+  {
+    title: 'Overview',
+    items: [
+      { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+      { label: 'Review Queue', href: '/admin/review', icon: ClipboardCheck },
+    ],
+  },
+  {
+    title: 'Curriculum',
+    items: [
+      { label: 'Content', href: '/admin/content', icon: Layers },
+    ],
+  },
+  {
+    title: 'Access & IAM',
+    items: [
+      { label: 'Users', href: '/admin/users', icon: Users },
+      { label: 'Plans', href: '/admin/plans', icon: CreditCard },
+      { label: 'User Groups', href: '/admin/groups', icon: Shield },
+    ],
+  },
+  {
+    title: 'Operations',
+    items: [
+      { label: 'Feedback', href: '/admin/feedback', icon: MessageSquareQuote },
+      { label: 'Audit Logs', href: '/admin/audit', icon: FileText },
+    ],
+  },
 ];
 
 function getInitials(name?: string) {
@@ -51,7 +83,12 @@ function getInitials(name?: string) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export function AdminSidebar({ mobileOpen = false, onClose }: AdminSidebarProps) {
+export function AdminSidebar({
+  collapsed = false,
+  onToggleCollapse,
+  mobileOpen = false,
+  onClose,
+}: AdminSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -62,72 +99,106 @@ export function AdminSidebar({ mobileOpen = false, onClose }: AdminSidebarProps)
     navigate('/login');
   };
 
-  const renderNavLinks = () => (
-    <nav className="px-2 space-y-0.5">
-      <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Management
-      </p>
-      {NAV_ITEMS.map((item) => {
-        const Icon = item.icon;
-        const isActive =
-          item.href === '/admin'
-            ? location.pathname === '/admin'
-            : location.pathname.startsWith(item.href);
+  const renderNavLinks = (isCollapsedMode = false) => (
+    <nav className={`space-y-4 ${isCollapsedMode ? 'px-1.5' : 'px-3'}`}>
+      {NAV_SECTIONS.map((section, sIdx) => (
+        <div key={section.title || sIdx} className="space-y-1">
+          {section.title && !isCollapsedMode && (
+            <p className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+              {section.title}
+            </p>
+          )}
 
-        return (
-          <Tooltip key={item.href} delayDuration={0}>
-            <TooltipTrigger asChild>
+          {section.items.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              item.href === '/admin'
+                ? location.pathname === '/admin'
+                : location.pathname.startsWith(item.href);
+
+            const content = (
               <Link
                 to={item.href}
                 onClick={onClose}
-                className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2.5 rounded-lg text-xs font-medium transition-all ${
+                  isCollapsedMode
+                    ? 'justify-center size-9 mx-auto'
+                    : 'px-2.5 py-2 w-full'
+                } ${
                   isActive
-                    ? 'bg-primary/10 text-primary font-semibold'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <Icon className={`size-4 shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                <span>{item.label}</span>
-                {item.badge && (
-                  <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                <Icon className={`size-4 shrink-0 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                {!isCollapsedMode && <span className="truncate">{item.label}</span>}
+                {!isCollapsedMode && item.badge && (
+                  <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary-foreground">
                     {item.badge}
                   </span>
                 )}
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="text-xs">
-              {item.label}
-            </TooltipContent>
-          </Tooltip>
-        );
-      })}
+            );
+
+            if (isCollapsedMode) {
+              return (
+                <Tooltip key={item.href} delayDuration={0}>
+                  <TooltipTrigger asChild>{content}</TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs font-semibold">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return <div key={item.href}>{content}</div>;
+          })}
+        </div>
+      ))}
     </nav>
   );
 
-  const renderFooter = () => (
-    <div className="shrink-0 border-t border-border p-3 space-y-2">
-      <Link
-        to="/"
-        className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-      >
-        <ExternalLink className="size-3.5" />
-        <span>Back to website</span>
-      </Link>
+  const renderFooter = (isCollapsedMode = false) => (
+    <div className={`shrink-0 border-t border-border space-y-2 ${isCollapsedMode ? 'p-2' : 'p-3'}`}>
+      {!isCollapsedMode && (
+        <div className="space-y-1">
+          <Link
+            to="/contributor"
+            className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+          >
+            <ExternalLink className="size-3.5 shrink-0" />
+            <span className="truncate">Contributor Studio</span>
+          </Link>
 
-      <div className="flex items-center gap-2.5 px-2 py-1.5">
-        <Avatar className="size-7 border border-border">
+          <Link
+            to="/"
+            className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <ExternalLink className="size-3.5 shrink-0" />
+            <span className="truncate">Back to website</span>
+          </Link>
+        </div>
+      )}
+
+      {/* User profile bar */}
+      <div className={`flex items-center gap-2 rounded-lg bg-muted/40 ${isCollapsedMode ? 'p-1.5 justify-center' : 'px-2.5 py-2'}`}>
+        <Avatar className="size-7 border border-border shrink-0">
           <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || 'Admin'} />
           <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
             {getInitials(user?.name)}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-foreground truncate">{user?.name || 'Admin'}</p>
-          <p className="text-[10px] text-muted-foreground truncate">{user?.email || user?.phone}</p>
-        </div>
+
+        {!isCollapsedMode && (
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-foreground truncate">{user?.name || 'Admin'}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{user?.email || user?.phone}</p>
+          </div>
+        )}
+
         <button
           onClick={handleLogout}
-          className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
           title="Logout"
         >
           <LogOut className="size-3.5" />
@@ -139,28 +210,64 @@ export function AdminSidebar({ mobileOpen = false, onClose }: AdminSidebarProps)
   return (
     <>
       {/* Desktop Fixed Left Sidebar */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 z-50 w-60 flex-col border-r border-border bg-card">
-        {/* Logo */}
-        <div className="flex h-14 items-center gap-2.5 px-4 border-b border-border shrink-0">
-          <div className="flex items-center justify-center size-7 rounded-lg bg-primary text-primary-foreground">
-            <BookOpen className="size-4" />
+      <aside
+        className={`hidden md:flex fixed inset-y-0 left-0 z-50 flex-col border-r border-border bg-card transition-all duration-200 select-none ${
+          collapsed ? 'w-16' : 'w-60'
+        }`}
+      >
+        {/* Header / Brand */}
+        <div className={`flex h-14 items-center border-b border-border shrink-0 ${collapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center justify-center size-8 rounded-lg bg-primary text-primary-foreground shrink-0 shadow-xs">
+              <BookOpen className="size-4" />
+            </div>
+            {!collapsed && (
+              <div className="flex flex-col leading-none min-w-0">
+                <span className="text-sm font-bold text-foreground">StudyIT</span>
+                <span className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                  <Shield className="size-2.5" />
+                  Admin
+                </span>
+              </div>
+            )}
           </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-sm font-bold text-foreground">StudyIT</span>
-            <span className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1">
-              <Shield className="size-2.5" />
-              Admin Studio
-            </span>
-          </div>
+
+          {/* Collapse Toggle Button */}
+          {onToggleCollapse && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleCollapse}
+              className={`size-7 text-muted-foreground hover:text-foreground shrink-0 ${collapsed ? 'hidden' : 'flex'}`}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <PanelLeftClose className="size-4" />
+            </Button>
+          )}
         </div>
+
+        {/* When collapsed, small expand button at top */}
+        {collapsed && onToggleCollapse && (
+          <div className="flex justify-center py-2 border-b border-border/40">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleCollapse}
+              className="size-7 text-muted-foreground hover:text-foreground"
+              title="Expand sidebar"
+            >
+              <PanelLeftOpen className="size-4" />
+            </Button>
+          </div>
+        )}
 
         {/* Navigation */}
         <ScrollArea className="flex-1 py-3">
-          {renderNavLinks()}
+          {renderNavLinks(collapsed)}
         </ScrollArea>
 
         {/* Footer */}
-        {renderFooter()}
+        {renderFooter(collapsed)}
       </aside>
 
       {/* Mobile Drawer */}
@@ -169,7 +276,9 @@ export function AdminSidebar({ mobileOpen = false, onClose }: AdminSidebarProps)
           <div className="w-64 bg-card h-full flex flex-col border-r border-border shadow-2xl animate-in slide-in-from-left duration-200">
             <div className="flex h-14 items-center justify-between px-4 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
-                <BookOpen className="size-4 text-primary" />
+                <div className="size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                  <BookOpen className="size-3.5" />
+                </div>
                 <span className="text-sm font-bold">Admin Studio</span>
               </div>
               <button
@@ -182,10 +291,10 @@ export function AdminSidebar({ mobileOpen = false, onClose }: AdminSidebarProps)
             </div>
 
             <ScrollArea className="flex-1 py-3">
-              {renderNavLinks()}
+              {renderNavLinks(false)}
             </ScrollArea>
 
-            {renderFooter()}
+            {renderFooter(false)}
           </div>
           <div className="flex-1" onClick={onClose} />
         </div>

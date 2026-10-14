@@ -6,12 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
   Layers,
   Code2,
-  FolderTree,
   PlusCircle,
   MessageSquareQuote,
   CheckCircle2,
@@ -21,7 +20,12 @@ import {
   PenTool,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
+
+import { CreateContentDialog } from '@/pages/contributor/_components/CreateContentDialog';
+import { openCreateDialog } from '@/stores/slices/contributor.slice';
 
 interface NavItem {
   label: string;
@@ -31,10 +35,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Overview', href: '/contributor', icon: LayoutDashboard },
-  { label: 'Topics', href: '/contributor/topics', icon: FolderTree },
   { label: 'Series', href: '/contributor/series', icon: Layers },
   { label: 'My Labs', href: '/contributor/labs', icon: Code2 },
-  { label: 'Create Content', href: '/contributor/create', icon: PlusCircle },
   { label: 'Review Feedback', href: '/contributor/feedback', icon: MessageSquareQuote },
   { label: 'Published Content', href: '/contributor/published', icon: CheckCircle2 },
 ];
@@ -52,17 +54,21 @@ export function ContributorLayout() {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
     navigate('/login');
   };
 
-  const renderNavLinks = () => (
-    <nav className="px-2 space-y-0.5">
-      <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Authoring Workspace
-      </p>
+  const renderNavLinks = (isCollapsedMode = false) => (
+    <nav className={`space-y-1 ${isCollapsedMode ? 'px-1.5' : 'px-3'}`}>
+      {!isCollapsedMode && (
+        <p className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+          Authoring Workspace
+        </p>
+      )}
+
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive =
@@ -70,21 +76,37 @@ export function ContributorLayout() {
             ? location.pathname === '/contributor'
             : location.pathname.startsWith(item.href);
 
-        return (
+        const content = (
           <Link
-            key={item.href}
             to={item.href}
             onClick={() => setMobileMenuOpen(false)}
-            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-2.5 rounded-lg text-xs font-medium transition-all ${
+              isCollapsedMode
+                ? 'justify-center size-9 mx-auto'
+                : 'px-2.5 py-2 w-full'
+            } ${
               isActive
-                ? 'bg-primary/10 text-primary font-semibold'
+                ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
-            <Icon className={`size-4 shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-            <span>{item.label}</span>
+            <Icon className={`size-4 shrink-0 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+            {!isCollapsedMode && <span className="truncate">{item.label}</span>}
           </Link>
         );
+
+        if (isCollapsedMode) {
+          return (
+            <Tooltip key={item.href} delayDuration={0}>
+              <TooltipTrigger asChild>{content}</TooltipTrigger>
+              <TooltipContent side="right" className="text-xs font-semibold">
+                {item.label}
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        return <div key={item.href}>{content}</div>;
       })}
     </nav>
   );
@@ -93,42 +115,108 @@ export function ContributorLayout() {
     <TooltipProvider>
       <div className="min-h-screen bg-background text-foreground flex">
         {/* Desktop Fixed Left Sidebar */}
-        <aside className="hidden md:flex fixed inset-y-0 left-0 z-50 w-60 flex-col border-r border-border bg-card">
+        <aside
+          className={`hidden md:flex fixed inset-y-0 left-0 z-50 flex-col border-r border-border bg-card transition-all duration-200 select-none ${
+            collapsed ? 'w-16' : 'w-60'
+          }`}
+        >
           {/* Brand */}
-          <div className="flex h-14 items-center gap-2.5 px-4 border-b border-border shrink-0">
-            <div className="flex items-center justify-center size-7 rounded-lg bg-primary text-primary-foreground">
-              <BookOpen className="size-4" />
+          <div className={`flex h-14 items-center border-b border-border shrink-0 ${collapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center justify-center size-8 rounded-lg bg-primary text-primary-foreground shrink-0 shadow-xs">
+                <BookOpen className="size-4" />
+              </div>
+              {!collapsed && (
+                <div className="flex flex-col leading-none min-w-0">
+                  <span className="text-sm font-bold text-foreground">StudyIT</span>
+                  <span className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                    <PenTool className="size-2.5" />
+                    Contributor
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-sm font-bold text-foreground">StudyIT</span>
-              <span className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1 mt-0.5">
-                <PenTool className="size-2.5" />
-                Contributor Studio
-              </span>
+
+            {/* Collapse Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCollapsed(!collapsed)}
+              className={`size-7 text-muted-foreground hover:text-foreground shrink-0 ${collapsed ? 'hidden' : 'flex'}`}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <PanelLeftClose className="size-4" />
+            </Button>
+          </div>
+
+          {/* When collapsed: expand button */}
+          {collapsed && (
+            <div className="flex justify-center py-2 border-b border-border/40">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setCollapsed(!collapsed)}
+                className="size-7 text-muted-foreground hover:text-foreground"
+                title="Expand sidebar"
+              >
+                <PanelLeftOpen className="size-4" />
+              </Button>
             </div>
+          )}
+
+          {/* Quick Create Action */}
+          <div className={`shrink-0 ${collapsed ? 'p-2 flex justify-center' : 'p-3 pb-2'}`}>
+            {collapsed ? (
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => dispatch(openCreateDialog())}
+                    size="icon"
+                    className="size-9 bg-primary text-primary-foreground shadow-xs"
+                  >
+                    <PlusCircle className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs font-semibold">
+                  Create Content
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button
+                onClick={() => dispatch(openCreateDialog())}
+                size="sm"
+                className="w-full text-xs font-semibold gap-1.5 shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <PlusCircle className="size-3.5" />
+                <span>Create Content</span>
+              </Button>
+            )}
           </div>
 
           {/* Navigation Items */}
-          <ScrollArea className="flex-1 py-3">
-            {renderNavLinks()}
+          <ScrollArea className="flex-1 py-2">
+            {renderNavLinks(collapsed)}
           </ScrollArea>
 
           {/* User profile & actions */}
-          <div className="p-3 border-t border-border bg-muted/10 shrink-0">
-            <div className="flex items-center justify-between gap-2">
+          <div className={`border-t border-border bg-muted/10 shrink-0 ${collapsed ? 'p-2' : 'p-3'}`}>
+            <div className={`flex items-center gap-2 ${collapsed ? 'justify-center' : 'justify-between'}`}>
               <div className="flex items-center gap-2 min-w-0">
-                <Avatar className="size-7">
+                <Avatar className="size-7 border border-border shrink-0">
                   <AvatarImage src={user?.avatarUrl || undefined} />
                   <AvatarFallback className="bg-primary/15 text-primary text-[10px] font-bold">
                     {getInitials(user?.name)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-foreground truncate">{user?.name}</p>
-                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 uppercase font-sans font-semibold">
-                    Contributor
-                  </Badge>
-                </div>
+
+                {!collapsed && (
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-foreground truncate">{user?.name}</p>
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 uppercase font-sans font-semibold">
+                      Contributor
+                    </Badge>
+                  </div>
+                )}
               </div>
 
               <Button
@@ -142,15 +230,26 @@ export function ContributorLayout() {
               </Button>
             </div>
 
-            <div className="mt-2.5 pt-2 border-t border-border/40">
-              <Link
-                to="/"
-                className="flex items-center justify-between text-[11px] text-muted-foreground hover:text-primary transition-colors py-0.5"
-              >
-                <span>Back to Home</span>
-                <ExternalLink className="size-3" />
-              </Link>
-            </div>
+            {!collapsed && (
+              <div className="mt-2.5 pt-2 border-t border-border/40 space-y-1">
+                {user?.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center justify-between text-[11px] text-destructive hover:underline transition-colors py-0.5 font-medium"
+                  >
+                    <span>Admin Studio</span>
+                    <ExternalLink className="size-3" />
+                  </Link>
+                )}
+                <Link
+                  to="/"
+                  className="flex items-center justify-between text-[11px] text-muted-foreground hover:text-primary transition-colors py-0.5"
+                >
+                  <span>Back to Home</span>
+                  <ExternalLink className="size-3" />
+                </Link>
+              </div>
+            )}
           </div>
         </aside>
 
@@ -160,22 +259,50 @@ export function ContributorLayout() {
             <div className="w-64 bg-card h-full flex flex-col border-r border-border shadow-2xl animate-in slide-in-from-left duration-200">
               <div className="flex h-14 items-center justify-between px-4 border-b border-border shrink-0">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="size-4 text-primary" />
+                  <div className="size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                    <BookOpen className="size-3.5" />
+                  </div>
                   <span className="text-sm font-bold">Contributor Studio</span>
                 </div>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
                   className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted"
+                  aria-label="Close menu"
                 >
                   <X className="size-4" />
                 </button>
               </div>
 
-              <ScrollArea className="flex-1 py-3">
-                {renderNavLinks()}
+              {/* Quick Create in Mobile */}
+              <div className="p-3 pb-1 shrink-0">
+                <Button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    dispatch(openCreateDialog());
+                  }}
+                  size="sm"
+                  className="w-full text-xs font-semibold gap-1.5 shadow-xs"
+                >
+                  <PlusCircle className="size-3.5" />
+                  <span>Create Content</span>
+                </Button>
+              </div>
+
+              <ScrollArea className="flex-1 py-2">
+                {renderNavLinks(false)}
               </ScrollArea>
 
-              <div className="p-3 border-t border-border bg-muted/10 space-y-2">
+              <div className="p-3 border-t border-border space-y-2">
+                {user?.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between text-xs text-destructive py-1 px-1 font-medium"
+                  >
+                    <span>Admin Studio</span>
+                    <ExternalLink className="size-3.5" />
+                  </Link>
+                )}
                 <Link
                   to="/"
                   onClick={() => setMobileMenuOpen(false)}
@@ -200,7 +327,11 @@ export function ContributorLayout() {
         )}
 
         {/* Main area offset by sidebar width on desktop */}
-        <div className="flex flex-col flex-1 min-w-0 ml-0 md:ml-60">
+        <div
+          className={`flex flex-col flex-1 min-w-0 ml-0 ${
+            collapsed ? 'md:ml-16' : 'md:ml-60'
+          } transition-all duration-200`}
+        >
           {/* Topbar */}
           <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card/80 backdrop-blur px-4 sm:px-6">
             <div className="flex items-center gap-2.5 text-xs">
@@ -222,12 +353,14 @@ export function ContributorLayout() {
               <Badge variant="secondary" className="text-[11px] font-sans font-semibold px-2 py-0.5 bg-primary/10 text-primary border-primary/20 hidden sm:inline-flex">
                 Own Content Only
               </Badge>
-              <Link to="/contributor/create">
-                <Button size="sm" className="h-8 text-xs font-semibold gap-1.5">
-                  <PlusCircle className="size-3.5" />
-                  New Content
-                </Button>
-              </Link>
+              <Button
+                onClick={() => dispatch(openCreateDialog())}
+                size="sm"
+                className="h-8 text-xs font-semibold gap-1.5 shadow-xs"
+              >
+                <PlusCircle className="size-3.5" />
+                <span>New Content</span>
+              </Button>
             </div>
           </header>
 
@@ -237,6 +370,9 @@ export function ContributorLayout() {
           </main>
         </div>
       </div>
+
+      {/* Global Create Content Dialog Modal */}
+      <CreateContentDialog />
     </TooltipProvider>
   );
 }
