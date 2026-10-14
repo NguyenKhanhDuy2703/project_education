@@ -81,7 +81,7 @@ sequenceDiagram
     TagSvc-->>Modal: Render structured tag taxonomy table
 
     Note over Admin, Catalog: 2. Creating a Canonical Topic Tag
-    Admin->>Modal: Enter Name: "System Design", Color: "#8B5CF6", Description: "Large-scale systems"
+    Admin->>Modal: Enter Name: "System Design", Color: "Purple", Description: "Large-scale systems"
     Modal->>Modal: Auto-generate slug: "system-design"
     Admin->>Modal: Click "Create Tag" button
     Modal->>BE: POST /api/topics { name, slug, color, description }

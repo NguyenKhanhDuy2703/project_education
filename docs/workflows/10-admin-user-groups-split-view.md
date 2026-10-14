@@ -78,7 +78,7 @@ sequenceDiagram
     BE->>DB: SELECT g.*, COUNT(m.user_id) as member_count FROM user_groups g LEFT JOIN user_group_members m ... GROUP BY g.id
     DB-->>BE: Groups list with aggregate member counts
     BE-->>UI: 200 OK [ { id: "grp-1", name: "CS Cohort 2026", code: "CS_2026", memberCount: 45 }, ... ]
-    UI->>Left: Render group cards; auto-select first group "grp-1"
+    UI->>Left: Render group cards and auto-select first group "grp-1"
     
     UI->>BE: GET /api/user-groups/grp-1/members?page=1&limit=10
     BE->>DB: SELECT u.* FROM users u JOIN user_group_members ug ON u.id = ug.user_id WHERE ug.group_id = 'grp-1' LIMIT 10

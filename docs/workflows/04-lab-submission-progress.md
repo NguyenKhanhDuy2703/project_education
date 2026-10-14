@@ -135,7 +135,7 @@ sequenceDiagram
 
     Note over BE, DB: Step 2: Update singular completion state in user_progress
     alt Solution Passed (status: passed)
-        BE->>DB: INSERT INTO user_progress (userId, labId, isCompleted, completedAt)<br/>VALUES ($1, $2, true, NOW())<br/>ON CONFLICT (userId, labId) DO UPDATE SET isCompleted = true, updatedAt = NOW()
+        BE->>DB: UPSERT user_progress (userId, labId, isCompleted = true)
         DB-->>BE: Progress record upserted
         BE-->>FE: 200 OK { success: true, isCompleted: true }
         FE-->>User: Display congratulations modal and enable "Next Lab"

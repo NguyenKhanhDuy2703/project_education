@@ -85,7 +85,7 @@ sequenceDiagram
         BE->>BE: Sign JWT Access Token (15m, payload: id, phone, role)
         BE->>BE: Sign JWT Refresh Token (7d)
         BE->>DB: UPDATE users SET refresh_token_hash = $1 WHERE id = $2
-        BE-->>FE: 200 OK + Set-Cookie: refreshToken=...; HttpOnly; SameSite=Strict<br/>Body: { accessToken, user: { id, name, role, ... } }
+        BE-->>FE: 200 OK (Set-Cookie refreshToken HttpOnly, Body accessToken and user profile)
         FE->>Redux: dispatch(setCredentials({ accessToken, user }))
         
         alt Role is Admin
