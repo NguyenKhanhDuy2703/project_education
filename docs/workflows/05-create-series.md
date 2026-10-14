@@ -1,143 +1,142 @@
 ---
 doc_type: workflow
-title: Sơ đồ Luồng Tạo Series Khóa học & Gắn Thẻ Topic (Create Series Flow)
+title: Sequence Diagram - Series Creation & Topic Tag Association (Create Series Flow)
 project: study-web
 version: "1.0"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Contributor Studio, Khởi tạo Series, Gắn thẻ Topic Tags và Đồng bộ Redux
+scope: Contributor Studio Subsystem, Series Initialization, Topic Tag Assignment, and Redux State Synchronization
 date: 2026-10-14
 source_file: "MODULE_FE/src/features/contributor, MODULE_BE/src/modules/series"
 status: final
-language: vi
+language: en
 related_docs: [02-catalog-topic-discovery.md, 06-create-lab-studio.md, 08-admin-topic-governance.md]
 ---
 
-# Sơ đồ Luồng Tạo Series Khóa học & Gắn Thẻ Topic (Create Series Flow)
+# Sequence Diagram: Series Creation & Topic Tag Association (Create Series Flow)
 
-## 1. Thông tin tài liệu (Document Information)
+## 1. Document Information
 
-| Thuộc tính | Chi tiết |
+| Attribute | Details |
 |---|---|
-| **Tên tài liệu** | Sơ đồ Luồng Tạo Series Khóa học & Gắn Thẻ Topic |
+| **Document Title** | Series Creation & Topic Tag Association Workflow |
 | **Version** | v1.0 |
-| **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Trải nghiệm của Contributor / Admin khi khởi tạo một Series mới qua Modal Popup, gắn các thẻ Topic Tags có sẵn, cập nhật tức thì vào Redux Store (Optimistic State Update) và lưu bản ghi xuống PostgreSQL Backend |
-| **Thời gian** | 2026-10-14 |
-| **Tham chiếu từ** | `MODULE_FE/src/features/contributor/components/CreateSeriesModal.tsx`, `MODULE_FE/src/features/contributor/store/contributorSlice.ts`, `MODULE_BE/src/modules/series/series.controller.ts` |
+| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
+| **Scope** | Contributor & Admin workflow for creating a new Series via a lightweight modal dialog, assigning system Topic Tags, performing optimistic Redux updates, and persisting records into PostgreSQL |
+| **Date** | 2026-10-14 |
+| **Source Reference** | `MODULE_FE/src/pages/contributor/ContributorContentPage.tsx`, `MODULE_FE/src/stores/slices/contributor.slice.ts`, `MODULE_BE/src/modules/series/series.controller.ts` |
 
 ---
 
-## 2. Nội dung chính (Content)
+## 2. Core Content
 
-### 2.1. Tóm tắt luồng (TL;DR)
-- **Đầu vào**: Contributor truy cập `/contributor/content` hoặc `/contributor/overview` và bấm nút **"+ Create Series"**.
-- **Thao tác**:
-  - Giao diện mở Modal Popup nhẹ nhàng (không chuyển trang riêng biệt, giữ nguyên ngữ cảnh làm việc).
-  - Điền Title (tự động gợi ý Slug chuẩn SEO), mô tả ngắn gọn, chọn cấp độ khó (Beginner, Intermediate, Advanced).
-  - Chọn một hoặc nhiều Thẻ Topic (ví dụ: `JavaScript`, `Algorithms`, `Web Frontend`) từ danh sách Thẻ dùng chung do Admin quản trị.
-- **Xử lý & Phản hồi**:
-  - Cập nhật tức thì vào Redux Store để danh sách hiển thị ngay lập tức (không cần F5 reload trang).
-  - Gửi request `POST /api/series` xuống Backend để lưu vào CSDL Postgres.
-  - Đóng Modal và thông báo Toast thành công. Series mới sẵn sàng để gắn các bài Lab.
+### 2.1. Workflow Summary (TL;DR)
+- **Input**: Contributor accesses `/contributor` and clicks the **"+ Create Series"** action button.
+- **Workflow Steps**:
+  - A modal dialog opens in-place, preserving page context without disrupting current work.
+  - Contributor enters Title (auto-generates SEO slug), description, and selects difficulty level (Beginner, Intermediate, Advanced).
+  - Selects one or more Topic Tags (e.g., `JavaScript`, `Algorithms`, `Web Frontend`) from the centrally managed taxonomy.
+- **Processing & Feedback**:
+  - Immediately optimistic-appends the draft series into the client-side Redux store.
+  - Dispatches `POST /api/series` to the NestJS backend.
+  - Closes the modal and surfaces a success toast notification; the new Series is immediately ready to accept labs.
 
 ---
 
-### 2.2. Phân công & Vai trò (Who does what)
+### 2.2. Roles & Responsibilities (Who Does What)
 
-| Thực thể | Loại | Vai trò & Trách nhiệm trong luồng |
+| Entity | Type | Roles & Responsibilities |
 |---|---|---|
-| **Contributor / Admin** | Actor | Nhập thông tin Series, chọn Thẻ Topic và bấm Xác nhận Tạo |
-| **CreateSeriesModal** | Client UI | Modal form thu thập thông tin, validate client-side và tự sinh slug |
-| **Redux Store (`contributorSlice`)** | Client State | Quản lý danh sách Series, thực hiện cập nhật trước (optimistic) |
-| **SeriesController & Service** | NestJS Backend | Kiểm tra slug trùng lặp, tạo bản ghi trong bảng `series`, liên kết với bảng `series_topics` |
-| **PostgreSQL Database** | Storage | Lưu trữ bảng `series` và bảng trung gian `series_topics` |
+| **Contributor / Admin** | Actor | Inputs series metadata, selects topic tags, and confirms creation |
+| **CreateSeriesModal** | Client UI | Modal form handling user input, slug auto-generation, and form validation |
+| **Redux Store (`contributorSlice`)** | Client State | Manages local series collection with optimistic UI rendering |
+| **SeriesController & Service** | NestJS Backend | Validates slug uniqueness, inserts `series` record, establishes `series_topics` links |
+| **PostgreSQL Database** | Storage | Stores `series` entity and associative `series_topics` relations |
 
 ---
 
-### 2.3. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.3. Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Contributor as Contributor / Admin
-    participant UI as ContributorContentPage
-    participant Modal as CreateSeriesModal (Popup)
+    participant UI as Contributor Content Page
+    participant Modal as CreateSeriesModal (Dialog)
     participant Redux as Redux Store (contributorSlice)
     participant BE as NestJS (SeriesModule)
     participant DB as PostgreSQL
 
-    Note over Contributor, DB: 1. Khởi động Modal tạo Series
-    Contributor->>UI: Bấm nút "+ Create Series"
-    UI->>Modal: Mở popup (isOpen = true)
-    Modal->>Modal: Tải danh sách Thẻ Topic Tags hiện có
-    Modal-->>Contributor: Hiển thị form tạo Series sạch sẽ
+    Note over Contributor, DB: 1. Launching Series Creation Dialog
+    Contributor->>UI: Click "+ Create Series" button
+    UI->>Modal: Open modal dialog (isOpen = true)
+    Modal->>Modal: Load active Topic Tags taxonomy
+    Modal-->>Contributor: Present clean creation form
 
-    Note over Contributor, DB: 2. Nhập liệu & Gắn Thẻ Topic
-    Contributor->>Modal: Nhập Title: "Mastering TypeScript Generics"
-    Modal->>Modal: Tự sinh Slug: "mastering-typescript-generics"
-    Contributor->>Modal: Chọn Level = "Intermediate"
-    Contributor->>Modal: Chọn Thẻ Topic: ["TypeScript", "Frontend", "Advanced"]
-    Contributor->>Modal: Bấm nút "Create Series"
+    Note over Contributor, DB: 2. Input Metadata & Tag Selection
+    Contributor->>Modal: Enter Title: "Mastering TypeScript Generics"
+    Modal->>Modal: Auto-generate Slug: "mastering-typescript-generics"
+    Contributor->>Modal: Select Level = "Intermediate"
+    Contributor->>Modal: Select Tags: ["TypeScript", "Frontend", "Advanced"]
+    Contributor->>Modal: Click "Create Series" button
 
-    Note over Contributor, DB: 3. Cập nhật State Redux trước & Gọi Backend
+    Note over Contributor, DB: 3. Optimistic State Update & Backend Persistence
     Modal->>Redux: dispatch(addSeriesOptimistic(newSeriesData))
-    Redux-->>UI: Danh sách hiển thị ngay Series mới (Status: Draft)
-    Modal->>Modal: Đóng popup & Hiển thị Spinner nhỏ ở card mới
+    Redux-->>UI: Instantly render new Series card (Status: Draft)
+    Modal->>Modal: Close dialog & show indicator on new card
     
     Modal->>BE: POST /api/series { title, slug, level, topicTagIds, ... }
     BE->>DB: SELECT id FROM series WHERE slug = $1
-    alt Slug đã tồn tại
-        DB-->>BE: Trùng bản ghi
-        BE-->>Modal: 409 Conflict ("Slug khóa học đã tồn tại, vui lòng đổi tên khác")
+    alt Slug Already Exists
+        DB-->>BE: Duplicate entry found
+        BE-->>Modal: 409 Conflict ("Series slug already exists. Please choose a different title.")
         Modal->>Redux: dispatch(rollbackSeries(tempId))
-        Modal-->>Contributor: Thông báo lỗi và mở lại form để sửa
-    else Slug hợp lệ
+        Modal-->>Contributor: Display conflict alert and restore form inputs
+    else Valid Unique Slug
         BE->>DB: INSERT INTO series (title, slug, level, author_id, status) VALUES (...) RETURNING id
-        DB-->>BE: Tạo seriesId thành công
+        DB-->>BE: Created series record
         BE->>DB: INSERT INTO series_topics (series_id, topic_id) VALUES (...)
-        DB-->>BE: Liên kết thẻ hoàn tất
+        DB-->>BE: Associate topic tags
         BE-->>Modal: 201 Created { series: { id, title, slug, topicTags: [...] } }
         Modal->>Redux: dispatch(confirmSeriesSuccess({ tempId, realSeries }))
-        UI-->>Contributor: Hiển thị Toast thông báo: "Series tạo thành công!"
+        UI-->>Contributor: Display success toast: "Series created successfully!"
     end
 ```
 
 ---
 
-### 2.4. Phân tích Kỹ thuật Chi tiết
+### 2.4. Technical Specifications & Architecture Details
 
-1. **Popup thay vì Trang riêng biệt**:
-   - Trước đây việc tạo bài/series chuyển hướng sang một trang riêng biệt khiến Contributor mất ngữ cảnh và phải tải lại toàn bộ giao diện.
-   - Việc chuyển sang Modal Popup giúp việc tạo nhanh chóng, giữ người dùng ở lại đúng vị trí danh sách nội dung để tiếp tục các thao tác khác.
-2. **Cập nhật State Redux không cần Reload**:
-   - Sử dụng mô hình Optimistic Update: Ngay khi form validate hợp lệ, Redux state được append thêm bản ghi tạm thời.
-   - Khi API Backend trả về mã 201 Created, Redux cập nhật lại ID thật từ database. Nếu lỗi mạng, Redux rollback trạng thái cũ. Người dùng không phải bấm F5 thủ công để thấy dữ liệu mới.
-3. **Quan hệ Nhiều - Nhiều với Thẻ Topic**:
-   - Bảng trung gian `series_topics (series_id, topic_id)` cho phép một series thuộc về nhiều chủ đề linh hoạt, hỗ trợ tìm kiếm và lọc trực quan trên Catalog.
+1. **Modal Dialog vs Dedicated Page**:
+   - Replaces disruptive full-page redirects with an in-place modal, preserving filter states and scroll positions.
+2. **Optimistic Redux Synchronization**:
+   - The UI appends a temporary record to the local Redux state immediately upon client-side validation.
+   - Upon receiving `201 Created`, the temporary ID is replaced with the persisted database ID. If network errors occur, the state automatically rolls back, eliminating manual page reloads.
+3. **Many-to-Many Topic Tag Relations**:
+   - Backed by the associative table `series_topics (series_id, topic_id)` allowing multifaceted categorization for granular discovery in the Catalog.
 
 ---
 
-### 2.5. Xử lý Ngoại lệ (Edge Cases)
+### 2.5. Edge Cases & Exception Handling
 
-| Tình huống ngoại lệ | Phản hồi hệ thống | Trải nghiệm người dùng |
+| Edge Case | System Response | User Experience |
 |---|---|---|
-| **Tiêu đề chứa ký tự đặc biệt** | Regex chuyển đổi slug loại bỏ ký tự lạ, chuẩn hóa tiếng Việt thành không dấu | Người dùng thấy slug hiển thị realtime bên dưới tiêu đề |
-| **Mất mạng khi bấm nút Tạo** | Axios ném lỗi mạng, Redux rollback | Modal thông báo *"Lỗi kết nối máy chủ, vui lòng thử lại"* và không làm mất dữ liệu đã nhập |
-| **Tài khoản hết hạn quyền Contributor** | Backend trả về 403 Forbidden | Điều hướng người dùng về trang yêu cầu nâng quyền |
+| **Special Characters in Title** | Regex transforms string into clean kebab-case slug | Learner observes realtime slug preview beneath title input |
+| **Network Failure During Submission** | Request fails, Redux triggers rollback | Modal re-opens with alert *"Server connection failed. Please try again"* while preserving form fields |
+| **Expired Contributor Session** | Backend responds with 403 Forbidden | Redirects to role verification page |
 
 ---
 
-## 3. Tài liệu tham khảo & Liên kết (References)
+## 3. References & Source Links
 
-- **Mã nguồn Frontend**:
-  - Trang Quản lý Nội dung Contributor: [MODULE_FE/src/pages/contributor/ContributorContentPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/contributor/ContributorContentPage.tsx)
-  - Modal Tạo Series: [MODULE_FE/src/features/contributor/components/CreateSeriesModal.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/contributor/components/CreateSeriesModal.tsx)
-  - Slice Quản lý Contributor: [MODULE_FE/src/features/contributor/store/contributorSlice.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/contributor/store/contributorSlice.ts)
-- **Mã nguồn Backend**:
-  - Series Controller: [MODULE_BE/src/modules/series/series.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/series/series.controller.ts)
-- **Tài liệu liên quan**:
-  - Luồng Khám phá Catalog: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
-  - Studio Tạo bài Lab 2 bước: [06-create-lab-studio.md](file:///d:/Projects/study-web/docs/workflows/06-create-lab-studio.md)
-  - Quản trị Thẻ Topic toàn hệ thống: [08-admin-topic-governance.md](file:///d:/Projects/study-web/docs/workflows/08-admin-topic-governance.md)
+- **Frontend Codebase**:
+  - Contributor Content Page: [ContributorContentPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/contributor/ContributorContentPage.tsx)
+  - Create Content Dialog: [CreateContentDialog.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/contributor/_components/CreateContentDialog.tsx)
+  - Contributor Redux Slice: [contributor.slice.ts](file:///d:/Projects/study-web/MODULE_FE/src/stores/slices/contributor.slice.ts)
+- **Backend Codebase**:
+  - Series Controller: [series.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/series/series.controller.ts)
+- **Related Workflows**:
+  - Catalog Discovery: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
+  - Two-Step Lab Studio: [06-create-lab-studio.md](file:///d:/Projects/study-web/docs/workflows/06-create-lab-studio.md)
+  - System-Wide Topic Governance: [08-admin-topic-governance.md](file:///d:/Projects/study-web/docs/workflows/08-admin-topic-governance.md)

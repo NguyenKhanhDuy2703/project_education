@@ -1,172 +1,188 @@
 ---
 doc_type: workflow
-title: Sơ đồ Luồng Nộp Bài Lab & Ghi nhận Tiến độ (Submission & Progress Tracking)
+title: Sequence Diagram - Lab Submission & Progress Tracking (Submission & Progress Flow)
 project: study-web
 version: "1.1"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Luồng nghiệp vụ người dùng (Workspace -> Do Lab -> Submit) và phân hệ lưu vết bài nộp, ghi nhận tiến độ
-date: 2026-10-13
-source_file: "MODULE_BE/src/modules, MODULE_FE/src/pages/dashboard"
+scope: User practice lifecycle (Workspace -> Practice -> Submit) and Dual-Table Persistence Subsystem (History Logging & Single-State Upsert)
+date: 2026-10-14
+source_file: "MODULE_BE/src/modules/labs, MODULE_FE/src/pages/dashboard"
 status: final
-language: vi
-related_docs: [../01-proposal.md, ../05-database.md]
+language: en
+related_docs: [../01-proposal.md, ../05-database.md, 03-lab-practice-webworker.md]
 ---
 
-# Sơ đồ Luồng Nộp Bài Lab & Ghi nhận Tiến độ (Submission & Progress Tracking)
+# Sequence Diagram: Lab Submission & Progress Tracking (Submission & Progress Flow)
 
-## 1. Thông tin tài liệu (Document Information)
+## 1. Document Information
 
-| Thuộc tính | Chi tiết |
+| Attribute | Details |
 |---|---|
-| **Tên tài liệu** | Sơ đồ Luồng Nộp Bài Lab & Ghi nhận Tiến độ |
+| **Document Title** | Lab Submission & Progress Tracking Workflow |
 | **Version** | v1.1 |
-| **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Chu trình nghiệp vụ làm bài (Workspace -> Do Lab -> Submit), lưu lịch sử nộp bài, ghi nhận trạng thái hoàn thành và đồng bộ Dashboard |
-| **Thời gian** | 2026-10-13 |
-| **Tham chiếu từ** | Thiết kế CSDL tinh gọn tại `docs/05-database.md` (2 bảng `lab_submissions` và `user_progress`) |
+| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
+| **Scope** | End-to-end user lifecycle: Working in workspace, running in-browser tests, submitting solutions, persisting audit logs in `lab_submissions`, upserting singular progress in `user_progress`, and synchronizing learner dashboard stats |
+| **Date** | 2026-10-14 |
+| **Source Reference** | Lean dual-table database design in `docs/05-database.md` (`lab_submissions` and `user_progress` tables) and `MODULE_FE/src/pages/dashboard/DashboardPage.tsx` |
 
 ---
 
-## 2. Nội dung chính (Content)
+## 2. Core Content
 
-### 2.1. Sơ đồ Luồng Nghiệp vụ Người dùng (User Business Flow)
+### 2.1. User Practice Business Flow
 
-Sơ đồ thể hiện chu trình thao tác cốt lõi của người dùng trên giao diện khi thực hành bài lab: Mở Workspace $\to$ Làm bài (Do Lab) $\to$ Nộp bài (Submit):
+The following flowchart outlines the core user journey within the interactive workspace: Open Workspace $\to$ Practice Code $\to$ Submit Solution:
 
 ```mermaid
 flowchart TD
-    Start([1. Mở Lab Workspace]) --> ViewWorkspace[User quan sát giao diện làm bài:]
-    ViewWorkspace --> ReadPane[Cột trái: Đọc đề bài, mục tiêu & hướng dẫn từng bước]
-    ViewWorkspace --> CodePane[Cột phải: Xem code mẫu ban đầu trên Editor]
+    Start([1. Open Lab Workspace]) --> ViewWorkspace[Learner observes workspace layout:]
+    ViewWorkspace --> ReadPane[Left Column: Read instructions, goals & step-by-step guidance]
+    ViewWorkspace --> CodePane[Right Column: Inspect initial starter code in Monaco Editor]
 
-    %% --- Giai đoạn 2: Do Lab (Thực hành & Chạy thử) ---
-    CodePane --> TypingCode[2. Thực hành: User viết code giải quyết yêu cầu đề bài]
-    TypingCode --> ClickRun[Bấm nút 'Chạy thử']
-    ClickRun --> RunFeedback{Kết quả chạy thử trên màn hình}
+    %% --- Phase 2: Practice & Trial Run ---
+    CodePane --> TypingCode[2. Practice: Learner writes code to fulfill lab criteria]
+    TypingCode --> ClickRun[Click 'Run Code' button]
+    ClickRun --> RunFeedback{Test run output on console}
 
-    %% Vòng lặp sửa bài
-    RunFeedback -->|Còn test case thất bại / Báo lỗi| ViewFailDetails[Xem chi tiết lỗi & test case chưa đạt]
-    ViewFailDetails --> FixCode[User chỉnh sửa lại code trên Editor]
+    %% Debugging loop
+    RunFeedback -->|Failing test cases / Syntax error| ViewFailDetails[Review failing assertions & stack trace]
+    ViewFailDetails --> FixCode[Learner modifies code in Monaco Editor]
     FixCode --> ClickRun
 
-    %% Vòng lặp thành công
-    RunFeedback -->|Tất cả test case đều Vượt qua| PassState[Bảng kết quả báo xanh: 100% Passed]
+    %% Success state
+    RunFeedback -->|100% Tests Passed| PassState[Console shows green: 100% Passed]
     
-    %% --- Giai đoạn 3: Nộp bài (Submit) ---
-    PassState --> ClickSubmit[3. Bấm nút 'Nộp bài']
-    ClickSubmit --> SubmitProcessing[Hệ thống ghi nhận bài nộp]
-    SubmitProcessing --> ShowCompletionModal[Hiện thông báo: 'Hoàn thành bài Lab thành công!']
-    ShowCompletionModal --> NextAction{User chọn hành động tiếp theo}
-    NextAction -->|Bấm 'Bài tiếp theo'| GoNextLab([Mở bài Lab kế tiếp trong Series])
-    NextAction -->|Bấm 'Xem lại bài'| StayReview([Ở lại màn hình xem lại code vừa làm])
+    %% --- Phase 3: Submission ---
+    PassState --> ClickSubmit[3. Click 'Submit Solution' button]
+    ClickSubmit --> SubmitProcessing[Backend records submission & upserts progress]
+    SubmitProcessing --> ShowCompletionModal[Modal: 'Lab Successfully Completed! 🎉']
+    ShowCompletionModal --> NextAction{Learner selects next action}
+    NextAction -->|Click 'Next Lab'| GoNextLab([Advance to next lab in Series roadmap])
+    NextAction -->|Click 'Review Solution'| StayReview([Remain in workspace to review solution])
 ```
 
-#### Các điểm chạm (Touchpoints) của Người dùng trên Giao diện:
-1. **Khám phá Workspace (Init)**:
-   - Cột trái: Cung cấp đầy đủ đề bài, tiêu chí kiểm thử và hướng dẫn chi tiết.
-   - Cột phải: Khung soạn thảo code (Monaco Editor) nạp sẵn Starter Code mẫu.
-2. **Thực hành & Vòng lặp chạy thử (Do Lab)**:
-   - Học viên viết code và chủ động bấm nút **"Chạy thử"** để chạy test nhanh trên Web Worker (không tốn chi phí server).
-   - Nếu lỗi: Panel hiển thị rõ test case bị hỏng, input/output để học viên tự sửa tại chỗ.
-   - Khi vượt qua 100% test: Giao diện chuyển trạng thái xanh và kích hoạt nút nộp bài.
-3. **Nộp bài & Chuyển tiếp (Submit & Next Lab)**:
-   - Bấm **"Nộp bài"**: Kết quả được lưu lên server, đồng bộ tiến độ học tập.
-   - Giao diện hiển thị Modal vinh danh hoàn thành, cung cấp nút **"Bài tiếp theo"** giúp học viên tiếp tục lộ trình học tập liền mạch mà không bị đứt đoạn trải nghiệm.
+#### User Interface Touchpoints:
+1. **Workspace Initialization**:
+   - Left Pane: Comprehensive Markdown theory, learning objectives, and test acceptance criteria.
+   - Right Pane: Monaco Editor pre-loaded with template Starter Code.
+2. **Practice & Trial Run Loop**:
+   - Learners compose code and trigger **"Run Code"** for immediate client-side test validation inside a Web Worker.
+   - If tests fail: Console provides actionable test diffs (Input / Expected / Actual) for immediate debugging.
+   - Upon 100% pass rate: UI highlights green and enables the **"Submit Solution"** action button.
+3. **Submission & Next Steps**:
+   - Clicking **"Submit Solution"**: Persists submission history, upserts completion status, and updates progress counters.
+   - Completion celebration modal offers **"Next Lab"** button to ensure seamless learning continuity.
 
-### 2.2. Sơ đồ Luồng Nghiệp vụ Đặc quyền PRO: Xem Hướng dẫn Mẫu (Solution Guide Flow)
+---
 
-Đối với tài khoản **User PRO**, hệ thống mở khóa tính năng xem Hướng dẫn mẫu / Lời giải chi tiết (Solution Guide) ngay trong Workspace, trong khi tài khoản thường sẽ nhận popup giới thiệu nâng cấp:
+### 2.2. PRO Entitlement Privilege: Solution Guide Access Flow
+
+For **User PRO** accounts, the system unlocks access to the official Solution Guide directly within the workspace, while standard users receive an upgrade paywall prompt:
 
 ```mermaid
 flowchart TD
-    Start([User đang làm bài trong Lab Workspace]) --> ClickSolutionBtn{User bấm nút 'Xem Hướng dẫn mẫu / Lời giải'}
+    Start([Learner inside Lab Workspace]) --> ClickSolutionBtn{Learner clicks 'View Solution Guide' button}
 
-    %% --- Phân nhánh theo loại tài khoản ---
-    ClickSolutionBtn --> CheckTier{Kiểm tra gói tài khoản}
+    %% --- Tier Check ---
+    ClickSolutionBtn --> CheckTier{Check account entitlement tier}
 
-    %% --- Nhánh 1: User thường ---
-    CheckTier -->|User thường - Chưa nâng cấp| ShowUpgradePrompt[Màn hình bật Popup: 'Mở khóa Hướng dẫn mẫu với gói PRO']
-    ShowUpgradePrompt --> PromptAction{Thao tác của User thường}
-    PromptAction -->|Bấm 'Xem gói PRO'| GoPricing[Chuyển sang trang Nâng cấp tài khoản]
-    PromptAction -->|Bấm 'Đóng'| BackToWorkspace[Đóng popup -> Tiếp tục tự giải bài]
+    %% --- Standard User ---
+    CheckTier -->|Standard Learner - Non-PRO| ShowUpgradePrompt[Popup: 'Unlock Expert Solution Guides with PRO']
+    ShowUpgradePrompt --> PromptAction{User action on popup}
+    PromptAction -->|Click 'View PRO Plans'| GoPricing[Redirect to Pricing / Upgrade page]
+    PromptAction -->|Click 'Close / Dismiss'| BackToWorkspace[Dismiss popup -> Continue independent solving]
 
-    %% --- Nhánh 2: User PRO (Đã upgrade) ---
-    CheckTier -->|User PRO - Đã upgrade| OpenSolutionPane[Mở bảng 'Hướng dẫn mẫu & Lời giải chuẩn']
+    %% --- PRO User ---
+    CheckTier -->|PRO Learner - Entitled| OpenSolutionPane[Open 'Official Solution & Architecture Guide']
     
-    OpenSolutionPane --> SolutionUI[User PRO xem trọn vẹn 3 nội dung:]
-    SolutionUI --> Sec1[1. Code giải mẫu chuẩn - Clean Code & Best Practices]
-    SolutionUI --> Sec2[2. Giải thích chi tiết từng bước: Tại sao làm như vậy?]
-    SolutionUI --> Sec3[3. Nút 'Sao chép code mẫu' để thử nghiệm trực tiếp]
+    OpenSolutionPane --> SolutionUI[PRO Learner views full solution package:]
+    SolutionUI --> Sec1[1. Clean reference implementation adhering to best practices]
+    SolutionUI --> Sec2[2. Detailed step-by-step breakdown: Architectural reasoning]
+    SolutionUI --> Sec3[3. 'Copy to Editor' button for hands-on experimentation]
 
-    Sec3 --> ProAction{User PRO thao tác tiếp}
-    ProAction -->|Tự gõ lại hoặc paste vào Editor| RunTest[Bấm 'Chạy thử' kiểm tra]
-    RunTest --> Submit[Bấm 'Nộp bài' hoàn thành]
+    Sec3 --> ProAction{PRO Learner next action}
+    ProAction -->|Inspect & run tests| RunTest[Click 'Run Code' to verify]
+    RunTest --> Submit[Click 'Submit Solution' to complete]
 ```
 
-#### Điểm chạm giao diện (UI Touchpoints) cho Hướng dẫn mẫu:
-1. **Nút Hướng dẫn mẫu 💡**: Nằm trên thanh công cụ của Editor; User thường thấy nhãn `🔒 Pro`, User PRO thấy nhãn mở khóa `🔓`.
-2. **Popup Paywall cho User thường**: Giới thiệu lợi ích giải pháp chuẩn, không làm mất code đang gõ dở nếu user bấm đóng.
-3. **Bảng Lời giải cho User PRO**: Bố trí dạng thanh trượt bên phải (Side Drawer) hoặc Tab song song, hiển thị mã nguồn chuẩn, giải thích từng dòng và nút Copy nhanh.
+#### UI Touchpoints for Solution Guide:
+1. **Solution Guide Button 💡**: Located on the editor toolbar; Standard users see `🔒 Pro`, PRO users see `🔓 Solution`.
+2. **Standard User Paywall**: Explains pedagogical benefits of reviewing reference solutions without resetting unfinished code in the editor.
+3. **PRO Solution Drawer**: Slide-over panel presenting the clean reference implementation, line-by-line technical commentary, and quick copy actions.
 
-### 2.3. Sơ đồ Tuần tự Kỹ thuật (Sequence Diagram)
+---
+
+### 2.3. Technical Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Học viên
-    participant FE as Lab Workspace
-    participant BE as Backend Lab Service
-    participant DB as Database (Postgres)
-    participant Dash as Dashboard Cá Nhân
+    actor User as Learner / Student
+    participant FE as Lab Workspace (React)
+    participant BE as Backend Lab Service (NestJS)
+    participant DB as PostgreSQL Database
+    participant Dash as Learner Dashboard
 
-    User->>FE: Bấm nút Nộp bài
-    FE->>BE: POST /api/labs/:id/submit (submittedCode, status, timeMs)
-    BE->>BE: Xác thực JWT trích xuất userId
+    User->>FE: Click "Submit Solution" button
+    FE->>BE: POST /api/labs/:id/submit { submittedCode, status, timeMs }
+    BE->>BE: Validate JWT & extract authenticated userId
     
-    Note over BE, DB: Bước 1: Luôn lưu lịch sử nộp bài vào lab_submissions
-    BE->>DB: INSERT INTO lab_submissions
-    DB-->>BE: Lưu bản ghi thành công
+    Note over BE, DB: Step 1: Always append submission history to lab_submissions
+    BE->>DB: INSERT INTO lab_submissions (userId, labId, submittedCode, status, timeMs)
+    DB-->>BE: Submission record created successfully
 
-    Note over BE, DB: Bước 2: Cập nhật tiến độ vào user_progress
-    alt Bài làm đạt yêu cầu (status: passed)
-        BE->>DB: UPSERT INTO user_progress (isCompleted = true)
-        DB-->>BE: Cập nhật tiến độ thành công
-        BE-->>FE: 200 OK (Hoàn thành bài lab xuất sắc)
-        FE-->>User: Hiển thị chúc mừng và mở bài tiếp theo
-    else Bài làm chưa đạt (status: failed)
-        BE-->>FE: 200 OK (Đã lưu bài làm, gợi ý thử lại)
-        FE-->>User: Hiển thị thông báo lưu bài làm để sửa tiếp
+    Note over BE, DB: Step 2: Update singular completion state in user_progress
+    alt Solution Passed (status: passed)
+        BE->>DB: INSERT INTO user_progress (userId, labId, isCompleted, completedAt)<br/>VALUES ($1, $2, true, NOW())<br/>ON CONFLICT (userId, labId) DO UPDATE SET isCompleted = true, updatedAt = NOW()
+        DB-->>BE: Progress record upserted
+        BE-->>FE: 200 OK { success: true, isCompleted: true }
+        FE-->>User: Display congratulations modal and enable "Next Lab"
+    else Solution Failed (status: failed)
+        BE-->>FE: 200 OK { success: true, isCompleted: false, message: "Draft saved" }
+        FE-->>User: Confirm code saved with encouragement to retry
     end
 
-    Note over User, Dash: Bước 3: Đồng bộ hiển thị trên Dashboard
-    User->>Dash: Mở trang Dashboard cá nhân
+    Note over User, Dash: Step 3: Synchronize statistics on Dashboard
+    User->>Dash: Navigate to Personal Dashboard
     Dash->>BE: GET /api/users/me/dashboard-stats
-    BE->>DB: Đếm số bài lab hoàn thành từ user_progress
-    DB-->>BE: Trả về số bài đã xong
-    BE-->>Dash: 200 OK (totalCompleted, streakDays, seriesProgress)
-    Dash-->>User: Render thanh tiến độ phần trăm và huy hiệu
+    BE->>DB: SELECT COUNT(*) FROM user_progress WHERE userId = $1 AND isCompleted = true
+    DB-->>BE: Return completed lab count
+    BE-->>Dash: 200 OK { totalCompleted, streakDays, seriesProgress }
+    Dash-->>User: Render progress meters, completion percentages, and earned badges
 ```
-
-### 2.4. Phân tích Kỹ thuật Chi tiết
-
-1. **Chiến lược Phân tách Dữ liệu (Dual-table Strategy)**:
-   * **`lab_submissions` (Lưu vết không giới hạn)**: Mỗi lần học viên bấm Nộp bài đều sinh 1 dòng mới. Phục vụ việc xem lại lịch sử code cũ, đối chiếu quá trình tiến bộ của học viên.
-   * **`user_progress` (Trạng thái đơn nhất)**: Chỉ có duy nhất 1 dòng cho mỗi cặp `(userId, labId)`. Dùng cú pháp `ON CONFLICT (userId, labId) DO UPDATE` (PostgreSQL Upsert).
-   * 👉 **Lợi ích**: Khi người dùng vào trang Dashboard, câu lệnh đếm bài hoàn thành chỉ cần quét trên bảng `user_progress` cực kỳ nhỏ gọn, không phải `GROUP BY` hay `DISTINCT` trên bảng `lab_submissions` chứa hàng triệu dòng log.
-
-2. **Bảo mật Điểm số & Trạng thái**:
-   * Đối với các bài lab chạy Web Worker: Script test chạy ở client, nhưng Backend vẫn có thể thực hiện kiểm tra ngẫu nhiên (Sanity Check) cú pháp hoặc kiểm tra độ dài code trước khi ghi nhận trạng thái `passed`.
-   * Học viên phải đăng nhập thì mới được ghi nhận tiến độ vào Database. Nếu là khách vãng lai (Guest), tiến độ được lưu tạm thời vào `localStorage` của trình duyệt.
 
 ---
 
-## 3. Tài liệu tham khảo & Liên kết (References)
+### 2.4. Technical Specifications & Architecture Details
 
-- **Mã nguồn liên quan**:
-  - Trang Dashboard học viên: [MODULE_FE/src/pages/dashboard/DashboardPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/dashboard/DashboardPage.tsx)
-  - Khai báo 2 bảng CSDL: [MODULE_BE/prisma/schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
-- **Tài liệu hệ thống**:
-  - Thiết kế Cơ sở Dữ liệu: [05-database.md](file:///d:/Projects/study-web/Docs/05-database.md)
-  - Luồng chạy Web Worker: [03-webworker-execution.md](file:///d:/Projects/study-web/Docs/workflows/03-webworker-execution.md)
+1. **Dual-Table Storage Strategy**:
+   * **`lab_submissions` (Append-Only Audit Log)**: Every submission generates a discrete record. Stores historical code revisions, execution times, and submission progression.
+   * **`user_progress` (Singular Upsert State)**: Exactly one row per `(userId, labId)` pair using PostgreSQL `ON CONFLICT (userId, labId) DO UPDATE`.
+   * 👉 **Performance Benefit**: The Dashboard query for completed labs executes a blazing-fast index scan over the compact `user_progress` table, avoiding expensive `COUNT(DISTINCT labId)` operations over multi-million row submission logs.
+
+2. **Security & Validation Integrity**:
+   * For Web Worker labs: Test assertions execute client-side, but the backend performs sanity checks on payload syntax, character lengths, and AST signatures before granting `passed` status.
+   * Authentication Gate: Submissions are tied to verified JWT credentials. Guest sessions store temporary progress in `localStorage` until account registration.
+
+---
+
+### 2.5. Edge Cases & Exception Handling
+
+| Edge Case | System Response | User Experience |
+|---|---|---|
+| **Guest User Submits Solution** | Backend rejects unauthenticated requests | Prompts quick login/registration modal, preserving written code in memory |
+| **Network Timeout During Submission** | Axios timeout with automatic retry | Displays warning badge with "Retry Submission" button; code remains safe in editor |
+| **Simultaneous Submissions** | Handled via PostgreSQL atomic upsert transaction | Idempotent response; latest submission recorded without state corruption |
+
+---
+
+## 3. References & Source Links
+
+- **Codebase References**:
+  - Learner Dashboard: [DashboardPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/dashboard/DashboardPage.tsx)
+  - Prisma Schema: [schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
+- **System Documentation**:
+  - Database Design: [05-database.md](file:///d:/Projects/study-web/docs/05-database.md)
+  - Web Worker Sandbox Execution: [03-lab-practice-webworker.md](file:///d:/Projects/study-web/docs/workflows/03-lab-practice-webworker.md)

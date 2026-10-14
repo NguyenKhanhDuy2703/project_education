@@ -1,161 +1,160 @@
 ---
 doc_type: workflow
-title: Sơ đồ Luồng Quản trị Nhóm Người dùng 2 Bảng Song song (Admin User Groups Split-View Flow)
+title: Sequence Diagram - User Group Management Split View (Admin User Groups Split-View Flow)
 project: study-web
 version: "1.0"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Quản trị Admin, Quản lý Nhóm người dùng (User Groups), Bố cục Split View 2 bảng và Quản trị Thành viên
+scope: Admin Subsystem, User Groups Administration, Dual-Pane Split-View Layout, and Member Roster Management
 date: 2026-10-14
-source_file: "MODULE_FE/src/pages/admin/AdminGroupsPage.tsx, MODULE_BE/src/modules/user-groups"
+source_file: "MODULE_FE/src/pages/admin/AdminGroupsPage.tsx, MODULE_BE/src/modules/groups"
 status: final
-language: vi
+language: en
 related_docs: [09-admin-users-and-entitlements.md, 12-upgrade-and-payment.md]
 ---
 
-# Sơ đồ Luồng Quản trị Nhóm Người dùng 2 Bảng Song song (Admin User Groups Split-View Flow)
+# Sequence Diagram: User Group Management Split View (Admin User Groups Split-View Flow)
 
-## 1. Thông tin tài liệu (Document Information)
+## 1. Document Information
 
-| Thuộc tính | Chi tiết |
+| Attribute | Details |
 |---|---|
-| **Tên tài liệu** | Sơ đồ Luồng Quản trị Nhóm Người dùng 2 Bảng Song song |
+| **Document Title** | User Group Management Split View Workflow |
 | **Version** | v1.0 |
-| **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Trải nghiệm quản trị Nhóm người dùng tại trang `/admin/groups` (đã tách riêng khỏi Plans): Bố cục Split View trực quan gồm bảng danh bạ Groups bên trái (~35%) và bảng danh sách thành viên bên phải (~65%), cơ chế thêm/xóa thành viên và gán gói dịch vụ cho nhóm |
-| **Thời gian** | 2026-10-14 |
-| **Tham chiếu từ** | `MODULE_FE/src/pages/admin/AdminGroupsPage.tsx`, `MODULE_BE/src/modules/user-groups/user-groups.controller.ts`, `MODULE_BE/src/modules/user-groups/user-groups.service.ts` |
+| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
+| **Scope** | User Group administration workflow at `/admin/groups` (decoupled from Plans): Interactive Split-View layout featuring a left-hand Groups Directory (~35%) and a right-hand Member Roster (~65%), dynamic member addition/removal, and group-level subscription plan associations |
+| **Date** | 2026-10-14 |
+| **Source Reference** | `MODULE_FE/src/pages/admin/AdminGroupsPage.tsx`, `MODULE_BE/src/modules/groups/groups.controller.ts`, `MODULE_BE/src/modules/groups/groups.service.ts` |
 
 ---
 
-## 2. Nội dung chính (Content)
+## 2. Core Content
 
-### 2.1. Tóm tắt luồng (TL;DR)
-- **Kiến trúc Giao diện Split View (2 Bảng Song song)**:
-  - **Cột trái (~35%) — Thư mục Nhóm (Groups Directory)**:
-    - Tìm kiếm nhanh nhóm theo Tên hoặc Mã Code.
-    - Nút "+ New Group" tạo nhóm tổ chức/lớp học mới.
-    - Danh sách thẻ nhóm hiển thị: Tên, Mã Code, Số lượng thành viên, Huy hiệu gói Plan được gán, Nút Sửa / Xóa.
-    - Nhấp chuột vào một nhóm sẽ đánh dấu nhóm đó là Active Selection.
-  - **Cột phải (~65%) — Thành viên trong Nhóm (Group Members)**:
-    - Hiển thị thông tin chi tiết nhóm đang chọn.
-    - Nút "+ Add Member" mở modal tra cứu và thêm học viên vào nhóm.
-    - Bảng danh sách thành viên kèm Avatar, Họ tên, Email, Vai trò, Ngày gia nhập, và Nút "Xóa khỏi nhóm".
-    - Tích hợp thanh phân trang shadcn `DataTablePagination` 10 thành viên/trang.
-- **Lợi ích**: Giúp Admin quản lý hàng chục lớp học, nhóm sinh viên hoặc nhóm doanh nghiệp (B2B) mà không phải chuyển trang qua lại, thao tác nạp thành viên diễn ra tức thì.
+### 2.1. Workflow Summary (TL;DR)
+- **Split-View Dual-Pane Architecture**:
+  - **Left Pane (~35%) — Groups Directory**:
+    - Quick search by Group Name or Code.
+    - "+ New Group" action to create university cohorts, classrooms, or B2B enterprise departments.
+    - Group cards render: Title, Code, Member Count, assigned Plan Badge, and Edit/Delete controls.
+    - Clicking a group card establishes it as the active selection.
+  - **Right Pane (~65%) — Group Members**:
+    - Displays detailed metadata for the selected group.
+    - "+ Add Member" opens a candidate search modal to enroll learners into the active group.
+    - Member table with Avatar, Name, Email, Role, Joined Date, and "Remove" action.
+    - Integrated with `DataTablePagination` (10 members/page).
+- **Architectural Benefit**: Enables administrators to oversee dozens of cohorts and hundreds of members without jarring page transitions.
 
 ---
 
-### 2.2. Phân công & Vai trò (Who does what)
+### 2.2. Roles & Responsibilities (Who Does What)
 
-| Thực thể | Loại | Vai trò & Trách nhiệm trong luồng |
+| Entity | Type | Roles & Responsibilities |
 |---|---|---|
-| **Admin** | Actor | Chọn nhóm, tạo nhóm mới, thêm/xóa thành viên khỏi nhóm |
-| **AdminGroupsPage** | Client UI | Điều phối trạng thái Split View: `selectedGroupId`, nạp danh sách group và nạp thành viên tương ứng |
-| **AddMemberModal** | Client UI | Modal tìm kiếm người dùng ứng viên chưa thuộc nhóm để thêm vào |
-| **UserGroups Controller & Service** | NestJS Backend | Xử lý CRUD nhóm, thêm/xóa quan hệ trong bảng `user_group_members`, ghi Audit Log |
-| **PostgreSQL Database** | Storage | Bảng `user_groups`, `user_group_members`, `users` |
+| **Administrator** | Actor | Selects groups, creates cohorts, manages member enrollment |
+| **AdminGroupsPage** | Client UI | Coordinates Split-View state: `selectedGroupId`, loads groups and active member list |
+| **AddMemberModal** | Client UI | Modal dialog for searching and multi-selecting unenrolled candidates |
+| **Groups Controller & Service** | NestJS Backend | Handles Group CRUD, manages `user_group_members` associative relations, logs audit trails |
+| **PostgreSQL Database** | Storage | Houses `user_groups`, `user_group_members`, and `users` |
 
 ---
 
-### 2.3. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.3. Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Admin as Quản trị viên (Admin)
+    actor Admin as Administrator
     participant UI as AdminGroupsPage (/admin/groups)
     participant Left as Left Panel: Groups List (35%)
     participant Right as Right Panel: Members Table (65%)
     participant Modal as AddMemberModal
-    participant BE as NestJS (UserGroupsModule)
+    participant BE as NestJS (GroupsModule)
     participant DB as PostgreSQL
 
-    Note over Admin, DB: 1. Nạp danh mục Nhóm & Mặc định chọn Nhóm đầu tiên
-    Admin->>UI: Truy cập `/admin/groups`
+    Note over Admin, DB: 1. Loading Groups & Activating First Entry
+    Admin->>UI: Navigate to `/admin/groups`
     UI->>BE: GET /api/user-groups
     BE->>DB: SELECT g.*, COUNT(m.user_id) as member_count FROM user_groups g LEFT JOIN user_group_members m ... GROUP BY g.id
-    DB-->>BE: Danh sách tất cả các nhóm
-    BE-->>UI: 200 OK [ { id: "grp-1", name: "K64 CNTT", code: "K64_IT", memberCount: 45 }, ... ]
-    UI->>Left: Render danh sách card bên trái, tự động active nhóm "grp-1"
+    DB-->>BE: Groups list with aggregate member counts
+    BE-->>UI: 200 OK [ { id: "grp-1", name: "CS Cohort 2026", code: "CS_2026", memberCount: 45 }, ... ]
+    UI->>Left: Render group cards; auto-select first group "grp-1"
     
     UI->>BE: GET /api/user-groups/grp-1/members?page=1&limit=10
     BE->>DB: SELECT u.* FROM users u JOIN user_group_members ug ON u.id = ug.user_id WHERE ug.group_id = 'grp-1' LIMIT 10
-    DB-->>BE: 10 thành viên đầu tiên
+    DB-->>BE: First page of 10 members
     BE-->>UI: 200 OK { members: [...], totalCount: 45 }
-    UI->>Right: Render bảng thành viên chi tiết bên phải
+    UI->>Right: Render member roster table
 
-    Note over Admin, DB: 2. Admin chọn chuyển sang Nhóm khác
-    Admin->>Left: Nhấp vào nhóm "Backend Bootcamp 2026" (id: "grp-2")
-    Left->>Left: Cập nhật viền xanh nổi bật (active) tại card grp-2
-    UI->>Right: Đặt trạng thái loading skeleton
+    Note over Admin, DB: 2. Selecting a Different Group
+    Admin->>Left: Click on group card "Backend Bootcamp" (id: "grp-2")
+    Left->>Left: Highlight card with active focus state
+    UI->>Right: Render loading skeleton
     UI->>BE: GET /api/user-groups/grp-2/members?page=1&limit=10
-    BE->>DB: Query thành viên của nhóm grp-2
-    DB-->>BE: Danh sách thành viên grp-2
+    BE->>DB: Query members enrolled in grp-2
+    DB-->>BE: Members array
     BE-->>UI: 200 OK
-    UI->>Right: Cập nhật tức thì bảng thành viên của grp-2
+    UI->>Right: Instantly populate member table for grp-2
 
-    Note over Admin, DB: 3. Thêm Thành viên mới vào Nhóm
-    Admin->>Right: Bấm nút "+ Add Member"
-    Right->>Modal: Mở Modal tìm kiếm ứng viên
-    Admin->>Modal: Gõ tìm kiếm "Nam" và tích chọn User "Nguyễn Văn Nam"
-    Admin->>Modal: Bấm "Thêm vào nhóm"
-    Modal->>BE: POST /api/user-groups/grp-2/members { userIds: ["usr-nam"] }
-    BE->>DB: INSERT INTO user_group_members (group_id, user_id) VALUES ('grp-2', 'usr-nam')
-    DB-->>BE: Thành công
+    Note over Admin, DB: 3. Enrolling a New Member
+    Admin->>Right: Click "+ Add Member" button
+    Right->>Modal: Open member enrollment dialog
+    Admin->>Modal: Search "Alice" and select candidate user
+    Admin->>Modal: Click "Add to Group"
+    Modal->>BE: POST /api/user-groups/grp-2/members { userIds: ["usr-alice"] }
+    BE->>DB: INSERT INTO user_group_members (group_id, user_id) VALUES ('grp-2', 'usr-alice')
+    DB-->>BE: Association persisted
     BE-->>Modal: 201 Created
-    Modal-->>UI: Đóng modal, phát tín hiệu làm mới
-    UI->>Right: Append người dùng vào bảng thành viên
-    UI->>Left: Tăng số lượng memberCount của grp-2 lên 1
-    Right-->>Admin: Toast "Đã thêm Nguyễn Văn Nam vào nhóm thành công!"
+    Modal-->>UI: Close dialog & trigger refresh
+    UI->>Right: Append new member to roster table
+    UI->>Left: Increment memberCount on left card by +1
+    Right-->>Admin: Toast "Added Alice to group successfully!"
 
-    Note over Admin, DB: 4. Xóa Thành viên khỏi Nhóm
-    Admin->>Right: Bấm icon Thùng rác (Xóa) tại dòng của User "Trần Văn B"
-    Right->>UI: Bật dialog xác nhận
-    Admin->>UI: Xác nhận gỡ bỏ
+    Note over Admin, DB: 4. Removing a Member from Group
+    Admin->>Right: Click Trash icon on member row
+    Right->>UI: Prompt confirmation dialog
+    Admin->>UI: Confirm Removal
     UI->>BE: DELETE /api/user-groups/grp-2/members/usr-b
     BE->>DB: DELETE FROM user_group_members WHERE group_id = 'grp-2' AND user_id = 'usr-b'
-    DB-->>BE: Đã xóa quan hệ
+    DB-->>BE: Association deleted
     BE-->>UI: 200 OK
-    UI->>Right: Gỡ bỏ dòng khỏi bảng thành viên
-    UI->>Left: Giảm memberCount của grp-2 xuống 1
-    Right-->>Admin: Toast "Đã gỡ thành viên khỏi nhóm"
+    UI->>Right: Remove row from table
+    UI->>Left: Decrement memberCount on left card by -1
+    Right-->>Admin: Toast "Member removed from group"
 ```
 
 ---
 
-### 2.4. Phân tích Kỹ thuật Chi tiết
+### 2.4. Technical Specifications & Architecture Details
 
-1. **Tách biệt Trách nhiệm UI (Decoupling from Plans)**:
-   - Trước đây: Quản trị User Groups bị nhồi nhét dưới dạng một Sub-tab mờ nhạt bên trong trang Membership Plans, gây nhầm lẫn giữa định nghĩa gói cước (Plans) và tập hợp người học (Groups).
-   - Hiện tại: Route riêng `/admin/groups` với sidebar menu độc lập, tập trung 100% vào nghiệp vụ quản trị cơ cấu thành viên.
-2. **Đồng bộ Hai Chiều Cục bộ (Bi-directional State Sync)**:
-   - Khi thêm hoặc xóa thành viên ở bảng bên phải, giá trị `memberCount` trên card tương ứng ở cột trái tự động điều chỉnh ngay lập tức mà không cần gọi lại toàn bộ danh mục Groups.
-3. **Phân trang Độc lập cho Thành viên (Independent Member Pagination)**:
-   - Một nhóm có thể có tới hàng nghìn học viên (lớp đại học, doanh nghiệp). Phân trang 10 thành viên/trang phía máy chủ (Server-side Pagination) đảm bảo thời gian tải bảng chỉ mất dưới 50ms.
+1. **Decoupled Architecture (Separate from Plans)**:
+   - Dedicated route `/admin/groups` with independent layout, removing confusion between monetized plan definitions and learner cohort management.
+2. **Bi-directional Local State Synchronization**:
+   - Adding or removing members immediately updates the `memberCount` badge on the corresponding card on the left without re-fetching the entire groups list.
+3. **Server-Side Pagination for Scalability**:
+   - Server-side pagination (10 items/page) guarantees sub-50ms table rendering even for enterprise cohorts containing thousands of enrolled students.
 
 ---
 
-### 2.5. Xử lý Ngoại lệ (Edge Cases)
+### 2.5. Edge Cases & Exception Handling
 
-| Tình huống ngoại lệ | Phản hồi hệ thống | Trải nghiệm người dùng |
+| Edge Case | System Response | User Experience |
 |---|---|---|
-| **Thêm người dùng đã có sẵn trong nhóm** | Backend kiểm tra ràng buộc duy nhất `(group_id, user_id)` | Modal lọc bỏ trước các user đã ở trong nhóm, hoặc thông báo *"User đã là thành viên"* |
-| **Xóa một Nhóm đang có thành viên** | Hệ thống hiển thị Dialog cảnh báo xóa | Khi Admin xác nhận, xóa bản ghi nhóm và tự động dọn sạch các bản ghi liên kết trong `user_group_members` (Cascade) |
-| **Nhóm chưa có bất kỳ thành viên nào** | API trả về mảng rỗng `[]` | Cột bên phải hiển thị Empty State lịch sự: *"Chưa có thành viên nào trong nhóm này. Hãy bấm + Add Member để bắt đầu"* |
+| **Adding Existing Group Member** | Database enforces `(group_id, user_id)` unique constraint | Candidate search filters out enrolled members beforehand |
+| **Deleting a Non-Empty Group** | Prompts confirmation dialog | Upon admin confirmation, cascade deletes group and associations in `user_group_members` |
+| **Group Has Zero Members** | API returns empty array `[]` | Right pane renders friendly Empty State: *"No members in this group yet. Click + Add Member to enroll learners."* |
 
 ---
 
-## 3. Tài liệu tham khảo & Liên kết (References)
+## 3. References & Source Links
 
-- **Mã nguồn Frontend**:
-  - Trang Quản trị Nhóm: [MODULE_FE/src/pages/admin/AdminGroupsPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/AdminGroupsPage.tsx)
-  - Sidebar Admin: [MODULE_FE/src/components/admin/AdminSidebar.tsx](file:///d:/Projects/study-web/MODULE_FE/src/components/admin/AdminSidebar.tsx)
-  - Component Phân trang: [MODULE_FE/src/components/ui/data-table-pagination.tsx](file:///d:/Projects/study-web/MODULE_FE/src/components/ui/data-table-pagination.tsx)
-- **Mã nguồn Backend**:
-  - User Groups Controller: [MODULE_BE/src/modules/user-groups/user-groups.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/user-groups/user-groups.controller.ts)
-  - Schema Prisma: [MODULE_BE/prisma/schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
-- **Tài liệu liên quan**:
-  - Quản trị Người dùng & Entitlements: [09-admin-users-and-entitlements.md](file:///d:/Projects/study-web/docs/workflows/09-admin-users-and-entitlements.md)
-  - Quản trị Gói Cước Plans: [12-upgrade-and-payment.md](file:///d:/Projects/study-web/docs/workflows/12-upgrade-and-payment.md)
+- **Frontend Codebase**:
+  - Admin Groups Page: [AdminGroupsPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/AdminGroupsPage.tsx)
+  - Admin Groups Tab Component: [AdminGroupsTab.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/AdminGroupsTab.tsx)
+  - Groups Admin API Client: [groups.admin.api.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/admin/api/groups.admin.api.ts)
+- **Backend Codebase**:
+  - Groups Controller: [groups.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/groups/groups.controller.ts)
+  - Groups Service: [groups.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/groups/groups.service.ts)
+- **Related Workflows**:
+  - Admin Users Governance: [09-admin-users-and-entitlements.md](file:///d:/Projects/study-web/docs/workflows/09-admin-users-and-entitlements.md)
+  - Subscription Plans & Payment: [12-upgrade-and-payment.md](file:///d:/Projects/study-web/docs/workflows/12-upgrade-and-payment.md)

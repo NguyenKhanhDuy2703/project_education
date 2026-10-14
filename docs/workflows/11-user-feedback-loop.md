@@ -1,145 +1,145 @@
 ---
 doc_type: workflow
-title: Sơ đồ Luồng Thu thập & Xử lý Ý kiến Đóng góp (User Feedback Loop Flow)
+title: Sequence Diagram - User Feedback Collection & Admin Resolution Loop (User Feedback Loop Flow)
 project: study-web
 version: "1.0"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Phản hồi & Đóng góp ý kiến (Feedback), Bảng điều khiển Quản trị `/admin/feedback`, Thống kê và Xử lý Yêu cầu
+scope: Feedback Subsystem, Learner In-App Feedback Widget, Admin Feedback Hub (/admin/feedback), KPI Analytics, and Triage Workflow
 date: 2026-10-14
-source_file: "MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx, MODULE_FE/src/features/admin/api/feedback.admin.api.ts, MODULE_BE/src/modules/feedback"
+source_file: "MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx, MODULE_BE/src/modules/feedback"
 status: final
-language: vi
+language: en
 related_docs: [01-auth-login-to-home.md, 09-admin-users-and-entitlements.md]
 ---
 
-# Sơ đồ Luồng Thu thập & Xử lý Ý kiến Đóng góp (User Feedback Loop Flow)
+# Sequence Diagram: User Feedback Collection & Admin Resolution Loop (User Feedback Loop Flow)
 
-## 1. Thông tin tài liệu (Document Information)
+## 1. Document Information
 
-| Thuộc tính | Chi tiết |
+| Attribute | Details |
 |---|---|
-| **Tên tài liệu** | Sơ đồ Luồng Thu thập & Xử lý Ý kiến Đóng góp |
+| **Document Title** | User Feedback Collection & Admin Resolution Loop Workflow |
 | **Version** | v1.0 |
-| **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Toàn bộ vòng lặp phản hồi của người dùng: Từ khi học viên gửi góp ý/báo lỗi trên giao diện, dữ liệu được ghi vào CSDL Postgres, cho đến khi Quản trị viên tra cứu, phân loại (Bug, Feature Request, Content Lab, Other), xem chi tiết ngữ cảnh trang và xử lý tại `/admin/feedback` |
-| **Thời gian** | 2026-10-14 |
-| **Tham chiếu từ** | `MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx`, `MODULE_BE/src/modules/feedback/feedback.controller.ts`, `MODULE_BE/src/modules/feedback/feedback.service.ts` |
+| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
+| **Scope** | End-to-end user feedback cycle: From in-app user submission of bug reports or suggestions, database persistence, to Administrator inspection, categorization (`bug`, `feature_request`, `content_lab`, `other`), contextual page URL navigation, and triage tracking at `/admin/feedback` |
+| **Date** | 2026-10-14 |
+| **Source Reference** | `MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx`, `MODULE_BE/src/modules/feedback/feedback.controller.ts`, `MODULE_BE/src/modules/feedback/feedback.service.ts` |
 
 ---
 
-## 2. Nội dung chính (Content)
+## 2. Core Content
 
-### 2.1. Tóm tắt luồng (TL;DR)
-- **Thu thập Phản hồi (Student Touchpoint)**:
-  - Người dùng bấm nút "Góp ý / Báo lỗi" trên thanh công cụ hoặc footer.
-  - Chọn danh mục: `bug` (Báo lỗi phần mềm), `feature_request` (Đề xuất tính năng mới), `content_lab` (Góp ý nội dung đề bài), `other` (Khác).
-  - Điền nội dung chi tiết. Hệ thống tự động đính kèm đường dẫn trang web hiện tại (`page_url`) và ID người gửi.
-  - Gửi request `POST /api/feedback` ghi vào CSDL.
-- **Quản trị & Tiếp nhận (Admin Hub `/admin/feedback`)**:
-  - Thống kê tổng quan qua 4 thẻ KPI: Tổng số feedback, Số lỗi Bug, Số đề xuất Feature, Số phản hồi Bài Lab.
-  - Bộ lọc Tabs theo từng thể loại, thanh tìm kiếm nội dung/email và phân trang chuẩn 10 dòng/trang.
-  - Nhấp vào từng dòng để mở **Detail Inspection Modal**: xem toàn văn phản hồi, kiểm tra URL gặp sự cố và cập nhật trạng thái xử lý (`open`, `in_progress`, `resolved`).
+### 2.1. Workflow Summary (TL;DR)
+- **Feedback Collection (Learner Touchpoint)**:
+  - Learner clicks the "Feedback" widget button in the footer or workspace toolbar.
+  - Chooses category: `bug` (software issue), `feature_request` (new feature idea), `content_lab` (exercise discrepancy), `other` (general inquiry).
+  - Enters detailed text; the client automatically attaches the active route pathname (`page_url`) and user ID.
+  - Submits `POST /api/feedback` to persist in PostgreSQL.
+- **Administration & Resolution (Admin Hub `/admin/feedback`)**:
+  - High-level KPI summary cards: Total Feedbacks, Bugs, Feature Requests, and Content Lab issues.
+  - Category filter tabs, keyword search bar, and standardized 10 items/page pagination.
+  - Clicking any row opens the **Detail Inspection Modal**: Displays full feedback text, clickable issue origin URL, and triage state actions (`open`, `in_progress`, `resolved`).
 
 ---
 
-### 2.2. Phân công & Vai trò (Who does what)
+### 2.2. Roles & Responsibilities (Who Does What)
 
-| Thực thể | Loại | Vai trò & Trách nhiệm trong luồng |
+| Entity | Type | Roles & Responsibilities |
 |---|---|---|
-| **Học viên / Khách** | Actor | Gửi biểu mẫu phản hồi hoặc báo cáo sự cố trong quá trình học tập |
-| **Feedback Widget / Modal** | Client UI | Modal thu thập danh mục, nội dung góp ý, tự động lấy `window.location.pathname` |
-| **Admin** | Actor | Giám sát danh sách tại `/admin/feedback`, đọc chi tiết và chuyển trạng thái xử lý |
-| **AdminFeedbackPage** | Client UI | Bảng thống kê thẻ số liệu, bộ lọc category, tìm kiếm, phân trang và modal xem chi tiết |
-| **Feedback Controller & Service** | NestJS Backend | Lưu feedback vào DB, cung cấp API `GET /api/feedback/admin` có phân quyền Admin |
-| **PostgreSQL Database** | Storage | Bảng `feedbacks` lưu trữ id, userId, category, message, pageUrl, status, createdAt |
+| **Learner / Guest** | Actor | Submits feedback forms, reports bugs or suggests improvements |
+| **Feedback Widget / Modal** | Client UI | Modal collecting category, message, automatically capturing `window.location.pathname` |
+| **Administrator** | Actor | Monitors `/admin/feedback`, inspects context, updates status |
+| **AdminFeedbackPage** | Client UI | KPI metric cards, category filtering, search, pagination, and inspection modal |
+| **Feedback Controller & Service** | NestJS Backend | Validates input, saves records, provides `@Roles('admin')` protected query endpoints |
+| **PostgreSQL Database** | Storage | Houses `feedbacks` table (`id`, `userId`, `category`, `message`, `pageUrl`, `status`, `createdAt`) |
 
 ---
 
-### 2.3. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.3. Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Học viên / Người dùng
+    actor User as Learner / Student
     participant FWidget as Feedback Form (Client)
-    actor Admin as Quản trị viên (Admin)
+    actor Admin as Administrator
     participant AUI as Admin Feedback Hub (/admin/feedback)
     participant Modal as Detail Inspection Modal
     participant BE as NestJS (FeedbackModule)
     participant DB as PostgreSQL
 
-    Note over User, DB: Giai đoạn 1: Học viên gửi phản hồi đóng góp
-    User->>FWidget: Bấm nút "Phản hồi" tại trang làm bài Lab
-    FWidget-->>User: Mở form góp ý (Category, Message)
-    User->>FWidget: Chọn Category = "content_lab", Nhập: "Test case #2 của bài SQL GROUP BY bị sai cú pháp"
+    Note over User, DB: Phase 1: Learner Submits Feedback
+    User->>FWidget: Click "Feedback" button in practice workspace
+    FWidget-->>User: Open feedback dialog (Category, Message)
+    User->>FWidget: Select Category = "content_lab", Enter: "Test case #2 in SQL lab has syntax error"
     FWidget->>BE: POST /api/feedback { category: "content_lab", message: "...", pageUrl: "/practice/lab-sql-02" }
     BE->>DB: INSERT INTO feedbacks (user_id, category, message, page_url, status) VALUES (...)
-    DB-->>BE: Lưu bản ghi thành công
+    DB-->>BE: Persisted successfully
     BE-->>FWidget: 201 Created { id: "fb-102" }
-    FWidget-->>User: Toast "Cảm ơn bạn đã đóng góp ý kiến giúp hoàn thiện hệ thống!"
+    FWidget-->>User: Toast: "Thank you for your feedback! Our team will review it shortly."
 
-    Note over Admin, DB: Giai đoạn 2: Admin kiểm tra & Xử lý tại Dashboard
-    Admin->>AUI: Truy cập `/admin/feedback`
+    Note over Admin, DB: Phase 2: Admin Evaluates & Triages Submissions
+    Admin->>AUI: Navigate to `/admin/feedback`
     AUI->>BE: GET /api/feedback/admin
     BE->>DB: SELECT * FROM feedbacks ORDER BY created_at DESC
-    DB-->>BE: Danh sách toàn bộ phản hồi từ người học
+    DB-->>BE: All feedback records
     BE-->>AUI: 200 OK [ { id, category, message, user: { name, email }, pageUrl, status }, ... ]
-    AUI->>AUI: Tính toán thống kê thẻ: Total: 28, Bug: 12, Feature: 8, Lab: 6, Other: 2
-    AUI-->>Admin: Hiển thị bảng số liệu trực quan & phân trang 10 dòng/trang
+    AUI->>AUI: Compute KPI metrics: Total: 28, Bug: 12, Feature: 8, Lab: 6, Other: 2
+    AUI-->>Admin: Render KPI cards & 10 items/page paginated table
 
-    Note over Admin, DB: Giai đoạn 3: Xem chi tiết phản hồi & Xử lý sự cố
-    Admin->>AUI: Bấm chọn tab "Content Lab" để lọc riêng lỗi bài tập
-    AUI->>AUI: Lọc danh sách còn 6 bản ghi Content Lab
-    Admin->>AUI: Bấm vào dòng của học viên "Lê Văn T"
-    AUI->>Modal: Mở Modal xem chi tiết
-    Modal-->>Admin: Hiển thị toàn văn góp ý + Link trang: `/practice/lab-sql-02`
-    Admin->>Modal: Bấm chuyển trạng thái sang "In Progress" và mở link để kiểm tra sửa bài
+    Note over Admin, DB: Phase 3: Detail Inspection & State Transition
+    Admin->>AUI: Select "Content Lab" tab to isolate exercise discrepancies
+    AUI->>AUI: Filter list to matching 6 items
+    Admin->>AUI: Click on row submitted by "John Doe"
+    AUI->>Modal: Open Detail Inspection Modal
+    Modal-->>Admin: Render full message + Clickable URL: `/practice/lab-sql-02`
+    Admin->>Modal: Update status to "In Progress" and open link to verify
     Modal->>BE: PATCH /api/feedback/admin/:id { status: "in_progress" }
     BE->>DB: UPDATE feedbacks SET status = 'in_progress' WHERE id = :id
-    DB-->>BE: Cập nhật thành công
+    DB-->>BE: Updated successfully
     BE-->>Modal: 200 OK
-    Modal-->>Admin: Badge chuyển sang "In Progress" màu vàng
+    Modal-->>Admin: Status badge updates to amber "In Progress"
 ```
 
 ---
 
-### 2.4. Phân tích Kỹ thuật Chi tiết
+### 2.4. Technical Specifications & Architecture Details
 
-1. **Trực quan hóa Dữ liệu (Aggregated Statistics Cards)**:
-   - Thay vì bảng trần không có bối cảnh, trang `/admin/feedback` cung cấp 4 thẻ chỉ số nhanh ở trên cùng:
-     - Thẻ 1: Tổng số phản hồi nhận được (Total Feedbacks)
-     - Thẻ 2: Báo cáo lỗi phần mềm (Bugs)
-     - Thẻ 3: Đề xuất tính năng mới (Feature Requests)
-     - Thẻ 4: Góp ý bài tập & nội dung (Content Lab)
-2. **Theo dõi Ngữ cảnh Nguồn gốc (Context Tracking)**:
-   - Thuộc tính `page_url` được client tự động ghi nhận khi người dùng mở form góp ý.
-   - Khi Admin xem phản hồi, URL này hiển thị dưới dạng một liên kết có thể nhấp trực tiếp (Clickable Link), giúp Admin bay ngay tới bài học hoặc trang bị lỗi để tái hiện vấn đề mà không cần hỏi lại người dùng.
-3. **Phân trang Phía Client Tối ưu (Shadcn DataTablePagination)**:
-   - Dữ liệu feedback được trang bị component phân trang chuẩn mực, giúp giao diện gọn gàng, người quản trị dễ dàng duyệt qua các trang với độ trễ phản hồi tức thời.
+1. **High-Level KPI Metric Cards**:
+   - The `/admin/feedback` interface surfaces four summary metrics:
+     - Card 1: Total Received Submissions
+     - Card 2: Software Bug Reports
+     - Card 3: Feature Requests
+     - Card 4: Lab & Content Suggestions
+2. **Contextual Origin Tracking**:
+   - The `page_url` attribute is automatically captured upon dialog open.
+   - In the Admin modal, this URL renders as an active deep-link, enabling administrators to jump directly to the reported exercise without manual navigation.
+3. **Client-Side Responsive Pagination**:
+   - Integrated with `DataTablePagination`, ensuring sub-second response times across large feedback volumes.
 
 ---
 
-### 2.5. Xử lý Ngoại lệ (Edge Cases)
+### 2.5. Edge Cases & Exception Handling
 
-| Tình huống ngoại lệ | Phản hồi hệ thống | Trải nghiệm người dùng |
+| Edge Case | System Response | User Experience |
 |---|---|---|
-| **Người dùng chưa đăng nhập (Khách vãng lai)** | Backend cho phép `user_id = NULL` nhưng yêu cầu nhập email liên hệ | Khách vẫn gửi được góp ý mà không bị ép buộc đăng nhập |
-| **Nội dung phản hồi quá ngắn hoặc chứa ký tự spam** | Form validate độ dài message tối thiểu 10 ký tự | Nút gửi bị mờ kèm gợi ý: *"Vui lòng mô tả chi tiết ít nhất 10 ký tự"* |
-| **Người dùng thường cố gọi API Admin Feedback** | Decorator `@Roles(UserRole.ADMIN)` chặn lại | Trả về lỗi 403 Forbidden |
+| **Unauthenticated Guest Feedback** | Backend accepts `user_id = NULL` with valid contact email | Guests can report bugs without forced registration |
+| **Short or Spammy Content** | Form enforces minimum 10-character threshold | Submit button remains disabled with guidance: *"Please provide at least 10 characters"* |
+| **Unauthorized Access to Feedback API** | Guard `@Roles(UserRole.ADMIN)` blocks non-admin callers | Responds with 403 Forbidden |
 
 ---
 
-## 3. Tài liệu tham khảo & Liên kết (References)
+## 3. References & Source Links
 
-- **Mã nguồn Frontend**:
-  - Trang Quản trị Feedback: [MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx)
-  - API Client Admin Feedback: [MODULE_FE/src/features/admin/api/feedback.admin.api.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/admin/api/feedback.admin.api.ts)
-  - Component Phân trang: [MODULE_FE/src/components/ui/data-table-pagination.tsx](file:///d:/Projects/study-web/MODULE_FE/src/components/ui/data-table-pagination.tsx)
-- **Mã nguồn Backend**:
-  - Feedback Controller: [MODULE_BE/src/modules/feedback/feedback.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/feedback/feedback.controller.ts)
-  - Feedback Service: [MODULE_BE/src/modules/feedback/feedback.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/feedback/feedback.service.ts)
-- **Tài liệu liên quan**:
-  - Luồng Quản trị Người dùng: [09-admin-users-and-entitlements.md](file:///d:/Projects/study-web/docs/workflows/09-admin-users-and-entitlements.md)
-  - Quản trị Nhóm Người dùng: [10-admin-user-groups-split-view.md](file:///d:/Projects/study-web/docs/workflows/10-admin-user-groups-split-view.md)
+- **Frontend Codebase**:
+  - Admin Feedback Page: [AdminFeedbackPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx)
+  - Feedback Admin API: [feedback.admin.api.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/admin/api/feedback.admin.api.ts)
+  - Pagination Component: [data-table-pagination.tsx](file:///d:/Projects/study-web/MODULE_FE/src/components/ui/data-table-pagination.tsx)
+- **Backend Codebase**:
+  - Feedback Controller: [feedback.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/feedback/feedback.controller.ts)
+  - Feedback Service: [feedback.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/feedback/feedback.service.ts)
+- **Related Workflows**:
+  - Admin Users Governance: [09-admin-users-and-entitlements.md](file:///d:/Projects/study-web/docs/workflows/09-admin-users-and-entitlements.md)
+  - User Group Management: [10-admin-user-groups-split-view.md](file:///d:/Projects/study-web/docs/workflows/10-admin-user-groups-split-view.md)

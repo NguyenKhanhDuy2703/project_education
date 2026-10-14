@@ -1,158 +1,158 @@
 ---
 doc_type: workflow
-title: Sơ đồ Luồng Đăng nhập, Quản lý Phiên & Điều hướng Trang chủ (Auth & Session Flow)
+title: Sequence Diagram - Authentication, Session Management & Homepage Navigation (Auth & Session Flow)
 project: study-web
 version: "1.1"
 version_source: codebase
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Phân hệ Xác thực JWT, Google OAuth, Cookie HttpOnly và Điều hướng Trang chủ/Dashboard
+scope: JWT Authentication Subsystem, Google OAuth, HttpOnly Cookies, and Homepage/Dashboard Navigation
 date: 2026-10-14
 source_file: "MODULE_BE/src/modules/auth, MODULE_FE/src/features/auth, MODULE_FE/src/services/api.client.ts"
 status: final
-language: vi
+language: en
 related_docs: [../01-proposal.md, ../05-database.md, 02-catalog-topic-discovery.md]
 ---
 
-# Sơ đồ Luồng Đăng nhập, Quản lý Phiên & Điều hướng Trang chủ (Auth & Session Flow)
+# Sequence Diagram: Authentication, Session Management & Homepage Navigation (Auth & Session Flow)
 
-## 1. Thông tin tài liệu (Document Information)
+## 1. Document Information
 
-| Thuộc tính | Chi tiết |
+| Attribute | Details |
 |---|---|
-| **Tên tài liệu** | Sơ đồ Luồng Đăng nhập, Quản lý Phiên & Điều hướng Trang chủ |
+| **Document Title** | Authentication, Session Management & Homepage Navigation Workflow |
 | **Version** | v1.1 |
-| **Người làm** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Phạm vi (Scope)** | Toàn bộ chu trình từ khi người dùng mở form đăng nhập, nhập SĐT/Mật khẩu hoặc chọn Google OAuth, xác thực qua NestJS, lưu trữ Access Token trong Redux, thiết lập HttpOnly Cookie, cho đến khi điều hướng thành công vào Trang chủ hoặc Dashboard chuyên biệt |
-| **Thời gian** | 2026-10-14 |
-| **Tham chiếu từ** | `MODULE_BE/src/modules/auth/auth.controller.ts`, `MODULE_BE/src/modules/auth/auth.service.ts`, `MODULE_FE/src/features/auth/store/authSlice.ts`, `MODULE_FE/src/services/api.client.ts` |
+| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
+| **Scope** | End-to-end user lifecycle from opening the login form, entering Phone/Password or Google OAuth, NestJS verification, in-memory Redux Access Token storage, HttpOnly Refresh Cookie issuance, to automatic role-based redirect into Homepage or dedicated Dashboards |
+| **Date** | 2026-10-14 |
+| **Source Reference** | `MODULE_BE/src/modules/auth/auth.controller.ts`, `MODULE_BE/src/modules/auth/auth.service.ts`, `MODULE_FE/src/features/auth/store/authSlice.ts`, `MODULE_FE/src/services/api.client.ts` |
 
 ---
 
-## 2. Nội dung chính (Content)
+## 2. Core Content
 
-### 2.1. Tóm tắt luồng (TL;DR)
-- **Đầu vào**: Số điện thoại + Mật khẩu (hoặc tài khoản Google).
-- **Xử lý**:
-  - Mật khẩu băm Bcrypt được đối chiếu tại CSDL Postgres.
-  - Cấp cặp Token: Access Token (thời hạn 15 phút, nằm trong Redux state của React) và Refresh Token (thời hạn 7 ngày, nằm trong HttpOnly cookie).
-- **Đầu ra**: Người dùng đăng nhập thành công, Redux cập nhật state `isAuthenticated = true`, lưu thông tin `user` (id, name, phone, role, entitlements) và tự động điều hướng:
-  - Role `admin`: `/admin/overview` (hoặc `/`)
-  - Role `contributor`: `/contributor/overview` (hoặc `/`)
-  - Role `user`: `/` (Trang chủ nền tảng).
+### 2.1. Workflow Summary (TL;DR)
+- **Input**: Phone Number + Password (or Google OAuth account).
+- **Processing**:
+  - Bcrypt-hashed password comparison against PostgreSQL `users` table.
+  - Dual-token issuance: Access Token (15-minute lifetime, stored in client-side React Redux state) and Refresh Token (7-day lifetime, persisted securely in HttpOnly cookie).
+- **Output**: User successfully authenticated, Redux sets `isAuthenticated = true`, populates `user` state (id, name, phone, role, entitlements), and performs automated redirection:
+  - `admin` role: `/admin/overview` (or `/`)
+  - `contributor` role: `/contributor/overview` (or `/`)
+  - `user` role: `/` (Platform Homepage).
 
 ---
 
-### 2.2. Phân công & Vai trò (Who does what)
+### 2.2. Roles & Responsibilities (Who Does What)
 
-| Thực thể | Loại | Vai trò & Trách nhiệm trong luồng |
+| Entity | Type | Roles & Responsibilities |
 |---|---|---|
-| **Người dùng / Khách** | Actor | Điền thông tin đăng nhập hoặc bấm nút Google OAuth |
-| **LoginPage (React FE)** | Client UI | Validate form, dispatch login thunk, hiển thị thông báo lỗi nếu thất bại |
-| **Redux Store (`authSlice`)** | Client State | Lưu trữ Access Token, thông tin user, role và danh sách quyền hạn (entitlements) |
-| **Axios Client (`api.client.ts`)** | HTTP Gateway | Gắn Bearer Token vào header, chặn bắt lỗi 401 và kích hoạt cơ chế Silent Refresh ngầm |
-| **AuthController & Service** | NestJS Backend | Xác thực credentials, băm/so sánh Bcrypt, ký JWT, set cookie `refreshToken` |
-| **PostgreSQL Database** | Storage | Lưu bảng `users` và hash refresh token để thu hồi phiên |
+| **User / Guest** | Actor | Inputs credentials or triggers Google OAuth login |
+| **LoginPage (React FE)** | Client UI | Performs client-side form validation, dispatches login thunk, renders error alerts |
+| **Redux Store (`authSlice`)** | Client State | In-memory store for Access Token, user profile, role, and dynamic entitlements |
+| **Axios Client (`api.client.ts`)** | HTTP Gateway | Injects Bearer Token headers, intercepts 401 Unauthorized responses, triggers background Silent Refresh |
+| **AuthController & Service** | NestJS Backend | Validates credentials, executes Bcrypt comparison, signs JWTs, sets `refreshToken` cookie |
+| **PostgreSQL Database** | Storage | Stores `users` records and hashed refresh tokens for session revocation |
 
 ---
 
-### 2.3. Sơ đồ Tuần tự (Sequence Diagram)
+### 2.3. Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Người dùng
+    actor User as User / Learner
     participant FE as LoginPage / React
     participant Redux as Redux Store (authSlice)
     participant Axios as Axios Interceptor
     participant BE as NestJS Backend (AuthModule)
     participant DB as PostgreSQL (users)
 
-    Note over User, DB: 1. Đăng nhập qua Số điện thoại & Mật khẩu
-    User->>FE: Nhập SĐT, Mật khẩu và bấm "Đăng nhập"
-    FE->>FE: Client-side validation (SĐT đúng định dạng, pass ≥ 6 ký tự)
+    Note over User, DB: 1. Phone & Password Authentication
+    User->>FE: Enter Phone, Password and click "Log in"
+    FE->>FE: Client-side validation (valid phone format, password length >= 6)
     FE->>BE: POST /api/auth/login { phone, password }
     BE->>DB: SELECT * FROM users WHERE phone = $1
     DB-->>BE: User record (id, role, password_hash, status)
     
-    alt Tài khoản bị khóa (status = suspended)
-        BE-->>FE: 403 Forbidden ("Tài khoản đã bị tạm khóa")
-        FE-->>User: Hiển thị lỗi cảnh báo đỏ
-    else Mật khẩu không khớp
-        BE-->>FE: 401 Unauthorized ("SĐT hoặc mật khẩu không chính xác")
-        FE-->>User: Rung lắc form và báo lỗi xác thực
-    else Xác thực thành công
-        BE->>BE: Ký JWT Access Token (15m, payload: id, phone, role)
-        BE->>BE: Ký JWT Refresh Token (7d)
+    alt Account is Suspended (status = suspended)
+        BE-->>FE: 403 Forbidden ("Account is temporarily suspended")
+        FE-->>User: Display error banner
+    else Password Mismatch
+        BE-->>FE: 401 Unauthorized ("Invalid phone number or password")
+        FE-->>User: Form shake animation & authentication failure error
+    else Authentication Successful
+        BE->>BE: Sign JWT Access Token (15m, payload: id, phone, role)
+        BE->>BE: Sign JWT Refresh Token (7d)
         BE->>DB: UPDATE users SET refresh_token_hash = $1 WHERE id = $2
         BE-->>FE: 200 OK + Set-Cookie: refreshToken=...; HttpOnly; SameSite=Strict<br/>Body: { accessToken, user: { id, name, role, ... } }
         FE->>Redux: dispatch(setCredentials({ accessToken, user }))
         
-        alt Role là Admin
-            FE-->>User: Điều hướng vào `/admin/overview` hoặc `/`
-        else Role là Contributor
-            FE-->>User: Điều hướng vào `/contributor/overview` hoặc `/`
-        else Role là User thường
-            FE-->>User: Điều hướng vào Trang chủ `/`
+        alt Role is Admin
+            FE-->>User: Redirect to `/admin/overview` or `/`
+        else Role is Contributor
+            FE-->>User: Redirect to `/contributor/overview` or `/`
+        else Role is Learner / User
+            FE-->>User: Redirect to Homepage `/`
         end
     end
 
-    Note over User, DB: 2. Tự động gia hạn phiên (Silent Refresh Token)
-    User->>FE: Chuyển trang / thao tác học tập khi Access Token đã hết hạn
-    FE->>Axios: Gửi request API (ví dụ: GET /api/catalog/series)
-    Axios->>BE: GET /api/catalog/series (Bearer token hết hạn)
+    Note over User, DB: 2. Background Session Renewal (Silent Refresh Token)
+    User->>FE: Navigates page or interacts with labs after Access Token expires
+    FE->>Axios: Send API request (e.g. GET /api/catalog/series)
+    Axios->>BE: GET /api/catalog/series (Expired Bearer token)
     BE-->>Axios: 401 Unauthorized (jwt expired)
     
-    Note over Axios, BE: Axios Interceptor bắt mã 401 & thực hiện refresh ngầm
-    Axios->>BE: POST /api/auth/refresh (tự động đính kèm HttpOnly cookie)
-    BE->>DB: Đối chiếu refreshToken hợp lệ trong DB
-    DB-->>BE: Khớp bản ghi
-    BE->>BE: Ký Access Token mới (15m)
+    Note over Axios, BE: Axios Interceptor catches 401 & triggers silent refresh
+    Axios->>BE: POST /api/auth/refresh (HttpOnly cookie attached automatically)
+    BE->>DB: Verify active refreshToken against DB hash
+    DB-->>BE: Record matched & valid
+    BE->>BE: Sign new Access Token (15m)
     BE-->>Axios: 200 OK { accessToken: "new_token" }
     Axios->>Redux: dispatch(updateAccessToken("new_token"))
-    Axios->>BE: Replay lại request GET /api/catalog/series với token mới
+    Axios->>BE: Replay original GET /api/catalog/series request with new token
     BE-->>Axios: 200 OK { data: [...] }
-    Axios-->>FE: Dữ liệu tải thành công mà người dùng không bị văng ra
+    Axios-->>FE: Data loaded seamlessly without user logout disruption
 ```
 
 ---
 
-### 2.4. Phân tích Kỹ thuật Chi tiết
+### 2.4. Technical Specifications & Architecture Details
 
-1. **Bảo mật đa tầng**:
-   - Mật khẩu mã hóa Bcrypt với salt rounds = 10.
-   - `Access Token`: Thời hạn ngắn (15 phút), lưu trong memory (Redux State), không ghi vào `localStorage` để triệt tiêu nguy cơ bị đánh cắp qua tấn công XSS.
-   - `Refresh Token`: Thời hạn dài (7 ngày), lưu trữ an toàn trong `HttpOnly Cookie`, thiết lập cờ `SameSite=Strict; Path=/api/auth/refresh; Secure`.
-2. **Cơ chế tái phát request (Request Replaying Queue)**:
-   - Trong `api.client.ts`, nếu có nhiều request đồng thời gặp lỗi 401 khi token vừa hết hạn, hệ thống sử dụng cờ `isRefreshing` và hàng đợi `failedQueue` để chỉ gọi API refresh đúng **1 lần duy nhất**, sau đó tái phát toàn bộ các request đang chờ với token mới.
-3. **Xử lý đăng xuất & hủy phiên**:
-   - Khi người dùng bấm "Đăng xuất":
-     - FE gọi `POST /api/auth/logout`.
-     - Backend xóa refresh token trong CSDL và gửi chỉ thị `Clear-Cookie`.
-     - Redux dispatch action `logout()`, reset toàn bộ cache state về rỗng.
+1. **Multi-layer Security Model**:
+   - Passwords hashed using Bcrypt with salt rounds = 10.
+   - `Access Token`: Short-lived (15 minutes), stored solely in memory (Redux State), never written to `localStorage` to eliminate XSS token theft vectors.
+   - `Refresh Token`: Long-lived (7 days), persisted in secure `HttpOnly Cookie` configured with `SameSite=Strict; Path=/api/auth/refresh; Secure`.
+2. **Request Replaying Queue**:
+   - In `api.client.ts`, when multiple concurrent requests trigger 401 status codes upon token expiration, an `isRefreshing` lock flag and a `failedQueue` array ensure the refresh endpoint is invoked **exactly once**. All queued requests are subsequent replay targets using the newly issued token.
+3. **Session Revocation & Logout**:
+   - When the user clicks "Log out":
+     - FE sends `POST /api/auth/logout`.
+     - Backend nullifies the refresh token hash in PostgreSQL and issues a `Clear-Cookie` header.
+     - Redux dispatches `logout()`, wiping all authenticated user state and resetting client cache.
 
 ---
 
-### 2.5. Xử lý Ngoại lệ (Edge Cases)
+### 2.5. Edge Cases & Exception Handling
 
-| Tình huống ngoại lệ | Phản hồi hệ thống | Trải nghiệm người dùng |
+| Edge Case | System Response | User Experience |
 |---|---|---|
-| **Refresh Token hết hạn hoặc bị thu hồi** | API `/api/auth/refresh` trả về `401 Unauthorized` | Interceptor hủy toàn bộ hàng đợi, dispatch logout, chuyển hướng về `/login?redirect=...` kèm thông báo *"Phiên đăng nhập đã hết hạn"* |
-| **Mất kết nối mạng khi đang refresh** | Request ném mã mạng `ERR_NETWORK` | Giữ nguyên trạng thái, thông báo *"Không có kết nối mạng, vui lòng thử lại"* |
-| **Người dùng bị Admin khóa tài khoản (Suspend)** | Token bị từ chối do middleware kiểm tra status user trong DB | Đăng xuất ngay lập tức kèm thông báo liên hệ hỗ trợ |
+| **Expired or Revoked Refresh Token** | `/api/auth/refresh` responds with `401 Unauthorized` | Interceptor flushes pending queue, dispatches logout, redirects to `/login?redirect=...` with notice *"Session expired. Please log in again."* |
+| **Network Interruption During Refresh** | Request throws `ERR_NETWORK` | Retains state, surfaces toast *"Network connection lost. Please try again."* |
+| **Account Suspended by Admin** | Token rejected via auth middleware checking user status in database | Immediate session termination with guidance to contact platform support |
 
 ---
 
-## 3. Tài liệu tham khảo & Liên kết (References)
+## 3. References & Source Links
 
-- **Mã nguồn Frontend**:
-  - Form Đăng nhập: [MODULE_FE/src/features/auth/components/LoginForm.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/auth/components/LoginForm.tsx)
-  - Redux Auth Slice: [MODULE_FE/src/features/auth/store/authSlice.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/auth/store/authSlice.ts)
-  - Axios Interceptor: [MODULE_FE/src/services/api.client.ts](file:///d:/Projects/study-web/MODULE_FE/src/services/api.client.ts)
-- **Mã nguồn Backend**:
-  - Auth Controller: [MODULE_BE/src/modules/auth/auth.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/auth/auth.controller.ts)
-  - Auth Service: [MODULE_BE/src/modules/auth/auth.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/auth/auth.service.ts)
-  - Prisma User Model: [MODULE_BE/prisma/schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
-- **Tài liệu liên quan**:
-  - Luồng Khám phá Khóa học: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
-  - Quản trị Người dùng: [09-admin-users-and-entitlements.md](file:///d:/Projects/study-web/docs/workflows/09-admin-users-and-entitlements.md)
+- **Frontend Codebase**:
+  - Login Form: [LoginForm.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/auth/components/LoginForm.tsx)
+  - Redux Auth Slice: [authSlice.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/auth/store/authSlice.ts)
+  - Axios Interceptor: [api.client.ts](file:///d:/Projects/study-web/MODULE_FE/src/services/api.client.ts)
+- **Backend Codebase**:
+  - Auth Controller: [auth.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/auth/auth.controller.ts)
+  - Auth Service: [auth.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/auth/auth.service.ts)
+  - Prisma User Model: [schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
+- **Related Workflows**:
+  - Course Discovery Workflow: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
+  - Admin User Governance: [09-admin-users-and-entitlements.md](file:///d:/Projects/study-web/docs/workflows/09-admin-users-and-entitlements.md)
