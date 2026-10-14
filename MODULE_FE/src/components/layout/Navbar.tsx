@@ -50,6 +50,9 @@ export function Navbar() {
     badge?: string;
   }
 
+  const isContributorOrAbove = user?.role === 'contributor' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
+
   const baseNavLinks: NavLinkItem[] = [
     { name: 'Home', href: '/', icon: Home, exact: true },
     { name: 'Series Catalog', href: '/series', icon: Layers },
@@ -58,10 +61,21 @@ export function Navbar() {
 
   const navLinks: NavLinkItem[] = (() => {
     const links = [...baseNavLinks];
-    if (user?.role === 'contributor') {
-      links.push({ name: 'Contributor Studio', href: '/contributor', icon: PenTool, badge: 'CREATOR' });
-    } else if (user?.role === 'admin') {
-      links.push({ name: 'Admin Studio', href: '/admin', icon: Shield, badge: 'ADMIN' });
+    if (isContributorOrAbove) {
+      links.push({
+        name: 'Contributor Studio',
+        href: '/contributor',
+        icon: PenTool,
+        badge: 'CREATOR',
+      });
+    }
+    if (isAdmin) {
+      links.push({
+        name: 'Admin Studio',
+        href: '/admin',
+        icon: Shield,
+        badge: 'ADMIN',
+      });
     }
     return links;
   })();
@@ -141,7 +155,7 @@ export function Navbar() {
         <div className="flex items-center gap-2 sm:gap-3">
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
-              {user?.role === 'contributor' && (
+              {isContributorOrAbove && (
                 <Link to="/contributor" className="hidden sm:inline-flex">
                   <Button
                     variant="outline"
@@ -154,7 +168,7 @@ export function Navbar() {
                 </Link>
               )}
 
-              {user?.role === 'admin' && (
+              {isAdmin && (
                 <Link to="/admin" className="hidden sm:inline-flex">
                   <Button
                     size="sm"
@@ -211,7 +225,7 @@ export function Navbar() {
                       <span>Dashboard &amp; Progress</span>
                     </Link>
                   </DropdownMenuItem>
-                  {user?.role === 'contributor' && (
+                  {isContributorOrAbove && (
                     <DropdownMenuItem asChild>
                       <Link to="/contributor" className="flex items-center cursor-pointer">
                         <PenTool className="size-4 mr-2 text-indigo-500" />
@@ -219,7 +233,7 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  {user?.role === 'admin' && (
+                  {isAdmin && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="flex items-center cursor-pointer">
                         <Shield className="size-4 mr-2 text-destructive" />

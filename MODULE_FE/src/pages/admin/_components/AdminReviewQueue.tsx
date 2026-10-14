@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminReviewApi, type ReviewQueueItem } from '@/features/admin/api/review.admin.api';
 import { usersAdminApi } from '@/features/admin/api/users.admin.api';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import {
   Dialog,
   DialogContent,
@@ -103,6 +104,20 @@ export function AdminReviewQueue() {
     return result;
   }, [combinedItems, activeQueueTab, searchTerm]);
 
+  // Pagination: 10 items per page
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.ceil(filteredItems.length / pageSize) || 1;
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeQueueTab, searchTerm]);
+
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [filteredItems, page, pageSize]);
+
   // Handlers for Review Actions
   const handleOpenReview = (item: typeof selectedItem) => {
     setSelectedItem(item);
@@ -195,14 +210,11 @@ export function AdminReviewQueue() {
       {/* Header & Stats bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            Content Review Queue
-            <Badge variant="outline" className="font-mono text-xs font-normal">
-              Review Queue
-            </Badge>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
+            Review Queue
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Audit contributor submissions, request revisions, approve, and publish content live.
+            Audit submissions, request changes, approve, and publish content live.
           </p>
         </div>
 
@@ -249,7 +261,7 @@ export function AdminReviewQueue() {
             No content items found in this category.
           </Card>
         ) : (
-          filteredItems.map((item) => (
+          paginatedItems.map((item) => (
             <Card key={`${item.type}-${item.id}`} className="border-border bg-card hover:border-primary/40 transition-all p-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1 min-w-0 flex-1">
@@ -317,6 +329,19 @@ export function AdminReviewQueue() {
               </div>
             </Card>
           ))
+        )}
+
+        {/* Pagination */}
+        {filteredItems.length > 0 && (
+          <div className="bg-card border border-border rounded-xl overflow-hidden mt-4">
+            <DataTablePagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={filteredItems.length}
+              itemName="submissions"
+              onPageChange={setPage}
+            />
+          </div>
         )}
       </div>
 

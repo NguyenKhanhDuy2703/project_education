@@ -38,6 +38,7 @@ import {
   PenTool,
 } from 'lucide-react';
 import { UserEntitlementsModal } from './UserEntitlementsModal';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 
 export function AdminUsersTab() {
   const qc = useQueryClient();
@@ -85,7 +86,7 @@ export function AdminUsersTab() {
         role: roleFilter === 'all' ? undefined : (roleFilter as UserRole),
         isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
         page,
-        limit: 15,
+        limit: 10,
       }),
   });
 
@@ -514,33 +515,14 @@ export function AdminUsersTab() {
         </div>
 
         {/* Pagination */}
-        {meta && meta.totalPages > 1 && (
-          <div className="p-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-            <div>
-              Showing page <strong>{meta.page}</strong> / {meta.totalPages} (Total{' '}
-              <strong>{meta.total}</strong> users)
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="text-xs"
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= meta.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="text-xs"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+        {meta && (
+          <DataTablePagination
+            page={meta.page}
+            totalPages={meta.totalPages}
+            totalItems={meta.total}
+            itemName="users"
+            onPageChange={(p) => setPage(p)}
+          />
         )}
       </div>
 

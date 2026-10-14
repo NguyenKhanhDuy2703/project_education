@@ -1,26 +1,25 @@
 /**
  * SeriesHubPage — /series
  *
- * LeetCode-style clean catalog powered by shadcn/ui:
- * - Dynamic data loaded 100% from backend API (PostgreSQL database seed)
- * - Zero hardcoded mock lab arrays
- * - Search bar with real-time filtering
- * - Topic tabs dynamically generated from Series catalog
- * - Multi-criteria sorting (Popularity, Latest, Duration, Difficulty)
- * - Level & Tier filters (Free vs PRO)
- * - Default View: Popular labs grouped per topic dynamically
- * - Zero icon dependency — purely typographic, semantic badges and clear labels
+ * Minimal Luxury Typography-First Catalog powered by shadcn/ui:
+ * - Zero Icons: 100% typographic clarity, semantic badges, dots (·), and character arrows (→)
+ * - Two distinct, dedicated views (Series Roadmaps vs All Practice Labs)
+ * - Sticky 1-row filter bar with real-time 250ms debounced search & keyword highlight
+ * - Horizontally scrollable category chips starting with "Tất cả"
+ * - Compact results bar: Result count on left, sorting dropdown on right
+ * - Uniform clickable cards (equal height, 2-line title min-height, PRO-only badge, 1-line footer)
+ * - Strict Meta-Blue (#0866FF / bg-primary) styling adherence, fully responsive & dark mode
  */
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { seriesApi } from '@/features/lab/api/series.api';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import type { LabSeries } from '@/types/lab.types';
 
 export interface CatalogLabItem {
@@ -35,6 +34,7 @@ export interface CatalogLabItem {
   completionCount: number;
   estimatedMinutes: number;
   seriesSlug: string;
+  seriesTitle?: string;
 }
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -46,12 +46,44 @@ const CATEGORY_NAMES: Record<string, string> = {
   docker: 'DevOps & Docker',
 };
 
+// ─── Keyword Highlighter Helper ─────────────────────────────────────────────
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query || !query.trim()) return <>{text}</>;
+  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  const parts = text.split(regex);
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-primary/20 text-primary font-semibold rounded px-0.5">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
+
 export function SeriesHubPage() {
+  const [catalogView, setCatalogView] = useState<'series' | 'labs'>('series');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeTopic, setActiveTopic] = useState('all');
   const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'pro'>('all');
   const [levelFilter, setLevelFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
   const [sortBy, setSortBy] = useState<'popular' | 'latest' | 'duration' | 'difficulty'>('popular');
+
+  // Debounce search input by 250ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data: seriesList, isLoading } = useQuery({
     queryKey: ['series'],
@@ -76,14 +108,15 @@ export function SeriesHubPage() {
         completionCount: lab.completionCount || 500,
         estimatedMinutes: lab.estimatedMinutes || 20,
         seriesSlug: series.slug,
+        seriesTitle: series.title,
       }));
     });
   }, [seriesList]);
 
-  // Generate dynamic topics from existing series
+  // Generate dynamic topics from existing series, starting with "Tất cả"
   const topics = useMemo(() => {
     if (!seriesList || seriesList.length === 0) {
-      return [{ id: 'all', label: 'All Topics' }];
+      return [{ id: 'all', label: 'Tất cả' }];
     }
     const topicMap = new Map<string, string>();
     seriesList.forEach((s) => {
@@ -93,20 +126,61 @@ export function SeriesHubPage() {
       }
     });
     return [
-      { id: 'all', label: 'All Topics' },
+      { id: 'all', label: 'Tất cả' },
       ...Array.from(topicMap.entries()).map(([id, label]) => ({ id, label })),
     ];
   }, [seriesList]);
 
+  // Filter series for the "series" view using debouncedSearch
+  const filteredSeries = useMemo(() => {
+    if (!seriesList) return [];
+    return seriesList
+      .filter((s) => {
+        if (debouncedSearch.trim()) {
+          const q = debouncedSearch.toLowerCase().trim();
+          const matchTitle = s.title.toLowerCase().includes(q);
+          const matchDesc = (s.description || '').toLowerCase().includes(q);
+          const matchCat = (s.category || s.topic || '').toLowerCase().includes(q);
+          if (!matchTitle && !matchDesc && !matchCat) return false;
+        }
+
+        const topicKey = s.category || s.topic || 'general';
+        if (activeTopic !== 'all' && topicKey !== activeTopic) {
+          return false;
+        }
+
+        if (tierFilter === 'free' && s.isProOnly) return false;
+        if (tierFilter === 'pro' && !s.isProOnly) return false;
+
+        if (levelFilter !== 'all' && s.level !== levelFilter) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'latest') return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        if (sortBy === 'duration') return (a.estimatedMinutes || 0) - (b.estimatedMinutes || 0);
+        if (sortBy === 'difficulty') {
+          const weight: Record<string, number> = { beginner: 1, intermediate: 2, advanced: 3 };
+          return (weight[a.level || 'beginner'] || 1) - (weight[b.level || 'beginner'] || 1);
+        }
+        // Popular: based on lab count
+        return (b.labs?.length || b.totalLabs || 0) - (a.labs?.length || a.totalLabs || 0);
+      });
+  }, [seriesList, debouncedSearch, activeTopic, tierFilter, levelFilter, sortBy]);
+
+  // Filter labs for the "labs" view using debouncedSearch
   const filteredLabs = useMemo(() => {
     return allLabs
       .filter((lab) => {
-        if (search.trim()) {
-          const query = search.toLowerCase().trim();
+        if (debouncedSearch.trim()) {
+          const query = debouncedSearch.toLowerCase().trim();
           const matchesTitle = lab.title.toLowerCase().includes(query);
           const matchesCategory = lab.categoryName.toLowerCase().includes(query);
           const matchesType = lab.sandboxType.toLowerCase().includes(query);
-          if (!matchesTitle && !matchesCategory && !matchesType) return false;
+          const matchesSeries = (lab.seriesTitle || '').toLowerCase().includes(query);
+          if (!matchesTitle && !matchesCategory && !matchesType && !matchesSeries) return false;
         }
 
         if (activeTopic !== 'all' && lab.topic !== activeTopic) {
@@ -131,13 +205,14 @@ export function SeriesHubPage() {
         }
         return 0;
       });
-  }, [allLabs, search, activeTopic, tierFilter, levelFilter, sortBy]);
+  }, [allLabs, debouncedSearch, activeTopic, tierFilter, levelFilter, sortBy]);
 
   const isFiltering =
     search.trim().length > 0 || activeTopic !== 'all' || tierFilter !== 'all' || levelFilter !== 'all';
 
   const resetFilters = () => {
     setSearch('');
+    setDebouncedSearch('');
     setActiveTopic('all');
     setTierFilter('all');
     setLevelFilter('all');
@@ -145,180 +220,276 @@ export function SeriesHubPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl space-y-6">
-      {/* ── 1. Top Search & Filter Bar (Shadcn + LeetCode Style, No Icons) ── */}
-      <div className="space-y-3.5">
-        {/* Search Input with inline clear action */}
-        <div className="flex items-center gap-2">
-          <Input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search labs, technologies (e.g. SQL WHERE, B-Tree, Docker, Postman, Jest)..."
-            className="flex-1 h-10 text-sm bg-card"
-          />
-          {search && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSearch('')}
-              className="h-10 text-xs px-3"
+    <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl space-y-4">
+      {/* ── 1. Top View Switcher Tabs (No Title/Subtitle, Clean Luxury) ─ */}
+      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+        <Tabs value={catalogView} onValueChange={(v) => setCatalogView(v as 'series' | 'labs')}>
+          <TabsList className="h-9 p-1 bg-muted/60">
+            <TabsTrigger
+              value="series"
+              className="text-xs px-3.5 font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-2xs"
             >
-              Clear
+              Chuyên đề ({seriesList?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger
+              value="labs"
+              className="text-xs px-3.5 font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-2xs"
+            >
+              Tất cả bài Lab ({allLabs.length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* ── 2. Sticky Filter & Chips Bar ──────────────────────────────── */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md -mx-4 px-4 sm:-mx-6 sm:px-6 py-3 border-b border-border/50 space-y-2.5">
+        {/* Single-row Filter Controls */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+          {/* Search Input (Takes majority of width) */}
+          <div className="flex-1 min-w-[200px]">
+            <Input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm chuyên đề, bài lab…"
+              className="h-9 text-xs sm:text-sm bg-card border-border"
+            />
+          </div>
+
+          {/* Plan Dropdown */}
+          <select
+            value={tierFilter}
+            onChange={(e) => setTierFilter(e.target.value as any)}
+            className="h-9 bg-card border border-border rounded-lg px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium shrink-0"
+          >
+            <option value="all">Gói: Tất cả</option>
+            <option value="free">Miễn phí</option>
+            <option value="pro">PRO Tier</option>
+          </select>
+
+          {/* Difficulty Dropdown */}
+          <select
+            value={levelFilter}
+            onChange={(e) => setLevelFilter(e.target.value as any)}
+            className="h-9 bg-card border border-border rounded-lg px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium shrink-0"
+          >
+            <option value="all">Độ khó: Tất cả</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+
+          {/* Reset Filters button (Visible only when filtering) */}
+          {isFiltering && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="h-9 text-xs text-muted-foreground hover:text-destructive px-2.5 shrink-0"
+            >
+              Xóa lọc
             </Button>
           )}
         </div>
 
-        {/* Topic Tabs */}
-        <div className="overflow-x-auto pb-1">
-          <Tabs value={activeTopic} onValueChange={setActiveTopic} className="w-full">
-            <TabsList className="h-9 p-1 bg-muted/60">
-              {topics.map((t) => (
-                <TabsTrigger key={t.id} value={t.id} className="text-xs px-3 font-medium">
-                  {t.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Secondary Filters & Sort Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/60 text-xs">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Filter by Tier Tabs */}
-            <Tabs value={tierFilter} onValueChange={(val) => setTierFilter(val as any)}>
-              <TabsList className="h-8 p-0.5">
-                <TabsTrigger value="all" className="text-xs px-2.5">All Plans</TabsTrigger>
-                <TabsTrigger value="free" className="text-xs px-2.5">Free</TabsTrigger>
-                <TabsTrigger value="pro" className="text-xs px-2.5">PRO Tier</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* Filter by Level */}
-            <select
-              value={levelFilter}
-              onChange={(e) => setLevelFilter(e.target.value as any)}
-              className="bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-8 font-medium"
+        {/* Category Chips (Horizontal scrollable on mobile) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {topics.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setActiveTopic(t.id)}
+              className={cn(
+                'px-3 py-1 rounded-full text-xs transition-colors shrink-0 whitespace-nowrap cursor-pointer',
+                activeTopic === t.id
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-2xs'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
             >
-              <option value="all">Difficulty: All</option>
-              <option value="beginner">Beginner (Easy)</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced (Hard)</option>
-            </select>
-
-            {isFiltering && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="h-8 text-xs text-muted-foreground hover:text-destructive px-2.5"
-              >
-                Reset filters
-              </Button>
-            )}
-          </div>
-
-          {/* Sort selector */}
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-muted-foreground text-[11px]">Sort by:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-8"
-            >
-              <option value="popular">Most Popular</option>
-              <option value="duration">Shortest Duration</option>
-              <option value="difficulty">Difficulty: Easy to Hard</option>
-            </select>
-          </div>
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ── 2. Content Display ─────────────────────────────────────────── */}
+      {/* ── 3. Results Bar (Count on Left, Sort on Right) ─────────────── */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 pb-1">
+        <div>
+          {catalogView === 'series' ? (
+            <span>
+              <strong className="text-foreground font-semibold">{filteredSeries.length}</strong> chuyên đề
+            </span>
+          ) : (
+            <span>
+              <strong className="text-foreground font-semibold">{filteredLabs.length}</strong> bài lab
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground">Sắp xếp:</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="h-8 bg-card border border-border rounded-lg px-2 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="popular">Phổ biến nhất</option>
+            <option value="latest">Mới nhất</option>
+            <option value="duration">Thời lượng</option>
+            <option value="difficulty">Độ khó</option>
+          </select>
+        </div>
+      </div>
+
+      {/* ── 4. Content Display (Auto-fill Grid, Uniform Heights) ───────── */}
       {isLoading ? (
         <LoadingSkeleton />
-      ) : isFiltering ? (
-        /* ── FILTERED RESULTS VIEW ── */
+      ) : catalogView === 'series' ? (
+        /* ── SERIES ROADMAPS VIEW ── */
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              Found <strong className="text-foreground">{filteredLabs.length}</strong> matching labs
-            </span>
-          </div>
-
-          {filteredLabs.length === 0 ? (
+          {filteredSeries.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <p className="text-sm font-semibold text-foreground">No matching labs found</p>
-              <p className="text-xs text-muted-foreground">Try adjusting your search terms or reset filters.</p>
+              <p className="text-sm font-semibold text-foreground">Không tìm thấy chuyên đề phù hợp</p>
+              <p className="text-xs text-muted-foreground">Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc.</p>
               <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs">
-                Clear all filters
+                Xóa bộ lọc
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredLabs.map((lab) => (
-                <FeaturedLabCard key={lab.id} lab={lab} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredSeries.map((series) => (
+                <DedicatedSeriesCard
+                  key={series.id}
+                  series={series}
+                  searchQuery={debouncedSearch}
+                />
               ))}
             </div>
           )}
         </div>
       ) : (
-        /* ── DEFAULT VIEW: LABS GROUPED DYNAMICALLY BY TOPIC ── */
-        <div className="space-y-8">
-          {topics
-            .filter((t) => t.id !== 'all')
-            .map((topic) => {
-              const topicLabs = allLabs.filter((l) => l.topic === topic.id);
-              const parentSeries = seriesList?.find(
-                (s) => (s.category || s.topic) === topic.id || s.slug.includes(topic.id)
-              );
-
-              if (topicLabs.length === 0 && !parentSeries) return null;
-
-              return (
-                <section key={topic.id} className="space-y-3.5">
-                  {/* Topic Section Header */}
-                  <div className="flex items-center justify-between pb-2 border-b border-border">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
-                        {topic.label}
-                      </h2>
-                      <Badge variant="outline" className="text-[11px] h-5 px-2 text-muted-foreground font-medium">
-                        {topicLabs.length} labs
-                      </Badge>
-                    </div>
-
-                    {parentSeries && (
-                      <Button variant="link" size="sm" asChild className="h-auto p-0 text-xs font-semibold text-primary">
-                        <Link to={`/series/${parentSeries.slug}`}>
-                          View Full Series
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Labs Grid for this topic */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {topicLabs.map((lab) => (
-                      <FeaturedLabCard key={lab.id} lab={lab} />
-                    ))}
-
-                    {/* Series Shortcut Card */}
-                    {parentSeries && (
-                      <SeriesShortcutCard series={parentSeries} />
-                    )}
-                  </div>
-                </section>
-              );
-            })}
+        /* ── ALL LABS / PROBLEMSET VIEW ── */
+        <div className="space-y-4">
+          {filteredLabs.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+              <p className="text-sm font-semibold text-foreground">Không tìm thấy bài lab phù hợp</p>
+              <p className="text-xs text-muted-foreground">Thử điều chỉnh từ khóa tìm kiếm hoặc làm mới bộ lọc.</p>
+              <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs">
+                Xóa bộ lọc
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredLabs.map((lab) => (
+                <FeaturedLabCard
+                  key={lab.id}
+                  lab={lab}
+                  searchQuery={debouncedSearch}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-// ─── Dynamic Lab Item Card (Shadcn Card, Standard Sans Typography, No Icons) ─
-function FeaturedLabCard({ lab }: { lab: CatalogLabItem }) {
+// ─── Dedicated Series Card (Clickable, Uniform Height, Zero Icons) ───────────
+function DedicatedSeriesCard({
+  series,
+  searchQuery,
+}: {
+  series: LabSeries;
+  searchQuery: string;
+}) {
+  const labCount = series.labs?.length || series.totalLabs || 0;
+  const isComingSoon = labCount === 0;
+  const estimatedTime = series.estimatedMinutes || (labCount > 0 ? labCount * 20 : 0);
+
+  const topicKey = series.category || series.topic || 'general';
+  const categoryName = CATEGORY_NAMES[topicKey] || series.title;
+
+  const levelText = {
+    beginner: 'Beginner',
+    intermediate: 'Intermediate',
+    advanced: 'Advanced',
+  }[series.level || 'beginner'];
+
+  return (
+    <Link
+      to={isComingSoon ? '#' : `/series/${series.slug}`}
+      className={cn(
+        'group flex flex-col justify-between rounded-xl border border-border bg-card p-5 transition-all h-full',
+        isComingSoon
+          ? 'opacity-60 cursor-not-allowed pointer-events-none'
+          : 'hover:border-primary/50 hover:shadow-sm cursor-pointer'
+      )}
+    >
+      <div className="space-y-2.5">
+        {/* Top category label & PRO-only badge */}
+        <div className="flex items-center justify-between text-[11px] gap-2">
+          <span className="font-semibold uppercase tracking-wider text-muted-foreground truncate">
+            {categoryName}
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isComingSoon && (
+              <Badge
+                variant="outline"
+                className="text-[10px] font-semibold text-muted-foreground bg-muted/40 border-border"
+              >
+                Sắp ra mắt
+              </Badge>
+            )}
+            {series.isProOnly && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] font-bold h-4 px-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+              >
+                PRO
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Title: 2 lines max with fixed min-height for uniform grid alignment */}
+        <h3 className="text-base font-bold text-foreground leading-snug line-clamp-2 min-h-[2.75rem] group-hover:text-primary transition-colors">
+          <HighlightText text={series.title} query={searchQuery} />
+        </h3>
+
+        {/* Description: 2 lines max */}
+        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem] leading-relaxed">
+          <HighlightText text={series.description || ''} query={searchQuery} />
+        </p>
+      </div>
+
+      {/* Footer 1 line: "3 lab · 60 phút · Beginner" + "→" */}
+      <div className="pt-3.5 mt-4 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+        {isComingSoon ? (
+          <span className="text-amber-600 dark:text-amber-400 font-medium">0 bài lab · Sắp ra mắt</span>
+        ) : (
+          <span>
+            {labCount} lab · {estimatedTime} phút · {levelText}
+          </span>
+        )}
+        {!isComingSoon && (
+          <span className="text-foreground group-hover:text-primary group-hover:translate-x-1 transition-transform font-bold text-sm">
+            →
+          </span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+// ─── Dedicated Lab Card (Clickable, Uniform Height, Zero Icons) ──────────────
+function FeaturedLabCard({
+  lab,
+  searchQuery,
+}: {
+  lab: CatalogLabItem;
+  searchQuery: string;
+}) {
   const typeNameMap: Record<string, string> = {
     sql_worker: 'SQL',
     quizlet: 'Quizlet',
@@ -329,12 +500,6 @@ function FeaturedLabCard({ lab }: { lab: CatalogLabItem }) {
 
   const typeName = typeNameMap[lab.sandboxType] || lab.sandboxType || 'Lab';
 
-  const difficultyColor = {
-    beginner: 'text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10',
-    intermediate: 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/10',
-    advanced: 'text-rose-600 dark:text-rose-400 border-rose-500/20 bg-rose-500/10',
-  }[lab.difficulty];
-
   const difficultyText = {
     beginner: 'Beginner',
     intermediate: 'Intermediate',
@@ -342,87 +507,61 @@ function FeaturedLabCard({ lab }: { lab: CatalogLabItem }) {
   }[lab.difficulty];
 
   return (
-    <Card className="flex flex-col hover:border-primary/50 hover:shadow-sm transition-all group bg-card border-border">
-      <CardHeader className="pb-2.5">
-        <div className="flex items-center justify-between gap-1.5 mb-2">
-          <div className="flex items-center gap-1.5">
-            <Badge variant="secondary" className="text-[11px] font-medium px-2 py-0.5">
-              {typeName}
-            </Badge>
-            <Badge variant="outline" className={`text-[10px] h-5 px-1.5 font-medium ${difficultyColor}`}>
-              {difficultyText}
-            </Badge>
-          </div>
-
-          {lab.isProOnly ? (
-            <Badge variant="secondary" className="text-[10px] font-bold h-5 px-2 shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+    <Link
+      to={`/labs/${lab.slug || lab.id}`}
+      className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-sm cursor-pointer h-full"
+    >
+      <div className="space-y-2">
+        {/* Top category label & PRO-only badge */}
+        <div className="flex items-center justify-between text-[11px] gap-2">
+          <span className="font-semibold uppercase tracking-wider text-muted-foreground truncate">
+            {lab.categoryName}
+          </span>
+          {lab.isProOnly && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] font-bold h-4 px-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0"
+            >
               PRO
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-[10px] h-5 px-2 shrink-0 text-muted-foreground font-normal">
-              Free
             </Badge>
           )}
         </div>
 
-        <CardTitle className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-2">
-          {lab.title}
-        </CardTitle>
-        <CardDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-          <span>{lab.completionCount.toLocaleString()} completions</span>
-          <span>•</span>
-          <span>{lab.estimatedMinutes} mins</span>
-        </CardDescription>
-      </CardHeader>
+        {/* Title: 2 lines max with fixed min-height */}
+        <h3 className="text-sm font-bold text-foreground leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
+          <HighlightText text={lab.title} query={searchQuery} />
+        </h3>
 
-      <CardContent className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">
-        <span className="text-[11px] text-muted-foreground font-medium">{lab.categoryName}</span>
-        <Button
-          size="sm"
-          asChild
-          className="h-7 text-xs font-semibold px-3"
-        >
-          <Link to={`/labs/${lab.slug || lab.id}`}>
-            Start Lab
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Shortcut to full series (No Icons) ──────────────────────────────────────
-function SeriesShortcutCard({ series }: { series: LabSeries }) {
-  const labCount = series.labs?.length || series.totalLabs || 0;
-
-  return (
-    <Card className="flex flex-col border-dashed border-border bg-muted/20 hover:bg-muted/30 transition-all p-4 justify-between">
-      <div className="space-y-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Full Course Series</span>
-        <h3 className="text-sm font-bold text-foreground">{series.title}</h3>
-        <p className="text-xs text-muted-foreground line-clamp-2">{series.description}</p>
+        {/* Parent Series reference if available */}
+        {lab.seriesTitle && (
+          <p className="text-[11px] text-muted-foreground truncate">
+            Thuộc: {lab.seriesTitle}
+          </p>
+        )}
       </div>
 
-      <div className="pt-3 flex items-center justify-between text-xs border-t border-border/40 mt-3">
-        <span className="text-muted-foreground text-[11px]">{labCount} lessons</span>
-        <Button variant="outline" size="sm" asChild className="h-7 text-xs font-semibold px-2.5">
-          <Link to={`/series/${series.slug}`}>
-            View Details
-          </Link>
-        </Button>
+      {/* Footer 1 line: "JavaScript · 20 phút · Beginner" + "→" */}
+      <div className="pt-3 mt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          {typeName} · {lab.estimatedMinutes} phút · {difficultyText}
+        </span>
+        <span className="text-foreground group-hover:text-primary group-hover:translate-x-1 transition-transform font-bold text-sm">
+          →
+        </span>
       </div>
-    </Card>
+    </Link>
   );
 }
 
 function LoadingSkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
           <Skeleton className="h-4 w-1/3" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-1/2" />
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-1/2 pt-2" />
         </div>
       ))}
     </div>

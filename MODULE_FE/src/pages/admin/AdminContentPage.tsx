@@ -6,18 +6,21 @@
  * - Cấp Con (Labs): Kế thừa thể loại của Topic cha, quản lý danh sách bài tập.
  * - Zero icons, styled with shadcn/ui.
  */
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, Tag } from 'lucide-react';
 import { useAdminContent } from './_hooks/useAdminContent';
 import { AdminToast } from './_components/AdminToast';
 import { AdminStatsCards } from './_components/AdminStatsCards';
 import { AdminTopicHierarchy } from './_components/AdminTopicHierarchy';
 import { SeriesModal } from './_components/SeriesModal';
+import { AdminTopicTagsModal } from './_components/AdminTopicTagsModal';
 
 export function AdminContentPage() {
   const ctx = useAdminContent();
+  const [topicTagsModalOpen, setTopicTagsModalOpen] = useState(false);
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -29,19 +32,29 @@ export function AdminContentPage() {
         <div className="space-y-1.5">
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Catalog Oversight
+              Content
             </h1>
             <Badge variant="outline" className="text-[10px] uppercase px-2 py-0.5 border-primary/30 text-primary font-semibold">
               CATALOG
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Inspect course topics, learning series structure, and lab exercises across the platform.
+            Manage course topics, series structure, and lab exercises.
           </p>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setTopicTagsModalOpen(true)}
+            className="text-xs font-semibold gap-1.5"
+          >
+            <Tag className="size-3.5 text-primary" />
+            <span>Quản lý Thẻ Topic</span>
+          </Button>
+
           <Button variant="outline" size="sm" asChild className="text-xs font-semibold gap-1.5">
             <Link to="/admin/review">
               <ClipboardCheck className="size-3.5 text-primary" />
@@ -79,6 +92,12 @@ export function AdminContentPage() {
         setForm={ctx.setSeriesForm}
         onSubmit={ctx.handleSaveSeries}
         isPending={ctx.isSeriesPending}
+      />
+
+      {/* Modal Quản lý Thẻ Topic (Topic Tags) */}
+      <AdminTopicTagsModal
+        open={topicTagsModalOpen}
+        onClose={() => setTopicTagsModalOpen(false)}
       />
     </div>
   );

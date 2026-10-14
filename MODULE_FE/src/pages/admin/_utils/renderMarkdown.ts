@@ -1,13 +1,111 @@
+import { Marked } from 'marked';
+
+const markedInstance = new Marked({
+  gfm: true,
+  breaks: false,
+});
+
+markedInstance.use({
+  renderer: {
+    heading({ tokens, depth }) {
+      const text = this.parser.parseInline(tokens);
+      if (depth === 1) {
+        return `<h1 class="text-xl font-bold text-foreground mt-4 mb-2 tracking-tight">${text}</h1>`;
+      }
+      if (depth === 2) {
+        return `<h2 class="text-lg font-bold text-foreground mt-4 mb-2 pb-1 border-b border-border tracking-tight">${text}</h2>`;
+      }
+      if (depth === 3) {
+        return `<h3 class="text-base font-semibold text-foreground mt-3 mb-1.5">${text}</h3>`;
+      }
+      return `<h4 class="text-sm font-semibold text-foreground mt-2 mb-1">${text}</h4>`;
+    },
+    table(token) {
+      const header = token.header
+        .map((cell) => {
+          const content = this.parser.parseInline(cell.tokens);
+          const align = cell.align ? ` text-${cell.align}` : ' text-left';
+          return `<th class="px-3.5 py-2.5 font-semibold text-xs tracking-wider border-b border-border text-foreground bg-muted/60${align}">${content}</th>`;
+        })
+        .join('');
+
+      const body = token.rows
+        .map((row) => {
+          const cells = row
+            .map((cell) => {
+              const content = this.parser.parseInline(cell.tokens);
+              const align = cell.align ? ` text-${cell.align}` : ' text-left';
+              return `<td class="px-3.5 py-2.5 text-xs text-foreground/90 border-b border-border/50${align}">${content}</td>`;
+            })
+            .join('');
+          return `<tr class="hover:bg-muted/30 transition-colors">${cells}</tr>`;
+        })
+        .join('');
+
+      return `
+        <div class="my-4 w-full overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
+          <table class="w-full text-left border-collapse">
+            <thead><tr>${header}</tr></thead>
+            <tbody class="divide-y divide-border/40">${body}</tbody>
+          </table>
+        </div>
+      `;
+    },
+    paragraph({ tokens }) {
+      const text = this.parser.parseInline(tokens);
+      return `<p class="my-2 text-sm leading-relaxed text-foreground/90">${text}</p>`;
+    },
+    list(token) {
+      const tag = token.ordered ? 'ol' : 'ul';
+      const listClass = token.ordered
+        ? 'my-2.5 ml-5 list-decimal space-y-1 text-sm text-foreground/90'
+        : 'my-2.5 ml-5 list-disc space-y-1 text-sm text-foreground/90';
+      const body = token.items.map((item) => this.listitem(item)).join('');
+      return `<${tag} class="${listClass}">${body}</${tag}>`;
+    },
+    listitem(item) {
+      const text = this.parser.parse(item.tokens, !!item.loose);
+      return `<li class="leading-relaxed">${text}</li>`;
+    },
+    code({ text, lang }) {
+      const langBadge = lang
+        ? `<div class="px-3 py-1 bg-muted/90 border-b border-border text-[11px] font-mono text-muted-foreground uppercase font-bold tracking-wider">${lang}</div>`
+        : '';
+      return `
+        <div class="my-3 overflow-hidden rounded-lg border border-border bg-muted/40 shadow-xs">
+          ${langBadge}
+          <pre class="p-3.5 overflow-x-auto font-mono text-xs text-foreground leading-relaxed"><code>${text}</code></pre>
+        </div>
+      `;
+    },
+    codespan({ text }) {
+      return `<code class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono text-primary font-medium border border-border/40">${text}</code>`;
+    },
+    blockquote({ tokens }) {
+      const body = this.parser.parse(tokens);
+      return `
+        <blockquote class="my-3 border-l-4 border-primary/70 bg-muted/30 px-3.5 py-2.5 rounded-r-md text-sm italic text-muted-foreground">
+          ${body}
+        </blockquote>
+      `;
+    },
+    hr() {
+      return `<hr class="my-4 border-border" />`;
+    },
+    link({ href, title, tokens }) {
+      const text = this.parser.parseInline(tokens);
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer" class="font-medium text-primary underline underline-offset-4 hover:opacity-80">${text}</a>`;
+    },
+  },
+});
+
 export function renderMarkdown(md: string): string {
   if (!md) return '';
-  return md
-    .replace(/^### (.*$)/gim, '<h3 class="text-base font-bold text-foreground mt-3 mb-1.5">$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2 class="text-lg font-bold text-foreground mt-4 mb-2 border-b border-border pb-1">$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1 class="text-xl font-extrabold text-foreground mt-2 mb-3">$1</h1>')
-    .replace(/\*\*(.*)\*\*/gim, '<strong class="font-bold text-foreground">$1</strong>')
-    .replace(/\*(.*)\*/gim, '<em class="italic text-foreground">$1</em>')
-    .replace(/```([a-z]*)\n([\s\S]*?)```/gim, '<pre class="bg-muted/70 p-3 rounded-lg text-xs font-mono my-2 overflow-x-auto border border-border"><code>$2</code></pre>')
-    .replace(/`([^`]+)`/gim, '<code class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono text-primary border border-border/50">$1</code>')
-    .replace(/^\s*-\s+(.*$)/gim, '<li class="ml-4 list-disc text-sm text-muted-foreground my-0.5">$1</li>')
-    .replace(/\n/gim, '<br/>');
+  try {
+    return markedInstance.parse(md) as string;
+  } catch (err) {
+    console.error('Failed to parse markdown:', err);
+    return md;
+  }
 }

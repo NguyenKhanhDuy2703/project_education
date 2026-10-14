@@ -1,16 +1,16 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '@/stores/store';
-import { setToken, setUser } from '@/stores/slices/auth.slice';
+import { setTokens, setUser } from '@/stores/slices/auth.slice';
 import { authApi } from '@/features/auth/api/auth.api';
 
 /**
  * GoogleCallbackPage
  *
  * Backend redirects here after successful Google OAuth:
- *   /dashboard?token=<accessToken>
+ *   /auth/callback?token=<accessToken>&refreshToken=<refreshToken>
  *
- * We pull the token from the query string, fetch the current user,
+ * We pull the tokens from the query string, fetch the current user,
  * hydrate the Redux store, then navigate to the dashboard.
  */
 export function GoogleCallbackPage() {
@@ -19,14 +19,15 @@ export function GoogleCallbackPage() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const token = searchParams.get('token') || searchParams.get('accessToken');
+    const refreshToken = searchParams.get('refreshToken') || searchParams.get('refresh_token');
     if (!token) {
       navigate('/login', { replace: true });
       return;
     }
 
-    // Store the token first so authApi.getCurrentUser can send it in the header
-    dispatch(setToken(token));
+    // Store the tokens first so authApi.getCurrentUser can send it in the header
+    dispatch(setTokens({ accessToken: token, refreshToken: refreshToken || null }));
 
     authApi
       .getCurrentUser()

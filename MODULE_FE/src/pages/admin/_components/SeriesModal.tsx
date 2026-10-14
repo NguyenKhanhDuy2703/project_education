@@ -4,6 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { CreateSeriesInput, LabSeries } from '@/types/lab.types';
+import { getSystemTopicTags } from '@/services/topicTags.service';
 
 interface SeriesModalProps {
   open: boolean;
@@ -75,10 +76,11 @@ export function SeriesModal({
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
                 className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
               >
-                <option value="testing">QA & Testing</option>
-                <option value="database">Database & SQL</option>
-                <option value="backend">Backend API</option>
-                <option value="devops">DevOps & Cloud</option>
+                {getSystemTopicTags().map((tag) => (
+                  <option key={tag.key} value={tag.key}>
+                    {tag.title}
+                  </option>
+                ))}
               </select>
             </div>
 

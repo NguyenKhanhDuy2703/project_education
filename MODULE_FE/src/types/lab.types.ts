@@ -126,6 +126,13 @@ export interface LabDetail extends LabSummary {
   quizQuestions?: QuizQuestion[]; // For quizlet mode
   isLocked?: boolean;
   lockReason?: string;
+  durationMinutes?: number;
+  series?: {
+    id: string;
+    title: string;
+    slug: string;
+    description?: string;
+  };
 }
 
 // ─── Submission payload ───────────────────────────────────────────────────────
