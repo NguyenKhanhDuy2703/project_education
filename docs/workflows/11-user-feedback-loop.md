@@ -73,7 +73,7 @@ sequenceDiagram
     Note over User, DB: Phase 1: Learner Submits Feedback
     User->>FWidget: Click "Feedback" button in practice workspace
     FWidget-->>User: Open feedback dialog (Category, Message)
-    User->>FWidget: Select Category = "content_lab", Enter: "Test case #2 in SQL lab has syntax error"
+    User->>FWidget: Select Category = "content_lab", Enter: "Test case No.2 in SQL lab has syntax error"
     FWidget->>BE: POST /api/feedback { category: "content_lab", message: "...", pageUrl: "/practice/lab-sql-02" }
     BE->>DB: INSERT INTO feedbacks (user_id, category, message, page_url, status) VALUES (...)
     DB-->>BE: Persisted successfully

@@ -94,7 +94,7 @@ sequenceDiagram
         BE->>DB: UPDATE labs SET status = 'changes_requested', review_note = :note
         BE-->>AUI: 200 OK
         AUI-->>Admin: Remove item from pending review queue
-        Note over Contributor: Contributor notified; editor unlocked to apply requested fixes
+        Note over Contributor: Contributor notified, editor unlocked to apply requested fixes
     else Scenario B: Admin Approves & Publishes
         Admin->>AUI: Click "Run Solution Test Runner" (Final pre-flight check)
         AUI-->>Admin: 100% Tests Passed verified

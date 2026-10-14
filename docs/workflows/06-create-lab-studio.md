@@ -93,8 +93,8 @@ sequenceDiagram
     Runner->>Runner: Execute test suite inside Web Worker Sandbox
     
     alt At Least One Assertion Fails or Syntax Exception
-        Runner-->>Studio2: Test Failure: ✗ Case #3 Failed (Expected: 5 rows, Got: 4 rows)
-        Studio2-->>Contributor: Highlight failure details; keep Submit/Publish buttons disabled
+        Runner-->>Studio2: Test Failure: ✗ Case 3 Failed (Expected: 5 rows, Got: 4 rows)
+        Studio2-->>Contributor: Highlight failure details, keep Submit/Publish buttons disabled
         Note over Contributor, Studio2: Author reviews stack trace and refines Test or Solution
     else All Test Cases Pass (100% Passed)
         Runner-->>Studio2: Success: ✓ 4/4 Tests Passed (Execution time: 38ms)
