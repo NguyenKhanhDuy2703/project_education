@@ -1,18 +1,9 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '@/stores/store';
-import { logout } from '@/stores/slices/auth.slice';
+import { Link, useLocation } from 'react-router-dom';
+import { useAppSelector } from '@/stores/store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   BookOpen,
   Search,
@@ -22,27 +13,15 @@ import {
   Home,
   Layers,
   Compass,
-  LogOut,
-  User,
-  LayoutDashboard,
-  PenTool,
-  Sparkles,
 } from 'lucide-react';
 import { ContributorApplyModal } from '@/features/contributor/components/ContributorApplyModal';
 
 export function Navbar() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [applyModalOpen, setApplyModalOpen] = useState(false);
-
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
-  };
 
   interface NavLinkItem {
     name: string;
@@ -51,8 +30,6 @@ export function Navbar() {
     exact?: boolean;
     badge?: string;
   }
-
-  const isContributorOrAbove = user?.isContributor === true || user?.role === 'admin';
 
   const baseNavLinks: NavLinkItem[] = [
     { name: 'Home', href: '/', icon: Home, exact: true },
@@ -71,7 +48,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur-md transition-all">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
+      <div className="w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand / Logo */}
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2.5 group">
@@ -137,19 +114,6 @@ export function Navbar() {
         <div className="flex items-center gap-2 sm:gap-3">
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
-              {isContributorOrAbove && (
-                <Link to="/user/dashboard/content" className="hidden sm:inline-flex">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs font-semibold border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 shadow-xs"
-                  >
-                    <PenTool className="size-3.5" />
-                    <span>Contributor Studio</span>
-                  </Button>
-                </Link>
-              )}
-
               <button
                 type="button"
                 aria-label="Notifications"
@@ -159,78 +123,18 @@ export function Navbar() {
                 <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary" />
               </button>
 
-              {/* User Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-primary/20 outline-none transition-all">
-                    <Avatar className="size-8 border border-border">
-                      <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || 'User'} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
-                        {getInitials(user?.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 mt-1 border-border shadow-md">
-                  <DropdownMenuLabel className="font-normal py-2">
-                    <div className="flex flex-col space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold leading-none text-foreground">{user?.name || 'Student'}</p>
-                        {user?.role && (
-                          <Badge
-                            variant={user.role === 'admin' ? 'destructive' : 'secondary'}
-                            className="text-[10px] uppercase font-bold px-1.5 h-4"
-                          >
-                            {user.role}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">{user?.email || user?.phone}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/user/dashboard" className="flex items-center cursor-pointer">
-                      <LayoutDashboard className="size-4 mr-2 text-muted-foreground" />
-                      <span>Dashboard &amp; Progress</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  {isContributorOrAbove ? (
-                    <DropdownMenuItem asChild>
-                      <Link to="/user/dashboard/content" className="flex items-center cursor-pointer">
-                        <PenTool className="size-4 mr-2 text-indigo-500" />
-                        <span>Contributor Studio</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={() => setApplyModalOpen(true)}
-                      className="cursor-pointer text-indigo-600 dark:text-indigo-400 focus:text-indigo-600 flex items-center justify-between"
-                    >
-                      <div className="flex items-center">
-                        <Sparkles className="size-4 mr-2" />
-                        <span>Trở thành Contributor</span>
-                      </div>
-                      {user?.contributorStatus === 'PENDING' && (
-                        <Badge variant="outline" className="text-[9px] px-1 h-3.5 border-amber-500/40 text-amber-500">
-                          Chờ duyệt
-                        </Badge>
-                      )}
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem asChild>
-                    <Link to="/user/dashboard/profile" className="flex items-center cursor-pointer">
-                      <User className="size-4 mr-2 text-muted-foreground" />
-                      <span>Account Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
-                    <LogOut className="size-4 mr-2" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* User Avatar Badge (non-clickable, no redirect to dashboard) */}
+              <div
+                className="flex items-center gap-2 p-1 rounded-full select-none"
+                aria-label={user?.name || 'User profile'}
+              >
+                <Avatar className="size-8 border border-border">
+                  <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || 'User'} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
+                    {getInitials(user?.name)}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
             </div>
           ) : (
             <div className="flex items-center gap-2">

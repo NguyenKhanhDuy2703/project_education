@@ -22,100 +22,250 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Field-level touched / error states
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const validatePhone = (val: string): string | null => {
+    const trimmed = val.trim();
+    if (!trimmed) return 'Phone number is required.';
+    if (!/^(\+84|0)[0-9]*$/.test(trimmed)) {
+      return 'Phone number must contain digits only.';
+    }
+    if (trimmed.startsWith('0') && trimmed.length !== 10) {
+      return `Phone number must be exactly 10 digits (current: ${trimmed.length}).`;
+    }
+    if (trimmed.startsWith('+84') && trimmed.length !== 12) {
+      return `Phone number with +84 must be 12 characters (current: ${trimmed.length}).`;
+    }
+    const vnRegex = /^(?:\+84|0)(?:3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-9])[0-9]{7}$/;
+    if (!vnRegex.test(trimmed)) {
+      return 'Invalid carrier prefix (valid: 03, 05, 07, 08, 09).';
+    }
+    return null;
+  };
+
+  const validateEmail = (val: string): string | null => {
+    const trimmed = val.trim();
+    if (!trimmed) return 'Email address is required.';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmed)) {
+      return 'Please enter a valid email address (e.g. user@example.com).';
+    }
+    return null;
+  };
+
   const getStrength = (pwd: string) => {
+    if (!pwd) return { score: 0, label: '', color: 'bg-muted' };
     let s = 0;
-    if (pwd.length >= 6) s++;
     if (pwd.length >= 8) s++;
     if (/[A-Z]/.test(pwd)) s++;
-    if (/[0-9]/.test(pwd)) s++;
-    if (s <= 2) return { score: 1, label: 'Yếu', color: 'bg-destructive' };
-    if (s <= 3) return { score: 2, label: 'Trung bình', color: 'bg-amber-500' };
-    return { score: 3, label: 'Mạnh', color: 'bg-emerald-500' };
+    if (/[0-9]/.test(pwd) || /[^A-Za-z0-9]/.test(pwd)) s++;
+    if (pwd.length < 8 || s <= 1) return { score: 1, label: 'Weak (min 8 chars)', color: 'bg-destructive' };
+    if (s === 2) return { score: 2, label: 'Medium', color: 'bg-amber-500' };
+    return { score: 3, label: 'Strong', color: 'bg-emerald-500' };
   };
 
   const strength = getStrength(password);
 
+  const handlePhoneChange = (val: string) => {
+    setPhone(val);
+    if (phoneError) setPhoneError(null);
+  };
+
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    if (emailError) setEmailError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
-    if (!phoneRegex.test(phone.trim())) return setError('Số điện thoại không hợp lệ');
-    if (password.length < 6) return setError('Mật khẩu tối thiểu 6 ký tự');
-    if (password !== confirmPassword) return setError('Mật khẩu xác nhận không khớp');
-    if (!termsAccepted) return setError('Vui lòng đồng ý điều khoản');
-    try {
-      await register({ name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, password });
-      onSuccess?.();
-    } catch {
-      setError('Số điện thoại hoặc email đã tồn tại.');
-    }
-  };
 
-  const handleGoogle = () => {
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
-    window.location.href = `${base}/auth/google`;
+    // Validate Name
+    if (!name.trim() || name.trim().length < 2) {
+      setError('Full name must be at least 2 characters long.');
+      return;
+    }
+
+    // Validate Phone
+    const pErr = validatePhone(phone);
+    if (pErr) {
+      setPhoneError(pErr);
+      setError(pErr);
+      return;
+    }
+
+    // Validate Email
+    const eErr = validateEmail(email);
+    if (eErr) {
+      setEmailError(eErr);
+      setError(eErr);
+      return;
+    }
+
+    // Validate Password
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (!termsAccepted) {
+      setError('You must accept the Terms of Service & Privacy Policy.');
+      return;
+    }
+
+    try {
+      await register({
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        password,
+      });
+      onSuccess?.();
+    } catch (err: any) {
+      const serverMsg = err?.response?.data?.message;
+      if (Array.isArray(serverMsg)) {
+        setError(serverMsg.join(', '));
+      } else if (typeof serverMsg === 'string') {
+        if (serverMsg === 'Email already in use') {
+          setError('This email address is already registered.');
+          setEmailError('Email already in use');
+        } else if (serverMsg === 'Phone number already in use') {
+          setError('This phone number is already registered.');
+          setPhoneError('Phone number already in use');
+        } else {
+          setError(serverMsg);
+        }
+      } else {
+        setError('Registration failed. Please check your information and try again.');
+      }
+    }
   };
 
   return (
     <div className="w-full space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Tạo tài khoản</h1>
-        <p className="text-sm text-muted-foreground mt-1">Học IT thực chiến tại StudyIT</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Create Account</h1>
+        <p className="text-sm text-muted-foreground mt-1">Start your hands-on IT journey with StudyIT</p>
       </div>
 
-      {/* Error */}
+      {/* Global Error Banner */}
       {error && (
         <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
           <AlertCircle className="size-4 shrink-0" />
-          {error}
+          <span>{error}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-3.5">
-        {/* Name */}
+        {/* Full Name */}
         <div className="space-y-1.5">
-          <Label htmlFor="name" className="text-xs font-semibold">Họ và tên <span className="text-destructive">*</span></Label>
+          <Label htmlFor="name" className="text-xs font-semibold">
+            Full Name <span className="text-destructive">*</span>
+          </Label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input id="name" type="text" placeholder="Nguyễn Văn A" autoComplete="name"
-              value={name} onChange={(e) => setName(e.target.value)} className="pl-9 h-10" disabled={isRegistering} required />
+            <Input
+              id="name"
+              type="text"
+              placeholder="John Doe"
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="pl-9 h-10 text-sm"
+              disabled={isRegistering}
+              required
+            />
           </div>
         </div>
 
-        {/* Phone */}
-        <div className="space-y-1.5">
-          <Label htmlFor="phone" className="text-xs font-semibold">Số điện thoại <span className="text-destructive">*</span></Label>
-          <div className="relative">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input id="phone" type="tel" placeholder="0912345678" autoComplete="tel"
-              value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-9 h-10" disabled={isRegistering} required />
-          </div>
-        </div>
-
-        {/* Email optional */}
+        {/* Phone Number */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor="email" className="text-xs font-semibold">Email</Label>
-            <span className="text-[11px] text-muted-foreground">Không bắt buộc</span>
+            <Label htmlFor="phone" className="text-xs font-semibold">
+              Phone Number <span className="text-destructive">*</span>
+            </Label>
+            <span className="text-[11px] text-muted-foreground">10 digits (03, 05, 07, 08, 09)</span>
           </div>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input id="email" type="email" placeholder="email@gmail.com" autoComplete="email"
-              value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 h-10" disabled={isRegistering} />
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="0912345678"
+              autoComplete="tel"
+              value={phone}
+              onChange={(e) => handlePhoneChange(e.target.value)}
+              onBlur={() => setPhoneError(validatePhone(phone))}
+              className={`pl-9 h-10 text-sm ${phoneError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+              disabled={isRegistering}
+              required
+            />
           </div>
+          {phoneError && (
+            <p className="text-[11px] text-destructive font-medium">{phoneError}</p>
+          )}
+        </div>
+
+        {/* Email Address */}
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="text-xs font-semibold">
+            Email Address <span className="text-destructive">*</span>
+          </Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => handleEmailChange(e.target.value)}
+              onBlur={() => setEmailError(validateEmail(email))}
+              className={`pl-9 h-10 text-sm ${emailError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+              disabled={isRegistering}
+              required
+            />
+          </div>
+          {emailError && (
+            <p className="text-[11px] text-destructive font-medium">{emailError}</p>
+          )}
         </div>
 
         {/* Password */}
         <div className="space-y-1.5">
-          <Label htmlFor="password" className="text-xs font-semibold">Mật khẩu <span className="text-destructive">*</span></Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" className="text-xs font-semibold">
+              Password <span className="text-destructive">*</span>
+            </Label>
+            <span className="text-[11px] text-muted-foreground">Min 8 characters</span>
+          </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Tối thiểu 6 ký tự"
-              autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="pl-9 pr-10 h-10" disabled={isRegistering} required />
-            <button type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Hiện/ẩn">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pl-9 pr-10 h-10 text-sm"
+              disabled={isRegistering}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Toggle password visibility"
+            >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
@@ -123,7 +273,12 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
             <div className="flex items-center gap-2 pt-0.5">
               <div className="flex flex-1 gap-1 h-1.5">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className={`flex-1 rounded-full ${strength.score >= i ? strength.color : 'bg-muted'}`} />
+                  <div
+                    key={i}
+                    className={`flex-1 rounded-full ${
+                      strength.score >= i ? strength.color : 'bg-muted'
+                    }`}
+                  />
                 ))}
               </div>
               <span className="text-[11px] text-muted-foreground">{strength.label}</span>
@@ -133,60 +288,68 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
         {/* Confirm Password */}
         <div className="space-y-1.5">
-          <Label htmlFor="confirmPassword" className="text-xs font-semibold">Xác nhận mật khẩu <span className="text-destructive">*</span></Label>
+          <Label htmlFor="confirmPassword" className="text-xs font-semibold">
+            Confirm Password <span className="text-destructive">*</span>
+          </Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input id="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="Nhập lại mật khẩu"
-              autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-              className="pl-9 h-10" disabled={isRegistering} required />
+            <Input
+              id="confirmPassword"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Re-enter your password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="pl-9 h-10 text-sm"
+              disabled={isRegistering}
+              required
+            />
           </div>
         </div>
 
         {/* Terms */}
         <div className="flex items-start gap-2 pt-0.5">
-          <Checkbox id="terms" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(Boolean(v))} className="mt-0.5" />
+          <Checkbox
+            id="terms"
+            checked={termsAccepted}
+            onCheckedChange={(v) => setTermsAccepted(Boolean(v))}
+            className="mt-0.5"
+          />
           <Label htmlFor="terms" className="text-xs text-muted-foreground font-normal cursor-pointer leading-snug">
-            Tôi đồng ý <Link to="/terms" className="text-primary hover:underline">Điều khoản</Link> &{' '}
-            <Link to="/privacy" className="text-primary hover:underline">Bảo mật</Link>
+            I agree to the{' '}
+            <Link to="/terms" className="text-primary hover:underline">
+              Terms of Service
+            </Link>{' '}
+            &{' '}
+            <Link to="/privacy" className="text-primary hover:underline">
+              Privacy Policy
+            </Link>
           </Label>
         </div>
 
-        <Button type="submit" disabled={isRegistering} className="w-full h-10 font-semibold gap-2">
-          {isRegistering
-            ? <><Loader2 className="size-4 animate-spin" />Đang tạo tài khoản...</>
-            : <><UserPlus className="size-4" />Đăng ký</>}
+        {/* Submit */}
+        <Button type="submit" disabled={isRegistering} className="w-full h-10 font-semibold gap-2 mt-1">
+          {isRegistering ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Creating account...
+            </>
+          ) : (
+            <>
+              <UserPlus className="size-4" />
+              Create Account
+            </>
+          )}
         </Button>
       </form>
 
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Hoặc</span>
-        </div>
-      </div>
-
-      {/* Google */}
-      <Button type="button" variant="outline" onClick={handleGoogle} disabled={isRegistering} className="w-full h-10 gap-3">
-        <GoogleIcon />
-        Đăng ký với Google
-      </Button>
-
-      <p className="text-center text-sm text-muted-foreground">
-        Đã có tài khoản?{' '}
-        <Link to="/login" className="font-semibold text-primary hover:underline">Đăng nhập</Link>
+      {/* Footer Link (Clean and simple, no Google OAuth button) */}
+      <p className="text-center text-sm text-muted-foreground pt-2">
+        Already have an account?{' '}
+        <Link to="/login" className="font-semibold text-primary hover:underline">
+          Sign In
+        </Link>
       </p>
     </div>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg className="size-4" viewBox="0 0 24 24">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-    </svg>
   );
 }

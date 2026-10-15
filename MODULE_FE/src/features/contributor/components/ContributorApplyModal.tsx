@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle2, Clock, Sparkles } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Award } from 'lucide-react';
 import { contributorApplicationApi } from '../api/contributor-application.api';
 
 interface ContributorApplyModalProps {
@@ -80,7 +80,7 @@ export function ContributorApplyModal({ open, onOpenChange }: ContributorApplyMo
       <DialogContent className="sm:max-w-[540px]">
         <DialogHeader>
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-            <Sparkles className="size-5" />
+            <Award className="size-5" />
             <DialogTitle className="text-xl">Đăng Ký Quyền Contributor</DialogTitle>
           </div>
           <DialogDescription>
@@ -131,7 +131,7 @@ export function ContributorApplyModal({ open, onOpenChange }: ContributorApplyMo
             <div className="space-y-1">
               <p className="font-semibold text-base">Bạn đã là Contributor chính thức!</p>
               <p className="text-xs text-muted-foreground">
-                Bạn có thể mở Contributor Studio trên thanh menu để bắt đầu soạn thảo nội dung.
+                Bạn có thể vào Dashboard để bắt đầu quản lý nội dung và tạo bài lab thực hành.
               </p>
             </div>
             <DialogFooter className="sm:justify-center">

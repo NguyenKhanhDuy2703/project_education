@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import {
   Heading2,
   Table as TableIcon,
   Link as LinkIcon,
-  Sparkles,
+  FileText,
   Maximize2,
   Minimize2,
   Eye,
@@ -38,6 +38,19 @@ export function MarkdownEditorWithPreview({
   const [activeMobileTab, setActiveMobileTab] = useState<'edit' | 'preview'>('edit');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isSyncingScroll = useRef(false);
+
+  // Debounce preview rendering to eliminate typing lag in editor
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [value]);
+
+  const previewHtml = useMemo(() => {
+    return renderMarkdown(debouncedValue);
+  }, [debouncedValue]);
 
   // Sync scroll from textarea to preview
   const handleEditorScroll = () => {
@@ -273,7 +286,7 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             className="h-7 text-[11px] font-semibold gap-1 px-2.5 text-primary border-primary/30 hover:bg-primary/5"
             title="Chèn nội dung mẫu chuẩn theo loại bài tập"
           >
-            <Sparkles className="size-3" />
+            <FileText className="size-3" />
             <span>Mẫu {sandboxType === 'sql_worker' ? 'SQL' : sandboxType === 'quizlet' ? 'Quizlet' : 'JS'}</span>
           </Button>
         </div>
@@ -359,7 +372,7 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             style={{ maxHeight: isFullscreen ? 'calc(100vh - 170px)' : minHeight }}
             dangerouslySetInnerHTML={{
               __html:
-                renderMarkdown(value) ||
+                previewHtml ||
                 '<p class="text-xs text-muted-foreground italic">Chưa có nội dung xem trước. Hãy nhập markdown ở cột bên trái...</p>',
             }}
           />

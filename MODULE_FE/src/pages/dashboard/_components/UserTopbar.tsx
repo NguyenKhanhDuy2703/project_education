@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Menu, Sparkles } from 'lucide-react';
+import { LogOut, User, Menu, Award } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 
@@ -54,7 +54,7 @@ export function UserTopbar({ onToggleMobileMenu }: UserTopbarProps) {
       <div className="flex items-center gap-3">
         {user?.isContributor && (
           <Badge variant="outline" className="hidden sm:inline-flex text-[11px] font-semibold gap-1 border-primary/30 text-primary">
-            <Sparkles className="size-3" /> Contributor
+            <Award className="size-3" /> Contributor
           </Badge>
         )}
 

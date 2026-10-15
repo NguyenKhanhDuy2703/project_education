@@ -22,7 +22,7 @@ export function ProtectedRoute({ allowedRoles, requiredPermission, requireContri
   }
 
   if (requireContributor) {
-    const isAllowed = user.role === 'admin' || user.isContributor === true;
+    const isAllowed = user.role === 'admin' || user.role === 'contributor' || user.isContributor === true;
     if (!isAllowed) {
       return <Navigate to="/?unauthorized=contributor" replace />;
     }

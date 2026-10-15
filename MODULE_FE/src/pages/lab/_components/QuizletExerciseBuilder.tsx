@@ -159,7 +159,7 @@ export function QuizletExerciseBuilder({
 
     try {
       // Split by numbers or ##
-      const rawBlocks = bulkImportText.split(/(?:^|\n)(?=\d+[\.\)]|##\s*Câu)/).filter(Boolean);
+      const rawBlocks = bulkImportText.split(/(?:^|\n)(?=\d+[.\)]|##\s*Câu)/).filter(Boolean);
       const parsedList: QuizQuestion[] = [];
 
       rawBlocks.forEach((block, idx) => {
@@ -167,7 +167,7 @@ export function QuizletExerciseBuilder({
         if (lines.length < 3) return;
 
         // Prompt line
-        const prompt = lines[0].replace(/^\d+[\.\)]\s*|^##\s*Câu\s*\d*[:\.]?\s*/i, '').trim();
+        const prompt = lines[0].replace(/^\d+[.\)]\s*|^##\s*Câu\s*\d*[:.]?\s*/i, '').trim();
 
         // Option lines (A. B. C. D.)
         const options: string[] = [];
@@ -175,7 +175,7 @@ export function QuizletExerciseBuilder({
         let explanation = '';
 
         lines.slice(1).forEach((line) => {
-          const optMatch = line.match(/^([A-Fa-f])[\.\)]\s*(.+)/);
+          const optMatch = line.match(/^([A-Fa-f])[.\)]\s*(.+)/);
           if (optMatch) {
             options.push(optMatch[2].trim());
           } else if (line.toLowerCase().startsWith('đáp án:') || line.toLowerCase().startsWith('answer:')) {
@@ -357,7 +357,7 @@ export function QuizletExerciseBuilder({
                       {idx + 1}
                     </span>
                     <span className="text-xs truncate">
-                      {q.question.replace(/^[#\*\s]+/, '') || `Câu hỏi ${idx + 1}`}
+                      {q.question.replace(/^[#*\s]+/, '') || `Câu hỏi ${idx + 1}`}
                     </span>
                   </div>
 
