@@ -17,7 +17,7 @@ import { Request } from 'express';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ResourceOwnerGuard } from '../../common/guards/resource-owner.guard';
-import { UserRole } from '@prisma/client';
+import { ContributorGuard } from '../../common/guards/contributor.guard';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { LabsService } from './labs.service';
 import { CreateLabDto } from './dto/create-lab.dto';
@@ -31,8 +31,7 @@ export class LabsController {
   constructor(private readonly labsService: LabsService) {}
 
   @Get('contributor/my-labs')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get practice labs authored by currently authenticated contributor' })
   async findMyLabs(@Req() req: Request & { user: any }) {
@@ -71,8 +70,7 @@ export class LabsController {
   }
 
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new practice lab / blog (Admin or Contributor)' })
   @HttpCode(HttpStatus.CREATED)
@@ -81,8 +79,7 @@ export class LabsController {
   }
 
   @Put(':id')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, ResourceOwnerGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard, ResourceOwnerGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a practice lab / blog (Author or Admin only)' })
   async update(
@@ -94,8 +91,7 @@ export class LabsController {
   }
 
   @Post(':id/submit-for-review')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, ResourceOwnerGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard, ResourceOwnerGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Submit practice lab to Admin Review Queue' })
   async submitForReview(@Param('id') id: string, @Req() req: Request & { user: any }) {
@@ -103,8 +99,7 @@ export class LabsController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, ResourceOwnerGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard, ResourceOwnerGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a practice lab / blog (Author or Admin only)' })
   @HttpCode(HttpStatus.NO_CONTENT)

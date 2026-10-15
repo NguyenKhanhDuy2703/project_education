@@ -19,7 +19,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ResourceOwnerGuard } from '../../common/guards/resource-owner.guard';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
-import { UserRole } from '@prisma/client';
+import { ContributorGuard } from '../../common/guards/contributor.guard';
 import { SeriesService } from './series.service';
 import { CreateSeriesDto } from './dto/create-series.dto';
 import { UpdateSeriesDto } from './dto/update-series.dto';
@@ -37,8 +37,7 @@ export class SeriesController {
   }
 
   @Get('contributor/my-series')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get series authored by currently authenticated contributor' })
   async findMySeries(@Req() req: Request & { user: any }) {
@@ -53,8 +52,7 @@ export class SeriesController {
   }
 
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create new topic / series (Admin or Contributor)' })
   @HttpCode(HttpStatus.CREATED)
@@ -63,8 +61,7 @@ export class SeriesController {
   }
 
   @Put(':id')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, ResourceOwnerGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard, ResourceOwnerGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update topic / series (Author or Admin only)' })
   async update(
@@ -76,8 +73,7 @@ export class SeriesController {
   }
 
   @Post(':id/submit-for-review')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, ResourceOwnerGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard, ResourceOwnerGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Submit topic / series to Admin Review Queue' })
   async submitForReview(@Param('id') id: string, @Req() req: Request & { user: any }) {
@@ -85,8 +81,7 @@ export class SeriesController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, ResourceOwnerGuard)
-  @Roles(UserRole.admin, UserRole.contributor)
+  @UseGuards(AuthGuard('jwt'), ContributorGuard, ResourceOwnerGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete topic / series (Author or Admin only)' })
   @HttpCode(HttpStatus.NO_CONTENT)

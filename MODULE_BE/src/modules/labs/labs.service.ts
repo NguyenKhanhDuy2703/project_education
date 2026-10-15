@@ -184,9 +184,9 @@ export class LabsService {
       throw new ConflictException(`Slug "${targetSlug}" already exists. Please choose another.`);
     }
 
-    // Contributors are restricted strictly to draft status
+    // Contributors & non-admin authors are restricted strictly to draft status
     const status =
-      user.role === UserRole.contributor
+      user.role !== UserRole.admin
         ? ContentLifecycleStatus.draft
         : (dto as any).status || ContentLifecycleStatus.draft;
 
@@ -234,7 +234,7 @@ export class LabsService {
 
     // Anti-Bypass: Strip unauthorized direct status promotions by Contributor
     const updateData: any = { ...dto };
-    if (user.role === UserRole.contributor) {
+    if (user.role !== UserRole.admin) {
       delete updateData.status;
       // If content was changes_requested and being edited, reset to draft
       if (existing.status === ContentLifecycleStatus.changes_requested) {
@@ -251,7 +251,7 @@ export class LabsService {
   async submitForReview(id: string, user: { userId: string; role: UserRole }) {
     const lab = await this.findById(id);
 
-    if (user.role === UserRole.contributor && lab.authorId !== user.userId) {
+    if (user.role !== UserRole.admin && lab.authorId !== user.userId) {
       throw new ForbiddenException('You can only submit your own labs for review');
     }
 
