@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAppSelector } from '@/stores/store';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AppBreadcrumb } from '@/components/layout/AppBreadcrumb';
@@ -8,10 +9,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Settings, LogOut, User, Menu } from 'lucide-react';
+import { Bell, KeyRound, LogOut, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/stores/store';
 import { logout } from '@/stores/slices/auth.slice';
+import { ChangePasswordModal } from '@/components/domain';
 
 interface AdminTopbarProps {
   onToggleMobileMenu?: () => void;
@@ -28,6 +30,7 @@ export function AdminTopbar({ onToggleMobileMenu }: AdminTopbarProps) {
   const { user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -77,22 +80,23 @@ export function AdminTopbar({ onToggleMobileMenu }: AdminTopbarProps) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => navigate('/user/dashboard')}>
-              <User className="size-4 mr-2" />
-              My Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
-              <Settings className="size-4 mr-2" />
-              Settings
+            <DropdownMenuItem onClick={() => setChangePasswordOpen(true)} className="cursor-pointer">
+              <KeyRound className="size-4 mr-2" />
+              Đổi mật khẩu
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
               <LogOut className="size-4 mr-2" />
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+      />
     </header>
   );
 }
