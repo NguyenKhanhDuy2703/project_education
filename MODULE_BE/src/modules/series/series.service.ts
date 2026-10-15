@@ -141,9 +141,9 @@ export class SeriesService {
       throw new ConflictException(`Slug "${targetSlug}" already exists. Please choose another.`);
     }
 
-    // Contributors are restricted strictly to draft status
+    // Contributors & non-admin authors are restricted strictly to draft status
     const status =
-      user.role === UserRole.contributor
+      user.role !== UserRole.admin
         ? ContentLifecycleStatus.draft
         : (dto as any).status || ContentLifecycleStatus.draft;
 
@@ -182,7 +182,7 @@ export class SeriesService {
 
     // Anti-Bypass: Strip unauthorized direct status promotions by Contributor
     const updateData: any = { ...dto };
-    if (user.role === UserRole.contributor) {
+    if (user.role !== UserRole.admin) {
       delete updateData.status;
       // If content was changes_requested and being edited, reset to draft
       if (existing.status === ContentLifecycleStatus.changes_requested) {
@@ -199,7 +199,7 @@ export class SeriesService {
   async submitForReview(id: string, user: { userId: string; role: UserRole }) {
     const series = await this.findById(id);
 
-    if (user.role === UserRole.contributor && series.authorId !== user.userId) {
+    if (user.role !== UserRole.admin && series.authorId !== user.userId) {
       throw new ForbiddenException('You can only submit your own content for review');
     }
 
