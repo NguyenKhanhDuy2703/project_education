@@ -8,7 +8,7 @@ authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
 scope: Feedback Subsystem, Learner In-App Feedback Widget, Admin Feedback Hub (/admin/feedback), KPI Analytics, and Triage Workflow
 date: 2026-10-14
-source_file: "MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx, MODULE_BE/src/modules/feedback"
+source_file: "MODULE_ADMIN/src/pages/admin/AdminFeedbackPage.tsx, MODULE_ADMIN/src/features/admin/api/feedback.admin.api.ts, MODULE_BE/src/modules/feedback"
 status: final
 language: en
 related_docs: [01-auth-login-to-home.md, 09-admin-users-and-entitlements.md]
@@ -21,11 +21,11 @@ related_docs: [01-auth-login-to-home.md, 09-admin-users-and-entitlements.md]
 | Attribute | Details |
 |---|---|
 | **Document Title** | User Feedback Collection & Admin Resolution Loop Workflow |
-| **Version** | v1.0 |
+| **Version** | v1.1 |
 | **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Scope** | End-to-end user feedback cycle: From in-app user submission of bug reports or suggestions, database persistence, to Administrator inspection, categorization (`bug`, `feature_request`, `content_lab`, `other`), contextual page URL navigation, and triage tracking at `/admin/feedback` |
-| **Date** | 2026-10-14 |
-| **Source Reference** | `MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx`, `MODULE_BE/src/modules/feedback/feedback.controller.ts`, `MODULE_BE/src/modules/feedback/feedback.service.ts` |
+| **Scope** | Cross-app user feedback cycle: In-app user submission of bug reports or suggestions in `MODULE_FE`, database persistence, to Administrator inspection, categorization (`bug`, `feature_request`, `content_lab`, `other`), contextual page URL navigation, and triage tracking in `MODULE_ADMIN` at `/admin/feedback` |
+| **Date** | 2026-10-15 |
+| **Source Reference** | `MODULE_ADMIN/src/pages/admin/AdminFeedbackPage.tsx`, `MODULE_BE/src/modules/feedback/feedback.controller.ts`, `MODULE_BE/src/modules/feedback/feedback.service.ts` |
 
 ---
 
@@ -133,11 +133,11 @@ sequenceDiagram
 
 ## 3. References & Source Links
 
-- **Frontend Codebase**:
-  - Admin Feedback Page: [AdminFeedbackPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/AdminFeedbackPage.tsx)
-  - Feedback Admin API: [feedback.admin.api.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/admin/api/feedback.admin.api.ts)
-  - Pagination Component: [data-table-pagination.tsx](file:///d:/Projects/study-web/MODULE_FE/src/components/ui/data-table-pagination.tsx)
-- **Backend Codebase**:
+- **Frontend Codebase (MODULE_ADMIN)**:
+  - Admin Feedback Page: [AdminFeedbackPage.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/AdminFeedbackPage.tsx)
+  - Feedback Admin API: [feedback.admin.api.ts](file:///d:/Projects/study-web/MODULE_ADMIN/src/features/admin/api/feedback.admin.api.ts)
+  - Pagination Component: [data-table-pagination.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/components/ui/data-table-pagination.tsx)
+- **Backend Codebase (MODULE_BE)**:
   - Feedback Controller: [feedback.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/feedback/feedback.controller.ts)
   - Feedback Service: [feedback.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/feedback/feedback.service.ts)
 - **Related Workflows**:
