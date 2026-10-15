@@ -16,7 +16,7 @@ import {
   Ban,
   CheckCircle2,
   Clock,
-  Sparkles,
+  ShieldCheck,
   AlertTriangle,
   Users,
   Key,
@@ -647,7 +647,7 @@ export function UserEntitlementsModal({ userId, onClose }: UserEntitlementsModal
                                     }
                                     className="h-7 text-[11px] gap-1 hover:text-amber-500"
                                   >
-                                    <Sparkles className="size-3" /> Grant
+                                    <ShieldCheck className="size-3" /> Grant
                                   </Button>
 
                                   <Button

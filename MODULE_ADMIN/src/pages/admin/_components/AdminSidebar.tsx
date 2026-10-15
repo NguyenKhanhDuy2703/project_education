@@ -21,7 +21,7 @@ import {
   LogOut,
   ExternalLink,
   Shield,
-  Sparkles,
+  Award,
   MessageSquareQuote,
   PanelLeftClose,
   PanelLeftOpen,
@@ -64,7 +64,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Access & IAM',
     items: [
       { label: 'Users', href: '/admin/users', icon: Users },
-      { label: 'Contributors', href: '/admin/contributors', icon: Sparkles },
+      { label: 'Contributors', href: '/admin/contributors', icon: Award },
       { label: 'Plans', href: '/admin/plans', icon: CreditCard },
       { label: 'User Groups', href: '/admin/groups', icon: Shield },
     ],

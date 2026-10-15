@@ -5,7 +5,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Database,
   Play,
-  Sparkles,
+  FileCode2,
+  Zap,
   Table as TableIcon,
   Plus,
   Trash2,
@@ -290,7 +291,7 @@ ORDER BY total_spent DESC;`);
             onClick={handleApplyPreset}
             className="h-8 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground"
           >
-            <Sparkles className="size-3.5 text-primary" />
+            <FileCode2 className="size-3.5 text-primary" />
             <span>Mẫu SQL chuẩn</span>
           </Button>
 
@@ -485,7 +486,7 @@ ORDER BY total_spent DESC;`);
                 onClick={handleGenerateFromSolution}
                 className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
               >
-                <Sparkles className="size-3.5" />
+                <Zap className="size-3.5" />
                 <span>⚡ Sinh test case từ Solution</span>
               </Button>
             </div>
@@ -527,7 +528,7 @@ ORDER BY total_spent DESC;`);
                   onClick={handleGenerateFromSolution}
                   className="h-7 text-xs font-semibold gap-1 text-primary border-primary/30"
                 >
-                  <Sparkles className="size-3" />
+                  <Zap className="size-3" />
                   <span>⚡ Tự sinh từ Solution</span>
                 </Button>
 

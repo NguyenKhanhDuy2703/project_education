@@ -7,7 +7,7 @@ import {
   Code2,
   ShieldAlert,
   ArrowUpRight,
-  Sparkles,
+  Crown,
   Clock,
   ChevronRight,
   TrendingUp,
@@ -148,7 +148,7 @@ export function AdminDashboardPage() {
               {isLoadingSeries ? '...' : `${totalSeries} / ${totalLabs}`}
             </div>
             <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <Sparkles className="size-3 text-amber-500" />
+              <Crown className="size-3 text-amber-500" />
               <span>{proSeriesCount} Pro-exclusive topics</span>
             </p>
           </CardContent>

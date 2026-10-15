@@ -19,6 +19,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
+import { AdminToast } from './_components/AdminToast';
 import {
   MessageSquareQuote,
   Bug,
@@ -32,6 +33,8 @@ import {
   Calendar,
   Mail,
   User,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 function getCategoryBadge(cat: FeedbackCategory) {
@@ -67,10 +70,42 @@ function getCategoryBadge(cat: FeedbackCategory) {
   }
 }
 
+function parseFeedbackMessage(msg: string) {
+  const match = msg.match(/^\[(?:Tính năng|Feature):\s*([^\]]+)\]\s*([\s\S]*)$/i);
+  if (match) {
+    return { feature: match[1].trim(), content: match[2].trim() };
+  }
+  return { feature: null, content: msg };
+}
+
 export function AdminFeedbackPage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [selectedFeedback, setSelectedFeedback] = useState<AdminFeedbackItem | null>(null);
+  const [feedbackToDelete, setFeedbackToDelete] = useState<AdminFeedbackItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const handleDeleteConfirm = async () => {
+    if (!feedbackToDelete) return;
+    setIsDeleting(true);
+    try {
+      await feedbackAdminApi.delete(feedbackToDelete.id);
+      setToastMessage({ text: 'Feedback deleted successfully', type: 'success' });
+      setFeedbackToDelete(null);
+      if (selectedFeedback?.id === feedbackToDelete.id) {
+        setSelectedFeedback(null);
+      }
+      refetch();
+    } catch (err: any) {
+      setToastMessage({
+        text: err?.response?.data?.message || 'Failed to delete feedback',
+        type: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Pagination state: 10 items/page
   const [page, setPage] = useState(1);
@@ -264,9 +299,21 @@ export function AdminFeedbackPage() {
                     </span>
                   </div>
 
-                  <p className="text-xs text-foreground line-clamp-2 leading-relaxed bg-muted/20 p-2.5 rounded-lg border border-border/50">
-                    {item.message}
-                  </p>
+                  {(() => {
+                    const { feature, content } = parseFeedbackMessage(item.message);
+                    return (
+                      <div className="text-xs text-foreground bg-muted/20 p-2.5 rounded-lg border border-border/50 space-y-1">
+                        {feature && (
+                          <div className="flex items-center gap-1.5 pb-0.5">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                              Feature: {feature}
+                            </span>
+                          </div>
+                        )}
+                        <p className="line-clamp-2 leading-relaxed">{content}</p>
+                      </div>
+                    );
+                  })()}
 
                   {item.pageUrl && (
                     <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 truncate">
@@ -284,15 +331,28 @@ export function AdminFeedbackPage() {
                   )}
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedFeedback(item)}
-                  className="h-8 text-xs font-semibold gap-1.5 shrink-0 self-end sm:self-center"
-                >
-                  <Eye className="size-3.5" />
-                  <span>Inspect</span>
-                </Button>
+                <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedFeedback(item)}
+                    className="h-8 text-xs font-semibold gap-1.5 cursor-pointer"
+                  >
+                    <Eye className="size-3.5" />
+                    <span>Inspect</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setFeedbackToDelete(item)}
+                    className="size-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+                    title="Delete feedback"
+                    aria-label="Delete feedback"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -354,19 +414,46 @@ export function AdminFeedbackPage() {
 
               <div className="space-y-1.5">
                 <span className="text-muted-foreground text-[11px] block font-semibold">Full Message</span>
-                <div className="p-3 bg-muted/60 border border-border rounded-lg text-xs leading-relaxed text-foreground whitespace-pre-wrap max-h-60 overflow-y-auto">
-                  {selectedFeedback.message}
-                </div>
+                {(() => {
+                  const { feature, content } = parseFeedbackMessage(selectedFeedback.message);
+                  return (
+                    <div className="p-3 bg-muted/60 border border-border rounded-lg text-xs leading-relaxed text-foreground whitespace-pre-wrap max-h-60 overflow-y-auto space-y-2">
+                      {feature && (
+                        <div>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-primary/15 text-primary border border-primary/30">
+                            Feature: {feature}
+                          </span>
+                        </div>
+                      )}
+                      <div>{content}</div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex flex-row items-center justify-between gap-2 w-full pt-2">
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  const target = selectedFeedback;
+                  setSelectedFeedback(null);
+                  setFeedbackToDelete(target);
+                }}
+                className="text-xs gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Delete Feedback</span>
+              </Button>
+
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedFeedback(null)}
-                className="text-xs"
+                className="text-xs cursor-pointer"
               >
                 Close
               </Button>
@@ -374,6 +461,74 @@ export function AdminFeedbackPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {feedbackToDelete && (
+        <Dialog
+          open={Boolean(feedbackToDelete)}
+          onOpenChange={(open) => !open && !isDeleting && setFeedbackToDelete(null)}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <div className="flex items-center gap-2 text-destructive">
+                <span className="p-2 rounded-full bg-destructive/10">
+                  <AlertTriangle className="size-5 text-destructive" />
+                </span>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Delete Feedback
+                </DialogTitle>
+              </div>
+              <DialogDescription className="text-xs text-muted-foreground pt-2">
+                Are you sure you want to permanently delete this feedback from{' '}
+                <strong className="text-foreground">
+                  {feedbackToDelete.user?.name || feedbackToDelete.email || 'Guest User'}
+                </strong>
+                ? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="p-3 bg-muted/40 rounded-lg text-xs text-foreground italic border border-border/50 line-clamp-3">
+              "{feedbackToDelete.message}"
+            </div>
+
+            <DialogFooter className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setFeedbackToDelete(null)}
+                disabled={isDeleting}
+                className="text-xs cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="text-xs gap-1.5 cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="size-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="size-3.5" />
+                    <span>Confirm Delete</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Toast Notification */}
+      <AdminToast message={toastMessage} onClose={() => setToastMessage(null)} />
     </div>
   );
 }
