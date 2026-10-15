@@ -58,6 +58,8 @@ export interface User {
   email?: string | null;
   phone?: string;
   role: UserRole;
+  isContributor?: boolean;
+  contributorStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   groupIds?: string[];
   effectivePermissions?: PermissionCode[];
   avatarUrl?: string | null;

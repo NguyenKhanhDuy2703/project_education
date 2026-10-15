@@ -54,7 +54,7 @@ import { useAppSelector } from '@/stores/store';
 import { can } from '@/features/auth/permissions';
 import type { AxiosError } from 'axios';
 import Editor from '@monaco-editor/react';
-import { renderMarkdown } from '../admin/_utils/renderMarkdown';
+import { renderMarkdown } from './_components/renderMarkdown';
 import type { QuizQuestion, LabSubmissionRecord, LabSummary } from '@/types/lab.types';
 import {
   ChevronLeft,

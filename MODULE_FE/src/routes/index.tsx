@@ -2,98 +2,87 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { LabLayout } from '@/layouts/LabLayout';
-import { AdminLayout } from '@/layouts/AdminLayout';
-import { ContributorLayout } from '@/layouts/ContributorLayout';
-import { ContributorDashboardPage } from '@/pages/contributor/ContributorDashboardPage';
-import { ContributorContentPage } from '@/pages/contributor/ContributorContentPage';
+import { UserDashboardLayout } from '@/layouts/UserDashboardLayout';
+
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { GoogleCallbackPage } from '@/pages/auth/GoogleCallbackPage';
-import { DashboardPage } from '@/pages/dashboard/DashboardPage';
+
+import { DashboardOverviewView } from '@/pages/dashboard/views/DashboardOverviewView';
+import { UserProfileView } from '@/pages/dashboard/views/UserProfileView';
+import { UserContentManagementView } from '@/pages/dashboard/views/UserContentManagementView';
+import { UserReviewFeedbackView } from '@/pages/dashboard/views/UserReviewFeedbackView';
+import { UserSavedSeriesView } from '@/pages/dashboard/views/UserSavedSeriesView';
+import { UserLabSubmissionsView } from '@/pages/dashboard/views/UserLabSubmissionsView';
+
 import { SeriesHubPage } from '@/pages/lab/SeriesHubPage';
 import { SeriesDetailPage } from '@/pages/lab/SeriesDetailPage';
 import { LabWorkspacePage } from '@/pages/lab/LabWorkspacePage';
-import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
-import { AdminReviewPage } from '@/pages/admin/AdminReviewPage';
-import { AdminContentPage } from '@/pages/admin/AdminContentPage';
-import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
-import { AdminPlansPage } from '@/pages/admin/AdminPlansPage';
-import { AdminGroupsPage } from '@/pages/admin/AdminGroupsPage';
-import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
-import { AdminLabStudioPage } from '@/pages/admin/AdminLabStudioPage';
-import { AdminFeedbackPage } from '@/pages/admin/AdminFeedbackPage';
+import { LabStudioPage } from '@/pages/lab/LabStudioPage';
+
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export const router = createBrowserRouter([
-  // ── Public + MainLayout routes ─────────────────────────────────────────────
+  // ── Public catalog & Landing routes ───────────────────────────────────────
   {
     path: '/',
     element: <MainLayout />,
     children: [
       { index: true, element: <HomePage /> },
-
-      // Public series catalog
       { path: 'series', element: <SeriesHubPage /> },
       { path: 'series/:slug', element: <SeriesDetailPage /> },
-
-      // Protected routes (must be logged in)
-      {
-        element: <ProtectedRoute />,
-        children: [
-          { path: 'user/dashboard', element: <DashboardPage /> },
-          { path: 'user', element: <Navigate to="/user/dashboard" replace /> },
-          { path: 'dashboard', element: <Navigate to="/user/dashboard" replace /> },
-        ],
-      },
-
+      { path: 'user', element: <Navigate to="/user/dashboard" replace /> },
+      { path: 'dashboard', element: <Navigate to="/user/dashboard" replace /> },
+      { path: 'settings', element: <Navigate to="/user/dashboard/profile" replace /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
 
-  // ── Contributor Studio routes (Dedicated layout with Sidebar, no public Navbar/Footer) ──
+  // ── Unified User Dashboard & Contributor Hub routes ───────────────────────
   {
-    path: '/contributor',
-    element: <ProtectedRoute allowedRoles={['contributor', 'admin']} />,
+    path: '/user/dashboard',
+    element: <ProtectedRoute />,
     children: [
       {
-        element: <ContributorLayout />,
+        element: <UserDashboardLayout />,
         children: [
-          { index: true, element: <ContributorDashboardPage /> },
-          { path: 'topics', element: <Navigate to="/contributor/series" replace /> },
-          { path: 'series', element: <ContributorContentPage defaultTab="series" /> },
-          { path: 'labs', element: <ContributorContentPage defaultTab="labs" /> },
-          { path: 'labs/new', element: <AdminLabStudioPage /> },
-          { path: 'labs/:labId/edit', element: <AdminLabStudioPage /> },
-          { path: 'create', element: <Navigate to="/contributor?create=true" replace /> },
-          { path: 'feedback', element: <ContributorContentPage defaultTab="feedback" /> },
-          { path: 'published', element: <ContributorContentPage defaultTab="published" /> },
+          { index: true, element: <DashboardOverviewView /> },
+          { path: 'profile', element: <UserProfileView /> },
+          { path: 'saved', element: <UserSavedSeriesView /> },
+          { path: 'submissions', element: <UserLabSubmissionsView /> },
+
+          // Contributor capability views (Protected by Contributor permission)
+          {
+            element: <ProtectedRoute requireContributor />,
+            children: [
+              { path: 'content', element: <UserContentManagementView /> },
+              { path: 'feedback', element: <UserReviewFeedbackView /> },
+              { path: 'series', element: <Navigate to="/user/dashboard/content?tab=series" replace /> },
+              { path: 'labs', element: <Navigate to="/user/dashboard/content?tab=labs" replace /> },
+              { path: 'labs/new', element: <LabStudioPage /> },
+              { path: 'labs/:labId/edit', element: <LabStudioPage /> },
+            ],
+          },
         ],
       },
     ],
   },
 
-  // ── Admin Studio routes (Dedicated layout with Sidebar, no public Navbar/Footer) ──
+  // ── Backward Compatibility Redirects from legacy /contributor routes ─────
   {
-    path: '/admin',
-    element: <ProtectedRoute allowedRoles={['admin']} />,
+    path: '/contributor',
+    element: <ProtectedRoute requireContributor />,
     children: [
-      {
-        element: <AdminLayout />,
-        children: [
-          { index: true, element: <AdminDashboardPage /> },
-          { path: 'review', element: <AdminReviewPage /> },
-          { path: 'content', element: <AdminContentPage /> },
-          { path: 'labs/new', element: <AdminLabStudioPage /> },
-          { path: 'labs/:labId/edit', element: <AdminLabStudioPage /> },
-          { path: 'users', element: <AdminUsersPage /> },
-          { path: 'plans', element: <AdminPlansPage /> },
-          { path: 'groups', element: <AdminGroupsPage /> },
-          { path: 'feedback', element: <AdminFeedbackPage /> },
-          { path: 'audit', element: <AdminAuditPage /> },
-        ],
-      },
+      { index: true, element: <Navigate to="/user/dashboard/content" replace /> },
+      { path: 'series', element: <Navigate to="/user/dashboard/content?tab=series" replace /> },
+      { path: 'labs', element: <Navigate to="/user/dashboard/content?tab=labs" replace /> },
+      { path: 'labs/new', element: <Navigate to="/user/dashboard/labs/new" replace /> },
+      { path: 'labs/:labId/edit', element: <Navigate to="/user/dashboard/labs/:labId/edit" replace /> },
+      { path: 'feedback', element: <Navigate to="/user/dashboard/feedback" replace /> },
+      { path: 'published', element: <Navigate to="/user/dashboard/content?tab=published" replace /> },
+      { path: '*', element: <Navigate to="/user/dashboard/content" replace /> },
     ],
   },
 
