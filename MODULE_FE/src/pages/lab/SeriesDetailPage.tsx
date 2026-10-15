@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UpgradeModal } from '@/features/lab/components/UpgradeModal';
 import { StatusBadge } from '@/components/domain/StatusBadge';
-import { Sparkles, ArrowLeft, Clock, BookOpen, User as UserIcon } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import type { LabSummary } from '@/types/lab.types';
 
 export function SeriesDetailPage() {
@@ -62,17 +62,7 @@ export function SeriesDetailPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-10 max-w-3xl space-y-7">
-      {/* ── Back breadcrumb ─────────────────────────────────────────────── */}
-      <div>
-        <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-semibold px-2 gap-1.5 text-muted-foreground hover:text-foreground">
-          <Link to="/series">
-            <ArrowLeft className="size-3.5" />
-            All Practice Series
-          </Link>
-        </Button>
-      </div>
-
+    <div className="container mx-auto px-4 sm:px-6 py-8 max-w-3xl space-y-7">
       {/* ── Series header ───────────────────────────────────────────────── */}
       <div className="space-y-3 bg-card border border-border p-6 rounded-xl shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -82,7 +72,7 @@ export function SeriesDetailPage() {
             </Badge>
             {series.isProOnly && (
               <Badge variant="secondary" className="text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 gap-1">
-                <Sparkles className="size-3 text-amber-500" />
+                <Crown className="size-3 text-amber-500" />
                 PRO Tier
               </Badge>
             )}
@@ -95,23 +85,14 @@ export function SeriesDetailPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">{series.title}</h1>
         <p className="text-sm text-muted-foreground leading-relaxed">{series.description}</p>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-border/50">
-          <span className="flex items-center gap-1.5">
-            <BookOpen className="size-3.5 text-primary" />
-            {series.totalLabs || series.labs?.length || 0} practice labs
-          </span>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border/50">
+          <span>{series.totalLabs || series.labs?.length || 0} practice labs</span>
           <span>•</span>
-          <span className="flex items-center gap-1.5">
-            <Clock className="size-3.5 text-primary" />
-            ~{series.estimatedMinutes || 60} mins to complete
-          </span>
+          <span>~{series.estimatedMinutes || 60} mins to complete</span>
           {series.authorName && (
             <>
               <span>•</span>
-              <span className="flex items-center gap-1.5">
-                <UserIcon className="size-3.5 text-muted-foreground" />
-                Author: <strong className="text-foreground">{series.authorName}</strong>
-              </span>
+              <span>Author: <strong className="text-foreground">{series.authorName}</strong></span>
             </>
           )}
         </div>

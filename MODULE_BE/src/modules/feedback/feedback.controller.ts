@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
@@ -33,5 +44,14 @@ export class FeedbackController {
   @ApiOperation({ summary: 'List all feedbacks for Admin' })
   async findAll() {
     return this.feedbackService.findAll();
+  }
+
+  @Delete(['admin/:id', ':id'])
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.admin)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete user feedback by ID (Admin only)' })
+  async remove(@Param('id') id: string) {
+    return this.feedbackService.remove(id);
   }
 }

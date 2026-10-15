@@ -135,6 +135,34 @@ export class LabsService {
     };
   }
 
+  async getUserSubmissions(userId: string) {
+    return this.prisma.labSubmission.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        lab: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            difficulty: true,
+            sandboxType: true,
+            series: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                category: true,
+                topic: true,
+              },
+            },
+          },
+        },
+      },
+      take: 100,
+    });
+  }
+
   async getSubmissions(labId: string, userId: string) {
     const lab = await this.findById(labId);
     return this.prisma.labSubmission.findMany({

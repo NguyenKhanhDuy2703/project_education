@@ -223,7 +223,16 @@ export class UsersService {
     if (dto.name !== undefined) updateData.name = dto.name;
     if (dto.email !== undefined) updateData.email = dto.email.toLowerCase();
     if (dto.phone !== undefined) updateData.phone = dto.phone;
-    if (dto.role !== undefined) updateData.role = dto.role;
+    if (dto.role !== undefined) {
+      updateData.role = dto.role;
+      if (dto.role === UserRole.contributor) {
+        updateData.isContributor = true;
+        updateData.contributorStatus = 'APPROVED';
+      } else if (dto.role === UserRole.user || dto.role === UserRole.userPro) {
+        updateData.isContributor = false;
+        updateData.contributorStatus = 'NONE';
+      }
+    }
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
     if (dto.password) {
       updateData.password = await bcrypt.hash(dto.password, 10);
@@ -238,6 +247,8 @@ export class UsersService {
         email: true,
         phone: true,
         role: true,
+        isContributor: true,
+        contributorStatus: true,
         isActive: true,
         avatarUrl: true,
         createdAt: true,
@@ -323,9 +334,17 @@ export class UsersService {
   }
 
   async updateRole(id: string, role: UserRole): Promise<User> {
+    const data: Prisma.UserUpdateInput = { role };
+    if (role === UserRole.contributor) {
+      data.isContributor = true;
+      data.contributorStatus = 'APPROVED';
+    } else if (role === UserRole.user || role === UserRole.userPro) {
+      data.isContributor = false;
+      data.contributorStatus = 'NONE';
+    }
     return this.prisma.user.update({
       where: { id },
-      data: { role },
+      data,
     });
   }
 

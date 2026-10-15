@@ -16,12 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
-  ArrowLeft,
-  Save,
   CheckCircle2,
   ChevronLeft,
-  ChevronRight,
-  Clock,
   ShieldAlert,
   SlidersHorizontal,
 } from 'lucide-react';
@@ -46,7 +42,7 @@ export function LabStudioPage() {
 
   // ── Stepper: Step 1 (Theory & Guidelines) vs Step 2 (Exercise Configuration) ──
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
 
@@ -282,7 +278,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
       queryClient.invalidateQueries({ queryKey: ['contributor-labs'] });
 
       setToast({
-        message: isEditing ? 'Cập nhật bài thực hành thành công!' : 'Xuất bản bài thực hành thành công!',
+        message: isEditing ? 'Practice lab updated successfully!' : 'Practice lab published successfully!',
         type: 'success',
       });
       setTimeout(() => {
@@ -291,7 +287,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
     },
     onError: (err: any) => {
       setToast({
-        message: err?.response?.data?.message || 'Đã có lỗi xảy ra khi lưu bài thực hành.',
+        message: err?.response?.data?.message || 'An error occurred while saving the practice lab.',
         type: 'error',
       });
     },
@@ -300,22 +296,22 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
   const handlePublish = () => {
     if (!validationChecklist.isAllValid) {
       if (!validationChecklist.hasSeries) {
-        setToast({ message: 'Vui lòng chọn Chuyên đề / Series cha.', type: 'error' });
+        setToast({ message: 'Please select a parent curriculum series.', type: 'error' });
         setCurrentStep(1);
         return;
       }
       if (!validationChecklist.hasTitle) {
-        setToast({ message: 'Vui lòng nhập Tiêu đề bài lab (tối thiểu 5 ký tự).', type: 'error' });
+        setToast({ message: 'Please enter a lab title (minimum 5 characters).', type: 'error' });
         setCurrentStep(1);
         return;
       }
       if (!validationChecklist.hasTheory) {
-        setToast({ message: 'Nội dung Lý thuyết cần tối thiểu 100 ký tự.', type: 'error' });
+        setToast({ message: 'Theory content requires at least 100 characters.', type: 'error' });
         setCurrentStep(1);
         return;
       }
       if (!validationChecklist.hasExerciseConfig) {
-        setToast({ message: `Chưa hoàn tất Bước 2: ${validationChecklist.exerciseReason}`, type: 'error' });
+        setToast({ message: `Incomplete Step 2: ${validationChecklist.exerciseReason}`, type: 'error' });
         setCurrentStep(2);
         return;
       }
@@ -360,10 +356,9 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
       {/* ── UNIFIED FIXED TOP HEADER ───────────────────────────────── */}
       <header className="sticky top-0 z-40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-2.5 border-b border-border bg-card/95 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-semibold px-2 gap-1">
+          <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-semibold px-2 text-muted-foreground hover:text-foreground">
             <Link to={returnUrl}>
-              <ArrowLeft className="size-3.5" />
-              <span>{isContributor ? 'Về Quản lý Nội dung' : 'Về Content Studio'}</span>
+              Back to Content Hub
             </Link>
           </Button>
 
@@ -383,7 +378,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               <span className="size-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-mono">
                 1
               </span>
-              <span>Lý thuyết &amp; Hướng dẫn</span>
+              <span>Theory &amp; Guidelines</span>
             </button>
 
             <span className="text-muted-foreground/40 font-mono text-xs">→</span>
@@ -400,7 +395,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               <span className="size-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-mono">
                 2
               </span>
-              <span>Bài tập ({formatTypeName})</span>
+              <span>Exercise ({formatTypeName})</span>
             </button>
           </div>
         </div>
@@ -408,9 +403,8 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
         {/* Right Actions: Auto-save status, Save Draft, and Single Publish Button */}
         <div className="flex items-center gap-2.5">
           {lastSavedTime && (
-            <span className="text-[11px] text-muted-foreground hidden md:inline flex items-center gap-1">
-              <Clock className="size-3 text-emerald-600 dark:text-emerald-400" />
-              <span>Đã lưu {lastSavedTime}</span>
+            <span className="text-[11px] text-muted-foreground hidden md:inline">
+              Saved {lastSavedTime}
             </span>
           )}
 
@@ -419,10 +413,9 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
             variant="outline"
             size="sm"
             onClick={handleManualSaveDraft}
-            className="h-8 text-xs font-medium gap-1 text-muted-foreground hover:text-foreground"
+            className="h-8 text-xs font-medium px-3 text-muted-foreground hover:text-foreground"
           >
-            <Save className="size-3.5" />
-            <span>Lưu nháp</span>
+            Save Draft
           </Button>
 
           {/* Single Unified Publish / Submit Button with Pre-publish Checklist Gate */}
@@ -430,10 +423,9 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
             <Button
               size="sm"
               onClick={handleProceedToStep2}
-              className="h-8 text-xs font-bold px-4 gap-1.5 bg-primary text-primary-foreground shadow-xs"
+              className="h-8 text-xs font-bold px-4 bg-primary text-primary-foreground shadow-xs"
             >
-              <span>Tiếp tục: Cấu hình bài tập</span>
-              <ChevronRight className="size-3.5" />
+              Continue to Exercise
             </Button>
           ) : (
             <div className="relative group">
@@ -441,21 +433,20 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                 size="sm"
                 onClick={handlePublish}
                 disabled={saveMutation.isPending || !validationChecklist.isAllValid}
-                className={`h-8 text-xs font-bold px-4 gap-1.5 shadow-xs transition-all ${
+                className={`h-8 text-xs font-bold px-4 shadow-xs transition-all ${
                   validationChecklist.isAllValid
                     ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
                     : 'bg-muted text-muted-foreground cursor-not-allowed border border-border'
                 }`}
               >
-                <CheckCircle2 className="size-3.5" />
                 <span>
                   {saveMutation.isPending
-                    ? 'Đang lưu...'
+                    ? 'Saving...'
                     : isEditing
-                    ? 'Lưu thay đổi'
+                    ? 'Save Changes'
                     : isContributor
-                    ? 'Gửi duyệt bài lab'
-                    : 'Xuất bản bài lab'}
+                    ? 'Submit for Review'
+                    : 'Publish Lab'}
                 </span>
               </Button>
 
@@ -719,10 +710,9 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               variant="outline"
               size="sm"
               onClick={() => setCurrentStep(1)}
-              className="h-8 text-xs font-semibold gap-1"
+              className="h-8 text-xs font-semibold px-3"
             >
-              <ArrowLeft className="size-3.5" />
-              <span>Quay lại Bước 1 (Lý thuyết)</span>
+              Back to Step 1 (Theory)
             </Button>
           </div>
 

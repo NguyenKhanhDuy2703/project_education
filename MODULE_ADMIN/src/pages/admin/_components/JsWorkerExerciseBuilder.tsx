@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   Code2,
-  Sparkles,
+  FileCode2,
 } from 'lucide-react';
 import { useLabWorker } from '@/features/lab/hooks/useLabWorker';
 
@@ -218,7 +218,7 @@ export function JsWorkerExerciseBuilder({
             onClick={handleApplyJsTemplate}
             className="h-8 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground"
           >
-            <Sparkles className="size-3.5 text-primary" />
+            <FileCode2 className="size-3.5 text-primary" />
             <span>Mẫu JS chuẩn</span>
           </Button>
 

@@ -154,6 +154,23 @@ export interface LabSubmissionRecord {
   createdAt: string;
 }
 
+export interface UserLabSubmissionItem extends LabSubmissionRecord {
+  lab?: {
+    id: string;
+    title: string;
+    slug: string;
+    difficulty: string;
+    sandboxType: string;
+    series?: {
+      id: string;
+      title: string;
+      slug: string;
+      category?: string;
+      topic?: string;
+    };
+  };
+}
+
 // ─── Worker execution result ─────────────────────────────────────────────────
 export interface WorkerTestCase {
   name: string;

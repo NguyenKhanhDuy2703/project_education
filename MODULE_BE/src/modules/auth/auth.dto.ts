@@ -1,27 +1,30 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { UserRole } from '@prisma/client';
 
 export class RegisterDto {
   @ApiProperty({ example: 'John Doe', description: 'Full name' })
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Full name is required' })
   name: string;
 
   @ApiProperty({ example: 'john.doe@example.com', description: 'Email address' })
-  @IsEmail()
-  @IsNotEmpty()
+  @IsEmail({}, { message: 'Please enter a valid email address' })
+  @IsNotEmpty({ message: 'Email address is required' })
   email: string;
 
   @ApiProperty({ example: 'Password@123', description: 'Password (min 8 chars)', minLength: 8 })
   @IsString()
-  @IsNotEmpty()
-  @MinLength(8)
+  @IsNotEmpty({ message: 'Password is required' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password: string;
 
-  @ApiProperty({ example: '+84901234567', description: 'Phone number' })
+  @ApiProperty({ example: '0912345678', description: 'Vietnamese 10-digit phone number' })
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Phone number is required' })
+  @Matches(/^(?:\+84|0)(?:3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-9])[0-9]{7}$/, {
+    message: 'Invalid phone number format. Must be a 10-digit Vietnamese number (starting with 03, 05, 07, 08, 09)',
+  })
   phone: string;
 }
 

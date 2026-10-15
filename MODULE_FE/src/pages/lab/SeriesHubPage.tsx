@@ -5,14 +5,14 @@
  * - Zero Icons: 100% typographic clarity, semantic badges, dots (·), and character arrows (→)
  * - Two distinct, dedicated views (Series Roadmaps vs All Practice Labs)
  * - Sticky 1-row filter bar with real-time 250ms debounced search & keyword highlight
- * - Horizontally scrollable category chips starting with "Tất cả"
+ * - Horizontally scrollable category chips starting with "All Topics"
  * - Compact results bar: Result count on left, sorting dropdown on right
  * - Uniform clickable cards (equal height, 2-line title min-height, PRO-only badge, 1-line footer)
  * - Strict Meta-Blue (#0866FF / bg-primary) styling adherence, fully responsive & dark mode
  */
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { seriesApi } from '@/features/lab/api/series.api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -68,14 +68,27 @@ function HighlightText({ text, query }: { text: string; query: string }) {
   );
 }
 
-export function SeriesHubPage() {
-  const [catalogView, setCatalogView] = useState<'series' | 'labs'>('series');
+export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' } = {}) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = (searchParams.get('tab') || searchParams.get('view')) as 'series' | 'labs' | null;
+  const [catalogView, setCatalogView] = useState<'series' | 'labs'>(
+    defaultTab || (urlTab === 'labs' ? 'labs' : 'series')
+  );
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeTopic, setActiveTopic] = useState('all');
   const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'pro'>('all');
   const [levelFilter, setLevelFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
   const [sortBy, setSortBy] = useState<'popular' | 'latest' | 'duration' | 'difficulty'>('popular');
+
+  // Sync tab if URL changes or defaultTab provided
+  useEffect(() => {
+    if (urlTab === 'labs' || urlTab === 'series') {
+      setCatalogView(urlTab);
+    } else if (defaultTab) {
+      setCatalogView(defaultTab);
+    }
+  }, [urlTab, defaultTab]);
 
   // Debounce search input by 250ms
   useEffect(() => {
@@ -113,10 +126,10 @@ export function SeriesHubPage() {
     });
   }, [seriesList]);
 
-  // Generate dynamic topics from existing series, starting with "Tất cả"
+  // Generate dynamic topics from existing series, starting with "All Topics"
   const topics = useMemo(() => {
     if (!seriesList || seriesList.length === 0) {
-      return [{ id: 'all', label: 'Tất cả' }];
+      return [{ id: 'all', label: 'All Topics' }];
     }
     const topicMap = new Map<string, string>();
     seriesList.forEach((s) => {
@@ -126,7 +139,7 @@ export function SeriesHubPage() {
       }
     });
     return [
-      { id: 'all', label: 'Tất cả' },
+      { id: 'all', label: 'All Topics' },
       ...Array.from(topicMap.entries()).map(([id, label]) => ({ id, label })),
     ];
   }, [seriesList]);
@@ -223,19 +236,32 @@ export function SeriesHubPage() {
     <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl space-y-4">
       {/* ── 1. Top View Switcher Tabs (No Title/Subtitle, Clean Luxury) ─ */}
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
-        <Tabs value={catalogView} onValueChange={(v) => setCatalogView(v as 'series' | 'labs')}>
+        <Tabs
+          value={catalogView}
+          onValueChange={(v) => {
+            const nextTab = v as 'series' | 'labs';
+            setCatalogView(nextTab);
+            setSearchParams(
+              (prev) => {
+                prev.set('tab', nextTab);
+                return prev;
+              },
+              { replace: true }
+            );
+          }}
+        >
           <TabsList className="h-9 p-1 bg-muted/60">
             <TabsTrigger
               value="series"
               className="text-xs px-3.5 font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-2xs"
             >
-              Chuyên đề ({seriesList?.length || 0})
+              Series Catalog ({seriesList?.length || 0})
             </TabsTrigger>
             <TabsTrigger
               value="labs"
               className="text-xs px-3.5 font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-2xs"
             >
-              Tất cả bài Lab ({allLabs.length})
+              Practice Labs ({allLabs.length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -251,7 +277,7 @@ export function SeriesHubPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm chuyên đề, bài lab…"
+              placeholder="Search series, practice labs, topics…"
               className="h-9 text-xs sm:text-sm bg-card border-border"
             />
           </div>
@@ -262,8 +288,8 @@ export function SeriesHubPage() {
             onChange={(e) => setTierFilter(e.target.value as any)}
             className="h-9 bg-card border border-border rounded-lg px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium shrink-0"
           >
-            <option value="all">Gói: Tất cả</option>
-            <option value="free">Miễn phí</option>
+            <option value="all">Plan: All Tiers</option>
+            <option value="free">Free Access</option>
             <option value="pro">PRO Tier</option>
           </select>
 
@@ -273,7 +299,7 @@ export function SeriesHubPage() {
             onChange={(e) => setLevelFilter(e.target.value as any)}
             className="h-9 bg-card border border-border rounded-lg px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium shrink-0"
           >
-            <option value="all">Độ khó: Tất cả</option>
+            <option value="all">Difficulty: All</option>
             <option value="beginner">Beginner</option>
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
@@ -287,7 +313,7 @@ export function SeriesHubPage() {
               onClick={resetFilters}
               className="h-9 text-xs text-muted-foreground hover:text-destructive px-2.5 shrink-0"
             >
-              Xóa lọc
+              Clear Filters
             </Button>
           )}
         </div>
@@ -317,26 +343,26 @@ export function SeriesHubPage() {
         <div>
           {catalogView === 'series' ? (
             <span>
-              <strong className="text-foreground font-semibold">{filteredSeries.length}</strong> chuyên đề
+              <strong className="text-foreground font-semibold">{filteredSeries.length}</strong> {filteredSeries.length === 1 ? 'series' : 'series'}
             </span>
           ) : (
             <span>
-              <strong className="text-foreground font-semibold">{filteredLabs.length}</strong> bài lab
+              <strong className="text-foreground font-semibold">{filteredLabs.length}</strong> {filteredLabs.length === 1 ? 'practice lab' : 'practice labs'}
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground">Sắp xếp:</span>
+          <span className="text-[11px] text-muted-foreground">Sort by:</span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
             className="h-8 bg-card border border-border rounded-lg px-2 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            <option value="popular">Phổ biến nhất</option>
-            <option value="latest">Mới nhất</option>
-            <option value="duration">Thời lượng</option>
-            <option value="difficulty">Độ khó</option>
+            <option value="popular">Most Popular</option>
+            <option value="latest">Newest First</option>
+            <option value="duration">Duration</option>
+            <option value="difficulty">Difficulty</option>
           </select>
         </div>
       </div>
@@ -349,10 +375,10 @@ export function SeriesHubPage() {
         <div className="space-y-4">
           {filteredSeries.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <p className="text-sm font-semibold text-foreground">Không tìm thấy chuyên đề phù hợp</p>
-              <p className="text-xs text-muted-foreground">Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc.</p>
+              <p className="text-sm font-semibold text-foreground">No matching series found</p>
+              <p className="text-xs text-muted-foreground">Try searching with different keywords or reset your filters.</p>
               <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs">
-                Xóa bộ lọc
+                Reset Filters
               </Button>
             </div>
           ) : (
@@ -372,10 +398,10 @@ export function SeriesHubPage() {
         <div className="space-y-4">
           {filteredLabs.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <p className="text-sm font-semibold text-foreground">Không tìm thấy bài lab phù hợp</p>
-              <p className="text-xs text-muted-foreground">Thử điều chỉnh từ khóa tìm kiếm hoặc làm mới bộ lọc.</p>
+              <p className="text-sm font-semibold text-foreground">No matching practice labs found</p>
+              <p className="text-xs text-muted-foreground">Try adjusting your search query or reset your filters.</p>
               <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs">
-                Xóa bộ lọc
+                Reset Filters
               </Button>
             </div>
           ) : (
@@ -438,7 +464,7 @@ function DedicatedSeriesCard({
                 variant="outline"
                 className="text-[10px] font-semibold text-muted-foreground bg-muted/40 border-border"
               >
-                Sắp ra mắt
+                Coming Soon
               </Badge>
             )}
             {series.isProOnly && (
@@ -463,13 +489,13 @@ function DedicatedSeriesCard({
         </p>
       </div>
 
-      {/* Footer 1 line: "3 lab · 60 phút · Beginner" + "→" */}
+      {/* Footer 1 line: "3 labs · 60 mins · Beginner" + "→" */}
       <div className="pt-3.5 mt-4 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
         {isComingSoon ? (
-          <span className="text-amber-600 dark:text-amber-400 font-medium">0 bài lab · Sắp ra mắt</span>
+          <span className="text-amber-600 dark:text-amber-400 font-medium">0 labs · Coming Soon</span>
         ) : (
           <span>
-            {labCount} lab · {estimatedTime} phút · {levelText}
+            {labCount} {labCount === 1 ? 'lab' : 'labs'} · {estimatedTime} mins · {levelText}
           </span>
         )}
         {!isComingSoon && (
@@ -535,15 +561,15 @@ function FeaturedLabCard({
         {/* Parent Series reference if available */}
         {lab.seriesTitle && (
           <p className="text-[11px] text-muted-foreground truncate">
-            Thuộc: {lab.seriesTitle}
+            In: {lab.seriesTitle}
           </p>
         )}
       </div>
 
-      {/* Footer 1 line: "JavaScript · 20 phút · Beginner" + "→" */}
+      {/* Footer 1 line: "JavaScript · 20 mins · Beginner" + "→" */}
       <div className="pt-3 mt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          {typeName} · {lab.estimatedMinutes} phút · {difficultyText}
+          {typeName} · {lab.estimatedMinutes} mins · {difficultyText}
         </span>
         <span className="text-foreground group-hover:text-primary group-hover:translate-x-1 transition-transform font-bold text-sm">
           →

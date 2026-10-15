@@ -5,6 +5,8 @@ import { useAppDispatch, useAppSelector } from '@/stores/store';
 import {
   closeCreateDialog,
   addOptimisticSeries,
+  replaceOptimisticSeries,
+  removeOptimisticSeries,
 } from '@/stores/slices/contributor.slice';
 import { seriesApi } from '@/features/lab/api/series.api';
 import {
@@ -18,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Layers, Code2, ArrowRight, CheckCircle2, Tag } from 'lucide-react';
+import { Code2, CheckCircle2, Tag } from 'lucide-react';
 import { getSystemTopicTags, type TopicTag } from '@/services/topicTags.service';
 
 export function CreateContentDialog() {
@@ -105,7 +107,7 @@ export function CreateContentDialog() {
       });
 
       // Replace optimistic item with server result
-      dispatch(addOptimisticSeries(saved));
+      dispatch(replaceOptimisticSeries({ tempId, series: saved }));
       queryClient.setQueryData(
         ['contributor-my-series', user?.id],
         (old: any[] | undefined) =>
@@ -123,7 +125,8 @@ export function CreateContentDialog() {
       }, 700);
     } catch (err: any) {
       console.error('Failed to create series:', err);
-      // Revert cache on error
+      // Revert cache and optimistic state on error
+      dispatch(removeOptimisticSeries(tempId));
       queryClient.invalidateQueries({ queryKey: ['contributor-my-series'] });
       setSuccessMsg('Error creating series. Please try again.');
     } finally {
@@ -156,13 +159,11 @@ export function CreateContentDialog() {
           className="w-full"
         >
           <TabsList className="grid grid-cols-2 mb-4 h-9 bg-muted/60 p-1">
-            <TabsTrigger value="series" className="text-xs gap-1.5 font-semibold">
-              <Layers className="size-3.5" />
-              <span>Series</span>
+            <TabsTrigger value="series" className="text-xs font-semibold">
+              Series
             </TabsTrigger>
-            <TabsTrigger value="lab" className="text-xs gap-1.5 font-semibold">
-              <Code2 className="size-3.5" />
-              <span>Practice Lab</span>
+            <TabsTrigger value="lab" className="text-xs font-semibold">
+              Practice Lab
             </TabsTrigger>
           </TabsList>
 
@@ -199,9 +200,9 @@ export function CreateContentDialog() {
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <Tag className="size-3.5 text-primary" />
-                    <span>Gắn Thẻ Topic (Topic Tag) *</span>
+                    <span>Topic Tag *</span>
                   </label>
-                  <span className="text-[10px] text-muted-foreground font-mono">Quản lý bởi Admin</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">Managed by Admin</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {systemTags.map((tag) => {
@@ -297,14 +298,13 @@ export function CreateContentDialog() {
               </div>
               <Button
                 size="sm"
-                className="text-xs font-bold gap-1.5 shadow-sm"
+                className="text-xs font-bold px-4 shadow-xs"
                 onClick={() => {
                   dispatch(closeCreateDialog());
-                  navigate('/contributor/labs/new');
+                  navigate('/user/dashboard/labs/new');
                 }}
               >
-                <span>Launch Lab Studio</span>
-                <ArrowRight className="size-3.5" />
+                Launch Lab Studio
               </Button>
             </div>
           </TabsContent>

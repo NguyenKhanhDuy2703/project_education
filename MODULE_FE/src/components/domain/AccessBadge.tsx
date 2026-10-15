@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import { Sparkles } from 'lucide-react';
+import { Crown } from 'lucide-react';
 
 export interface AccessBadgeProps {
   label?: string;
@@ -24,7 +24,7 @@ export function AccessBadge({
           variant="default"
           className={`bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20 font-semibold gap-1 text-[11px] px-2 py-0.5 ${className}`}
         >
-          <Sparkles className="size-3 text-amber-500" />
+          <Crown className="size-3 text-amber-500" />
           <span>PRO ONLY</span>
         </Badge>
       );
@@ -46,7 +46,7 @@ export function AccessBadge({
         variant="default"
         className={`bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-semibold gap-1 text-[11px] px-2 py-0.5 ${className}`}
       >
-        <Sparkles className="size-3 text-amber-500" />
+        <Crown className="size-3 text-amber-500" />
         <span>{label || 'PRO'}</span>
       </Badge>
     );

@@ -4,6 +4,7 @@ import type {
   LabDetail,
   SubmitLabPayload,
   LabSubmissionRecord,
+  UserLabSubmissionItem,
   DashboardStats,
   CreateLabInput,
 } from '@/types/lab.types';
@@ -58,6 +59,12 @@ export const labApi = {
   /** Get current user's submission history for a lab */
   getSubmissions: async (labId: string): Promise<LabSubmissionRecord[]> => {
     const res = await apiClient.get<any>(`/labs/${labId}/submissions`);
+    return res.data?.data ?? res.data ?? [];
+  },
+
+  /** Get all lab submissions history for current user */
+  getUserSubmissions: async (): Promise<UserLabSubmissionItem[]> => {
+    const res = await apiClient.get<any>('/labs/user/submissions');
     return res.data?.data ?? res.data ?? [];
   },
 

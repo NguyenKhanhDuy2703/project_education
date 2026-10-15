@@ -38,6 +38,14 @@ export class LabsController {
     return this.labsService.findMyLabs(req.user.userId);
   }
 
+  @Get('user/submissions')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all practice lab submissions for current user' })
+  async getUserSubmissions(@Req() req: Request & { user: any }) {
+    return this.labsService.getUserSubmissions(req.user.userId);
+  }
+
   @Get(':slug')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Get practice lab / blog details by slug (Public / Student view)' })

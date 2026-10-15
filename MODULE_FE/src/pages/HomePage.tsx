@@ -13,7 +13,7 @@ import {
   Server,
   Cpu,
   Layers,
-  Sparkles,
+  Zap,
   Play,
   Terminal,
   Clock,
@@ -44,7 +44,7 @@ export function HomePage() {
           <div className="flex flex-col items-center text-center space-y-6 max-w-3xl mx-auto">
             {/* Top Pill Tag */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold tracking-wide animate-in fade-in duration-500">
-              <Sparkles className="size-3.5" />
+              <Zap className="size-3.5" />
               <span>
                 {isLoggedIn
                   ? `Welcome back, ${user?.name || 'Learner'}!`
