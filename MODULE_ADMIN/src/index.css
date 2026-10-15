@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Meta Design System Tokens */
+  --background: #F0F2F5;
+  --foreground: #1C2B33;
+
+  --card: #FFFFFF;
+  --card-foreground: #1C2B33;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #1C2B33;
+
+  --primary: #0866FF;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #E4E6EB;
+  --secondary-foreground: #1C2B33;
+
+  --muted: #E4E6EB;
+  --muted-foreground: #606770;
+
+  --accent: #E7F3FF;
+  --accent-foreground: #0866FF;
+
+  --destructive: #E41E3F;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #CED0D4;
+  --input: #CED0D4;
+  --ring: #0866FF;
+
+  --radius: 8px;
+
+  /* Content Lifecycle Status Tokens */
+  --status-draft: #65676B;
+  --status-draft-bg: #E4E6EB;
+  --status-submitted: #0064D1;
+  --status-submitted-bg: #E7F3FF;
+  --status-changes: #D97706;
+  --status-changes-bg: #FEF3C7;
+  --status-approved: #059669;
+  --status-approved-bg: #D1FAE5;
+  --status-published: #0866FF;
+  --status-published-bg: #E7F3FF;
+  --status-rejected: #E41E3F;
+  --status-rejected-bg: #FEE2E2;
+  --status-archived: #4B5563;
+  --status-archived-bg: #F3F4F6;
+
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light dark;
+}
+
+.dark {
+  --background: #18191A;
+  --foreground: #E4E6EB;
+
+  --card: #242526;
+  --card-foreground: #E4E6EB;
+
+  --popover: #242526;
+  --popover-foreground: #E4E6EB;
+
+  --primary: #2D88FF;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #3A3B3C;
+  --secondary-foreground: #E4E6EB;
+
+  --muted: #3A3B3C;
+  --muted-foreground: #B0B3B8;
+
+  --accent: #263951;
+  --accent-foreground: #2D88FF;
+
+  --destructive: #FA383E;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #3E4042;
+  --input: #3E4042;
+  --ring: #2D88FF;
+  
+  --status-draft: #B0B3B8;
+  --status-draft-bg: #242526;
+  --status-submitted: #4599FF;
+  --status-submitted-bg: #1B2E4B;
+  --status-changes: #FBBF24;
+  --status-changes-bg: #3B2A0F;
+  --status-approved: #34D399;
+  --status-approved-bg: #064E3B;
+  --status-published: #2D88FF;
+  --status-published-bg: #1A365D;
+  --status-rejected: #F87171;
+  --status-rejected-bg: #450A0A;
+  --status-archived: #9CA3AF;
+  --status-archived-bg: #1F2937;
+}
+
+@theme inline {
+  --font-sans: Inter, system-ui, sans-serif;
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    font-size: 0.96rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+}
