@@ -32,6 +32,8 @@ model User {
   phone          String   @unique
   password       String?
   role           UserRole @default(user)
+  isContributor  Boolean  @default(false)
+  contributorStatus String @default("NONE")
   avatarUrl      String?
   defaultAddress String?
   isActive       Boolean  @default(true)
@@ -45,11 +47,13 @@ model User {
   createdAuditLogs  AuditLog[]            @relation("ActorLogs")
   targetedAuditLogs AuditLog[]            @relation("TargetLogs")
 
-  authoredSeries    LabSeries[]           @relation("AuthoredSeries")
-  authoredLabs      Lab[]                 @relation("AuthoredLabs")
-  groupMemberships  UserGroupMember[]
-  submissions       LabSubmission[]
-  feedbacks         Feedback[]
+  authoredSeries          LabSeries[]              @relation("AuthoredSeries")
+  authoredLabs            Lab[]                    @relation("AuthoredLabs")
+  groupMemberships        UserGroupMember[]
+  submissions             LabSubmission[]
+  feedbacks               Feedback[]
+  contributorApplications ContributorApplication[] @relation("UserApplications")
+  reviewedApplications   ContributorApplication[] @relation("ReviewedApplications")
 
   @@map("users")
 }
@@ -347,4 +351,25 @@ model Feedback {
 
   @@index([category, createdAt])
   @@map("feedbacks")
+}
+
+model ContributorApplication {
+  id           String    @id @default(uuid())
+  userId       String
+  bio          String    @db.Text
+  portfolioUrl String?
+  sampleTopic  String    @db.Text
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED | SUSPENDED
+  adminNote    String?   @db.Text
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user         User      @relation("UserApplications", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy   User?     @relation("ReviewedApplications", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("contributor_applications")
 }
