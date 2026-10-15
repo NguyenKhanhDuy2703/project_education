@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { BcryptService } from '../../utils/bcrypt.util';
-import { LoginDto, RegisterDto } from './auth.dto';
+import { LoginDto, RegisterDto, ChangePasswordDto } from './auth.dto';
 import { User } from '@prisma/client';
 
 @Injectable()
@@ -85,6 +85,8 @@ export class AuthService {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        isContributor: user.isContributor,
+        contributorStatus: user.contributorStatus,
       },
     };
   }
@@ -168,5 +170,31 @@ export class AuthService {
       }
     }
     return { message: 'Logged out successfully' };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<{ message: string }> {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.password) {
+      throw new BadRequestException('Tài khoản không có mật khẩu cục bộ hoặc chưa được thiết lập');
+    }
+
+    const isCurrentValid = await this.bcryptService.comparePassword(
+      dto.currentPassword,
+      user.password,
+    );
+    if (!isCurrentValid) {
+      throw new BadRequestException('Mật khẩu hiện tại không chính xác');
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException('Mật khẩu mới không được trùng với mật khẩu hiện tại');
+    }
+
+    const hashedNewPassword = await this.bcryptService.hashPassword(dto.newPassword);
+    await this.usersService.update(userId, {
+      password: hashedNewPassword,
+    });
+
+    return { message: 'Đổi mật khẩu thành công' };
   }
 }

@@ -37,9 +37,19 @@ jobs:
     uses: ./.github/workflows/_fe-test-worker.yml
     with:
       node-version: "22"
+      service-path: "./MODULE_FE"
+
+  admin-fe-unit-tests:
+    name: "Admin Frontend Unit Test Worker"
+    needs: [orchestrator-init]
+    uses: ./.github/workflows/_fe-test-worker.yml
+    with:
+      node-version: "22"
+      service-path: "./MODULE_ADMIN"
+
   test-reporter:
     name: "test reporter"
-    needs: [be-unit-tests, fe-unit-tests]
+    needs: [be-unit-tests, fe-unit-tests, admin-fe-unit-tests]
     runs-on: ubuntu-latest
     if: always()
     outputs:
@@ -48,7 +58,7 @@ jobs:
       - name: "test report"
         id: test_report
         run: |
-          if [ "${{ needs.be-unit-tests.result }}" = "success" ] && [ "${{ needs.fe-unit-tests.result }}" = "success" ]; then
+          if [ "${{ needs.be-unit-tests.result }}" = "success" ] && [ "${{ needs.fe-unit-tests.result }}" = "success" ] && [ "${{ needs.admin-fe-unit-tests.result }}" = "success" ]; then
             echo "::notice::All unit test is success!"
             echo "overall-status=success" >> "$GITHUB_OUTPUT"
           else

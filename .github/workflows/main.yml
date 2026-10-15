@@ -26,6 +26,7 @@ on:
     paths:
       - "MODULE_BE/**"
       - "MODULE_FE/**"
+      - "MODULE_ADMIN/**"
       - "package.json"
       - "package-lock.json"
       - ".dockerignore"
@@ -37,6 +38,7 @@ on:
     paths:
       - "MODULE_BE/**"
       - "MODULE_FE/**"
+      - "MODULE_ADMIN/**"
       - "package.json"
       - "package-lock.json"
       - ".dockerignore"
@@ -86,6 +88,7 @@ jobs:
     outputs:
       be: ${{ steps.filter.outputs.be == 'true' || steps.filter.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch' }}
       fe: ${{ steps.filter.outputs.fe == 'true' || steps.filter.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch' }}
+      admin: ${{ steps.filter.outputs.admin == 'true' || steps.filter.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch' }}
       workflows: ${{ steps.filter.outputs.workflows }}
       short-sha: ${{ steps.vars.outputs.short-sha }}
       services-to-scan: ${{ steps.build-scan-matrix.outputs.services }}
@@ -109,7 +112,8 @@ jobs:
           echo "project-name=$PROJECT" >> "$GITHUB_OUTPUT"
           echo "be-service=$BE_NAME" >> "$GITHUB_OUTPUT"
           echo "fe-service=$FE_NAME" >> "$GITHUB_OUTPUT"
-          echo "all-services=[\"$BE_NAME\", \"$FE_NAME\"]" >> "$GITHUB_OUTPUT"
+          # Tạm thời chỉ đưa BE vào all-services container registry vì FE deploy trực tiếp qua Vercel
+          echo "all-services=[\"$BE_NAME\"]" >> "$GITHUB_OUTPUT"
           echo "--- Pipeline Config ---"
           echo "  PROJECT   = $PROJECT"
           echo "  BE_NAME   = $BE_NAME"
@@ -140,6 +144,10 @@ jobs:
               - 'package.json'
               - 'package-lock.json'
               - '.dockerignore'
+            admin:
+              - 'MODULE_ADMIN/**'
+              - 'package.json'
+              - 'package-lock.json'
             workflows:
               - '.github/workflows/**'
 
@@ -153,9 +161,10 @@ jobs:
           if [ "${{ steps.filter.outputs.be }}" = "true" ] || [ "${{ steps.filter.outputs.workflows }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             SERVICES+=("$BE_SERVICE")
           fi
-          if [ "${{ steps.filter.outputs.fe }}" = "true" ] || [ "${{ steps.filter.outputs.workflows }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            SERVICES+=("$FE_SERVICE")
-          fi
+          # Tạm thời tắt scan Docker FE vì FE deploy trên Vercel (không build Docker image)
+          # if [ "${{ steps.filter.outputs.fe }}" = "true" ] || [ "${{ steps.filter.outputs.workflows }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          #   SERVICES+=("$FE_SERVICE")
+          # fi
 
           if [ ${#SERVICES[@]} -eq 0 ]; then
             JSON_SERVICES="[]"
@@ -181,11 +190,21 @@ jobs:
     uses: ./.github/workflows/_fe-test-worker.yml
     with:
       node-version: "22"
+      service-path: "./MODULE_FE"
+
+  test-admin:
+    name: "Admin Frontend Unit Test"
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.admin == 'true'
+    uses: ./.github/workflows/_fe-test-worker.yml
+    with:
+      node-version: "22"
+      service-path: "./MODULE_ADMIN"
 
   report-test-results:
     name: "Update PR with CI Test Results"
-    needs: [detect-changes, test-be, test-fe]
-    if: always() && github.event_name == 'pull_request' && (needs.detect-changes.outputs.be == 'true' || needs.detect-changes.outputs.fe == 'true')
+    needs: [detect-changes, test-be, test-fe, test-admin]
+    if: always() && github.event_name == 'pull_request' && (needs.detect-changes.outputs.be == 'true' || needs.detect-changes.outputs.fe == 'true' || needs.detect-changes.outputs.admin == 'true')
     uses: ./.github/workflows/_test-report-worker.yml
     with:
       test-results: |
@@ -199,6 +218,11 @@ jobs:
             "name": "Frontend Tests (`MODULE_FE`)",
             "result": "${{ needs.test-fe.result }}",
             "included": ${{ needs.detect-changes.outputs.fe == 'true' }}
+          },
+          {
+            "name": "Admin Frontend Tests (`MODULE_ADMIN`)",
+            "result": "${{ needs.test-admin.result }}",
+            "included": ${{ needs.detect-changes.outputs.admin == 'true' }}
           }
         ]
 
@@ -221,10 +245,12 @@ jobs:
   build-fe:
     name: "Build & Push FE Docker"
     needs: [detect-changes, test-fe]
-    if: |
-      always() &&
-      needs.detect-changes.outputs.fe == 'true' &&
-      (needs.test-fe.result == 'success' || needs.test-fe.result == 'skipped')
+    # Tạm thời tắt build Docker FE vì Frontend deploy trực tiếp qua Vercel, không dùng Docker Image
+    if: false
+    # if: |
+    #   always() &&
+    #   needs.detect-changes.outputs.fe == 'true' &&
+    #   (needs.test-fe.result == 'success' || needs.test-fe.result == 'skipped')
     uses: ./.github/workflows/_build-worker.yml
     with:
       service-name: ${{ needs.detect-changes.outputs.fe-service }}
@@ -236,7 +262,7 @@ jobs:
 
   ci-gate:
     name: "CI Gate — All Checks Passed"
-    needs: [detect-changes, test-be, test-fe, build-be, build-fe]
+    needs: [detect-changes, test-be, test-fe, test-admin, build-be, build-fe]
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -244,8 +270,10 @@ jobs:
         env:
           BE_CHANGED: ${{ needs.detect-changes.outputs.be }}
           FE_CHANGED: ${{ needs.detect-changes.outputs.fe }}
+          ADMIN_CHANGED: ${{ needs.detect-changes.outputs.admin }}
           BE_TEST: ${{ needs.test-be.result }}
           FE_TEST: ${{ needs.test-fe.result }}
+          ADMIN_TEST: ${{ needs.test-admin.result }}
           BE_BUILD: ${{ needs.build-be.result }}
           FE_BUILD: ${{ needs.build-fe.result }}
         run: |
@@ -258,6 +286,11 @@ jobs:
 
           if [ "$FE_CHANGED" = "true" ] && [ "$FE_TEST" != "success" ]; then
             echo "❌ Frontend tests failed (result: $FE_TEST)"
+            FAILED=true
+          fi
+
+          if [ "$ADMIN_CHANGED" = "true" ] && [ "$ADMIN_TEST" != "success" ]; then
+            echo "❌ Admin Frontend tests failed (result: $ADMIN_TEST)"
             FAILED=true
           fi
 
@@ -276,8 +309,9 @@ jobs:
           fi
 
           echo "✅ All checks passed"
-          echo "   BE — test: $BE_TEST | build: $BE_BUILD"
-          echo "   FE — test: $FE_TEST | build: $FE_BUILD"
+          echo "   BE    — test: $BE_TEST | build: $BE_BUILD"
+          echo "   FE    — test: $FE_TEST | build: $FE_BUILD"
+          echo "   ADMIN — test: $ADMIN_TEST"
 
   scan-images:
     name: "Scan Docker Images (Staging Security Gate)"

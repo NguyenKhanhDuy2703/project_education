@@ -8,13 +8,15 @@ Tài liệu được quản lý theo tiêu chuẩn **Docs-as-Code**, lưu trữ 
 
 | Mã | Tài liệu | Version | Ngày | Tác giả | Trạng thái | Đường dẫn file |
 |---|---|---|---|---|---|---|
-| **DOC-01** | Đề xuất Dự án (Project Proposal) | 1.1 | 2026-10-02 | Nguyen Khanh Duy | Final | [01-proposal.md](file:///d:/Projects/study-web/Docs/01-proposal.md) |
-| **DOC-03** | Danh sách Yêu cầu Sản phẩm (Product Backlog) | 1.1 | 2026-10-02 | Nguyen Khanh Duy | Final | [03-product-backlog.md](file:///d:/Projects/study-web/Docs/03-product-backlog.md) |
+| **DOC-01** | Đề xuất Dự án (Project Proposal) | 1.1 | 2026-10-02 | Nguyen Khanh Duy | Final | [01-proposal.md](file:///d:/Projects/study-web/docs/01-proposal.md) |
+| **DOC-03** | Danh sách Yêu cầu Sản phẩm (Product Backlog) | 1.1 | 2026-10-02 | Nguyen Khanh Duy | Final | [03-product-backlog.md](file:///d:/Projects/study-web/docs/03-product-backlog.md) |
 | **DOC-05** | Thiết kế Cơ sở Dữ liệu (Database Design) | 1.1 | 2026-10-02 | Nguyen Khanh Duy | Final | [05-database.md](file:///d:/Projects/study-web/docs/05-database.md) |
-| **DOC-06** | Sơ đồ Luồng Tuần tự (Workflows Hub) | 1.0 | 2026-10-02 | Nguyen Khanh Duy | Final | [workflows/README.md](file:///d:/Projects/study-web/docs/workflows/README.md) |
+| **DOC-06** | Sơ đồ Luồng Tuần tự (Workflows Hub - 13 Workflows) | 1.2 | 2026-10-15 | Nguyen Khanh Duy | Final | [workflows/README.md](file:///d:/Projects/study-web/docs/workflows/README.md) |
 | **DOC-07** | Phân quyền Động & Entitlements (Dynamic Entitlements) | 1.0 | 2026-10-09 | Nguyen Khanh Duy | Final | [07-dynamic-authorization-and-entitlements.md](file:///d:/Projects/study-web/docs/07-dynamic-authorization-and-entitlements.md) |
 | **DOC-08** | Contributor, Admin Review & Group-based IAM | 1.1 | 2026-10-13 | Nguyen Khanh Duy | Final | [08-contributor-admin-iam-sprint-roadmap.md](file:///d:/Projects/study-web/docs/08-contributor-admin-iam-sprint-roadmap.md) |
 | **DOC-09** | Kế hoạch Nâng cấp Backend: IAM, Contributor & Review Queue | 1.1 | 2026-10-13 | Nguyen Khanh Duy | Implemented (Final) | [09-backend-iam-contributor-review-plan.md](file:///d:/Projects/study-web/docs/09-backend-iam-contributor-review-plan.md) |
+| **DOC-11** | Phân tách Role Admin vs Contributor & Standalone App | 1.2 | 2026-10-15 | Nguyen Khanh Duy | Implemented (Final) | [11-admin-contributor-separation-and-user-crud.md](file:///d:/Projects/study-web/docs/11-admin-contributor-separation-and-user-crud.md) |
+| **DOC-12** | Hướng dẫn Triển khai Admin Subdomain (Vercel/Nginx) | 1.0 | 2026-10-15 | Nguyen Khanh Duy | Final | [deployment/admin-subdomain-setup.md](file:///d:/Projects/study-web/docs/deployment/admin-subdomain-setup.md) |
 
 ---
 

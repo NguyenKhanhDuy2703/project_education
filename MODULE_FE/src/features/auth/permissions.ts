@@ -106,6 +106,11 @@ export function resolveEffectivePermissions(
     DEFAULT_ROLE_PERMISSIONS[user.role].forEach((code) => effective.add(code));
   }
 
+  // 5. If user has contributor capability, dynamically inject content authoring permissions
+  if (user.isContributor) {
+    DEFAULT_ROLE_PERMISSIONS.contributor.forEach((code) => effective.add(code));
+  }
+
   return effective;
 }
 

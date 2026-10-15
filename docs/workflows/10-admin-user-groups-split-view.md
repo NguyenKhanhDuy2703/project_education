@@ -8,7 +8,7 @@ authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
 scope: Admin Subsystem, User Groups Administration, Dual-Pane Split-View Layout, and Member Roster Management
 date: 2026-10-14
-source_file: "MODULE_FE/src/pages/admin/AdminGroupsPage.tsx, MODULE_BE/src/modules/groups"
+source_file: "MODULE_ADMIN/src/pages/admin/AdminGroupsPage.tsx, MODULE_ADMIN/src/pages/admin/_components/AdminGroupsTab.tsx, MODULE_BE/src/modules/groups"
 status: final
 language: en
 related_docs: [09-admin-users-and-entitlements.md, 12-upgrade-and-payment.md]
@@ -21,11 +21,11 @@ related_docs: [09-admin-users-and-entitlements.md, 12-upgrade-and-payment.md]
 | Attribute | Details |
 |---|---|
 | **Document Title** | User Group Management Split View Workflow |
-| **Version** | v1.0 |
+| **Version** | v1.1 |
 | **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Scope** | User Group administration workflow at `/admin/groups` (decoupled from Plans): Interactive Split-View layout featuring a left-hand Groups Directory (~35%) and a right-hand Member Roster (~65%), dynamic member addition/removal, and group-level subscription plan associations |
-| **Date** | 2026-10-14 |
-| **Source Reference** | `MODULE_FE/src/pages/admin/AdminGroupsPage.tsx`, `MODULE_BE/src/modules/groups/groups.controller.ts`, `MODULE_BE/src/modules/groups/groups.service.ts` |
+| **Scope** | User Group administration workflow in `MODULE_ADMIN` at `/admin/groups`: Interactive Split-View layout featuring a left-hand Groups Directory (~35%) and a right-hand Member Roster (~65%), dynamic member addition/removal, and group-level subscription plan associations |
+| **Date** | 2026-10-15 |
+| **Source Reference** | `MODULE_ADMIN/src/pages/admin/AdminGroupsPage.tsx`, `MODULE_ADMIN/src/pages/admin/_components/AdminGroupsTab.tsx`, `MODULE_BE/src/modules/groups/groups.controller.ts`, `MODULE_BE/src/modules/groups/groups.service.ts` |
 
 ---
 
@@ -148,11 +148,11 @@ sequenceDiagram
 
 ## 3. References & Source Links
 
-- **Frontend Codebase**:
-  - Admin Groups Page: [AdminGroupsPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/AdminGroupsPage.tsx)
-  - Admin Groups Tab Component: [AdminGroupsTab.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/AdminGroupsTab.tsx)
-  - Groups Admin API Client: [groups.admin.api.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/admin/api/groups.admin.api.ts)
-- **Backend Codebase**:
+- **Frontend Codebase (MODULE_ADMIN)**:
+  - Admin Groups Page: [AdminGroupsPage.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/AdminGroupsPage.tsx)
+  - Admin Groups Tab Component: [AdminGroupsTab.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/_components/AdminGroupsTab.tsx)
+  - Groups Admin API Client: [groups.admin.api.ts](file:///d:/Projects/study-web/MODULE_ADMIN/src/features/admin/api/groups.admin.api.ts)
+- **Backend Codebase (MODULE_BE)**:
   - Groups Controller: [groups.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/groups/groups.controller.ts)
   - Groups Service: [groups.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/groups/groups.service.ts)
 - **Related Workflows**:

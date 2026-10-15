@@ -33,7 +33,10 @@ async function bootstrap() {
 
   const defaultOrigins = [
     'http://localhost:5173',
+    'http://localhost:5174',
     'http://localhost:3000',
+    'https://studyit.dev',
+    'https://admin.studyit.dev',
     'https://project-education-red.vercel.app',
     ...configuredOrigins,
   ];

@@ -8,7 +8,7 @@ authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
 scope: Admin Subsystem, Centralized Topic Tag Taxonomy, Quality Control, and Cross-Platform Tag Synchronization
 date: 2026-10-14
-source_file: "MODULE_FE/src/services/topicTags.service.ts, MODULE_FE/src/pages/admin/_components/AdminTopicTagsModal.tsx, MODULE_BE/src/modules/catalog"
+source_file: "MODULE_ADMIN/src/services/topicTags.service.ts, MODULE_ADMIN/src/pages/admin/_components/AdminTopicTagsModal.tsx, MODULE_BE/src/modules/catalog"
 status: final
 language: en
 related_docs: [02-catalog-topic-discovery.md, 05-create-series.md, 07-content-review-and-publish.md]
@@ -21,11 +21,11 @@ related_docs: [02-catalog-topic-discovery.md, 05-create-series.md, 07-content-re
 | Attribute | Details |
 |---|---|
 | **Document Title** | System-Wide Topic Tag Governance Workflow |
-| **Version** | v1.0 |
+| **Version** | v1.1 |
 | **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Scope** | Centralized administration of the platform-wide Topic Tags taxonomy by Administrators: Tag creation, slug auto-generation, hex color tagging, unused tag deprecation, tag pollution prevention, and real-time custom event synchronization across Contributor authoring studios and Public Catalog filters |
-| **Date** | 2026-10-14 |
-| **Source Reference** | `MODULE_FE/src/pages/admin/_components/AdminTopicTagsModal.tsx`, `MODULE_FE/src/services/topicTags.service.ts` |
+| **Scope** | Centralized administration of the platform-wide Topic Tags taxonomy by Administrators within the standalone `MODULE_ADMIN` app: Tag creation, slug auto-generation, hex color tagging, unused tag deprecation, tag pollution prevention, and real-time custom event synchronization across Contributor authoring studios and Public Catalog filters |
+| **Date** | 2026-10-15 |
+| **Source Reference** | `MODULE_ADMIN/src/pages/admin/_components/AdminTopicTagsModal.tsx`, `MODULE_ADMIN/src/services/topicTags.service.ts` |
 
 ---
 
@@ -137,11 +137,11 @@ sequenceDiagram
 
 ## 3. References & Source Links
 
-- **Frontend Codebase**:
-  - Admin Topic Tags Modal: [AdminTopicTagsModal.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/AdminTopicTagsModal.tsx)
-  - Topic Tags Service: [topicTags.service.ts](file:///d:/Projects/study-web/MODULE_FE/src/services/topicTags.service.ts)
-  - Admin Topic Hierarchy: [AdminTopicHierarchy.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/AdminTopicHierarchy.tsx)
-- **Backend Codebase**:
+- **Frontend Codebase (MODULE_ADMIN)**:
+  - Admin Topic Tags Modal: [AdminTopicTagsModal.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/_components/AdminTopicTagsModal.tsx)
+  - Topic Tags Service: [topicTags.service.ts](file:///d:/Projects/study-web/MODULE_ADMIN/src/services/topicTags.service.ts)
+  - Admin Topic Hierarchy: [AdminTopicHierarchy.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/_components/AdminTopicHierarchy.tsx)
+- **Backend Codebase (MODULE_BE)**:
   - Database Schema: [schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
 - **Related Workflows**:
   - Course Discovery by Tag: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)

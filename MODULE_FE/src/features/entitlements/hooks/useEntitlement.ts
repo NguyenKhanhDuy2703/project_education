@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { entitlementsAdminApi } from '@/features/admin/api/entitlements.admin.api';
 import { useAppSelector } from '@/stores/store';
+import { entitlementsApi } from '../api/entitlements.api';
 
 /**
  * Custom React hook to check feature access and restriction states for current logged-in user.
@@ -13,7 +13,7 @@ export function useEntitlement(featureCode: string) {
 
   const { data, isLoading } = useQuery({
     queryKey: ['my-entitlements'],
-    queryFn: () => entitlementsAdminApi.getMyEntitlements(),
+    queryFn: () => entitlementsApi.getMyEntitlements(),
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 2, // 2 minutes
     retry: false,

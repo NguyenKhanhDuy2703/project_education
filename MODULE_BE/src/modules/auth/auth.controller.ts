@@ -1,11 +1,11 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
-import { LoginDto, RefreshTokenDto, RegisterDto } from './auth.dto';
+import { LoginDto, RefreshTokenDto, RegisterDto, ChangePasswordDto } from './auth.dto';
 import { User } from '@prisma/client';
 
 @ApiTags('Auth')
@@ -128,9 +128,23 @@ export class AuthController {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        isContributor: user.isContributor,
+        contributorStatus: user.contributorStatus,
         avatarUrl: user.avatarUrl,
       },
     };
+  }
+
+  @Post('change-password')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change current user password (verifies current password)' })
+  async changePassword(
+    @Req() req: Request & { user: any },
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(req.user.userId, changePasswordDto);
   }
 
   // ── Google OAuth ──────────────────────────────────────────────────────────
