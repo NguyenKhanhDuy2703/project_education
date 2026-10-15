@@ -8,6 +8,11 @@ on:
         required: false
         default: "22"
         type: string
+      service-path:
+        description: "Path to frontend directory (e.g. ./MODULE_FE or ./MODULE_ADMIN)"
+        required: false
+        default: "./MODULE_FE"
+        type: string
     outputs:
       status:
         description: "The status of completion of the Frontend test"
@@ -15,12 +20,12 @@ on:
 
 jobs:
   frontend-unit-test:
-    name: "Run React/Vite Unit Tests"
+    name: "Run React/Vite Unit Tests (${{ inputs.service-path }})"
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: ./MODULE_FE
+        working-directory: ${{ inputs.service-path }}
 
     steps:
       - name: Checkout Source Code
@@ -31,7 +36,7 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: "npm"
-          cache-dependency-path: "./MODULE_FE/package-lock.json"
+          cache-dependency-path: "${{ inputs.service-path }}/package-lock.json"
 
       - name: Install Dependencies
         run: npm ci
