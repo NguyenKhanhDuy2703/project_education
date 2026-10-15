@@ -6,9 +6,10 @@ import type { PermissionCode, UserRole } from '@/types/user.types';
 interface ProtectedRouteProps {
   allowedRoles?: UserRole[];
   requiredPermission?: PermissionCode;
+  requireContributor?: boolean;
 }
 
-export function ProtectedRoute({ allowedRoles, requiredPermission }: ProtectedRouteProps) {
+export function ProtectedRoute({ allowedRoles, requiredPermission, requireContributor }: ProtectedRouteProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   if (!isAuthenticated || !user) {
@@ -18,6 +19,13 @@ export function ProtectedRoute({ allowedRoles, requiredPermission }: ProtectedRo
   const currentRole = user.role || 'user';
   if (allowedRoles && !allowedRoles.includes(currentRole)) {
     return <Navigate to="/" replace />;
+  }
+
+  if (requireContributor) {
+    const isAllowed = user.role === 'admin' || user.isContributor === true;
+    if (!isAllowed) {
+      return <Navigate to="/?unauthorized=contributor" replace />;
+    }
   }
 
   if (requiredPermission && !can(user, requiredPermission)) {

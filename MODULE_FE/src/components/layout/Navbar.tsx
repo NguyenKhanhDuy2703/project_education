@@ -24,10 +24,11 @@ import {
   Compass,
   LogOut,
   User,
-  Shield,
   LayoutDashboard,
   PenTool,
+  Sparkles,
 } from 'lucide-react';
+import { ContributorApplyModal } from '@/features/contributor/components/ContributorApplyModal';
 
 export function Navbar() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
@@ -36,6 +37,7 @@ export function Navbar() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -50,8 +52,7 @@ export function Navbar() {
     badge?: string;
   }
 
-  const isContributorOrAbove = user?.role === 'contributor' || user?.role === 'admin';
-  const isAdmin = user?.role === 'admin';
+  const isContributorOrAbove = user?.isContributor === true || user?.role === 'admin';
 
   const baseNavLinks: NavLinkItem[] = [
     { name: 'Home', href: '/', icon: Home, exact: true },
@@ -137,7 +138,7 @@ export function Navbar() {
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
               {isContributorOrAbove && (
-                <Link to="/contributor" className="hidden sm:inline-flex">
+                <Link to="/user/dashboard/content" className="hidden sm:inline-flex">
                   <Button
                     variant="outline"
                     size="sm"
@@ -145,18 +146,6 @@ export function Navbar() {
                   >
                     <PenTool className="size-3.5" />
                     <span>Contributor Studio</span>
-                  </Button>
-                </Link>
-              )}
-
-              {isAdmin && (
-                <Link to="/admin" className="hidden sm:inline-flex">
-                  <Button
-                    size="sm"
-                    className="gap-1.5 text-xs font-bold bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
-                  >
-                    <Shield className="size-3.5" />
-                    <span>Admin Studio</span>
                   </Button>
                 </Link>
               )}
@@ -206,24 +195,31 @@ export function Navbar() {
                       <span>Dashboard &amp; Progress</span>
                     </Link>
                   </DropdownMenuItem>
-                  {isContributorOrAbove && (
+                  {isContributorOrAbove ? (
                     <DropdownMenuItem asChild>
-                      <Link to="/contributor" className="flex items-center cursor-pointer">
+                      <Link to="/user/dashboard/content" className="flex items-center cursor-pointer">
                         <PenTool className="size-4 mr-2 text-indigo-500" />
                         <span>Contributor Studio</span>
                       </Link>
                     </DropdownMenuItem>
-                  )}
-                  {isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin" className="flex items-center cursor-pointer">
-                        <Shield className="size-4 mr-2 text-destructive" />
-                        <span>Admin Studio</span>
-                      </Link>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={() => setApplyModalOpen(true)}
+                      className="cursor-pointer text-indigo-600 dark:text-indigo-400 focus:text-indigo-600 flex items-center justify-between"
+                    >
+                      <div className="flex items-center">
+                        <Sparkles className="size-4 mr-2" />
+                        <span>Trở thành Contributor</span>
+                      </div>
+                      {user?.contributorStatus === 'PENDING' && (
+                        <Badge variant="outline" className="text-[9px] px-1 h-3.5 border-amber-500/40 text-amber-500">
+                          Chờ duyệt
+                        </Badge>
+                      )}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem asChild>
-                    <Link to="/settings" className="flex items-center cursor-pointer">
+                    <Link to="/user/dashboard/profile" className="flex items-center cursor-pointer">
                       <User className="size-4 mr-2 text-muted-foreground" />
                       <span>Account Settings</span>
                     </Link>
@@ -320,6 +316,9 @@ export function Navbar() {
           )}
         </div>
       )}
+
+      {/* Modal đăng ký Contributor */}
+      <ContributorApplyModal open={applyModalOpen} onOpenChange={setApplyModalOpen} />
     </header>
   );
 }
