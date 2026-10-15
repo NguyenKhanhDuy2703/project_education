@@ -8,10 +8,10 @@ authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
 scope: Admin Subsystem, User Management, Role Allocation, Session Revocation, and Feature Entitlement Overrides
 date: 2026-10-14
-source_file: "MODULE_FE/src/pages/admin, MODULE_BE/src/modules/users"
+source_file: "MODULE_ADMIN/src/pages/admin/AdminUsersPage.tsx, MODULE_ADMIN/src/pages/admin/_components/AdminUsersTab.tsx, MODULE_BE/src/modules/users"
 status: final
 language: en
-related_docs: [01-auth-login-to-home.md, 10-admin-user-groups-split-view.md, 07-content-review-and-publish.md]
+related_docs: [01-auth-login-to-home.md, 10-admin-user-groups-split-view.md, 07-content-review-and-publish.md, 13-contributor-onboarding-and-application.md]
 ---
 
 # Sequence Diagram: Admin User Governance & Entitlement Overrides (Admin Users & Entitlements Flow)
@@ -21,11 +21,11 @@ related_docs: [01-auth-login-to-home.md, 10-admin-user-groups-split-view.md, 07-
 | Attribute | Details |
 |---|---|
 | **Document Title** | Admin User Governance & Entitlement Overrides Workflow |
-| **Version** | v1.0 |
+| **Version** | v1.1 |
 | **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Scope** | Comprehensive user administration workflow in Admin Studio: Multi-attribute user lookup, 10 items/page pagination, role promotions (`user`, `user_pro`, `contributor`, `admin`), account suspension with immediate session revocation, and fine-grained Direct Feature Overrides with expiration limits |
-| **Date** | 2026-10-14 |
-| **Source Reference** | `MODULE_BE/src/modules/users/users.controller.ts`, `MODULE_BE/src/modules/users/users.service.ts` |
+| **Scope** | Comprehensive user administration workflow in `MODULE_ADMIN` (`/admin/users`): Multi-attribute user lookup, 10 items/page pagination, role promotions (`user`, `user_pro`, `contributor`, `admin`), account suspension with immediate session revocation, and fine-grained Direct Feature Overrides with expiration limits |
+| **Date** | 2026-10-15 |
+| **Source Reference** | `MODULE_ADMIN/src/pages/admin/AdminUsersPage.tsx`, `MODULE_ADMIN/src/pages/admin/_components/AdminUsersTab.tsx`, `MODULE_BE/src/modules/users/users.controller.ts`, `MODULE_BE/src/modules/users/users.service.ts` |
 
 ---
 
@@ -135,12 +135,16 @@ sequenceDiagram
 
 ## 3. References & Source Links
 
-- **Frontend Codebase**:
-  - Pagination Component: [data-table-pagination.tsx](file:///d:/Projects/study-web/MODULE_FE/src/components/ui/data-table-pagination.tsx)
-- **Backend Codebase**:
+- **Frontend Codebase (MODULE_ADMIN)**:
+  - Users Page: [AdminUsersPage.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/AdminUsersPage.tsx)
+  - Users Table Component: [AdminUsersTab.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/_components/AdminUsersTab.tsx)
+  - Entitlements Modal: [UserEntitlementsModal.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/_components/UserEntitlementsModal.tsx)
+  - Pagination Component: [data-table-pagination.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/components/ui/data-table-pagination.tsx)
+- **Backend Codebase (MODULE_BE)**:
   - Users Controller: [users.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/users/users.controller.ts)
   - Users Service: [users.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/users/users.service.ts)
   - Database Schema: [schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
 - **Related Workflows**:
   - Authentication & Session: [01-auth-login-to-home.md](file:///d:/Projects/study-web/docs/workflows/01-auth-login-to-home.md)
   - Split-View Group Management: [10-admin-user-groups-split-view.md](file:///d:/Projects/study-web/docs/workflows/10-admin-user-groups-split-view.md)
+  - Contributor Onboarding: [13-contributor-onboarding-and-application.md](file:///d:/Projects/study-web/docs/workflows/13-contributor-onboarding-and-application.md)

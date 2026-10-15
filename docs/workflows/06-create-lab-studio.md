@@ -8,7 +8,7 @@ authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
 scope: Contributor Studio Subsystem, Two-Step Lab Authoring (Markdown Theory + Exercise Setup), Solution Test Runner & Verification Gate
 date: 2026-10-14
-source_file: "MODULE_FE/src/pages/contributor/ContributorCreatePage.tsx, MODULE_BE/src/modules/labs"
+source_file: "MODULE_FE/src/pages/lab/LabStudioPage.tsx, MODULE_BE/src/modules/labs, MODULE_ADMIN/src/pages/admin/AdminLabStudioPage.tsx"
 status: final
 language: en
 related_docs: [03-lab-practice-webworker.md, 05-create-series.md, 07-content-review-and-publish.md]
@@ -21,11 +21,11 @@ related_docs: [03-lab-practice-webworker.md, 05-create-series.md, 07-content-rev
 | Attribute | Details |
 |---|---|
 | **Document Title** | Two-Step Lab Creation Studio Workflow |
-| **Version** | v1.0 |
+| **Version** | v1.1 |
 | **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Scope** | Authoring workflow for Contributors and Instructors in the Two-Step Studio: Step 1 (Theory authoring via synchronized Split-View Markdown Editor & Live Preview) and Step 2 (Interactive Exercise Builder for JS/SQL/Quizlet, automated Test Case composition, and mandatory Pre-flight Solution Runner verification before publishing) |
-| **Date** | 2026-10-14 |
-| **Source Reference** | `MODULE_FE/src/pages/contributor/ContributorCreatePage.tsx`, `MODULE_BE/src/modules/labs/labs.controller.ts` |
+| **Scope** | Authoring workflow for Contributors in the Two-Step Studio accessed via User Dashboard (`/user/dashboard` $\to$ Studio or `/labs/create`): Step 1 (Theory authoring via synchronized Split-View Markdown Editor & Live Preview) and Step 2 (Interactive Exercise Builder for JS/SQL/Quizlet, automated Test Case composition, and mandatory Pre-flight Solution Runner verification before publishing) |
+| **Date** | 2026-10-15 |
+| **Source Reference** | `MODULE_FE/src/pages/lab/LabStudioPage.tsx`, `MODULE_BE/src/modules/labs/labs.controller.ts`, `MODULE_ADMIN/src/pages/admin/AdminLabStudioPage.tsx` |
 
 ---
 
@@ -139,12 +139,16 @@ sequenceDiagram
 ## 3. References & Source Links
 
 - **Frontend Codebase**:
-  - Contributor Create Lab Page: [ContributorCreatePage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/contributor/ContributorCreatePage.tsx)
-  - Markdown Editor with Preview: [MarkdownEditorWithPreview.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/MarkdownEditorWithPreview.tsx)
-  - JS Worker Builder: [JsWorkerExerciseBuilder.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/admin/_components/JsWorkerExerciseBuilder.tsx)
+  - Contributor Lab Studio: [LabStudioPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/lab/LabStudioPage.tsx)
+  - Admin Lab Studio (Review & Oversight): [AdminLabStudioPage.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/AdminLabStudioPage.tsx)
+  - Markdown Editor with Preview: [MarkdownEditorWithPreview.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/lab/_components/MarkdownEditorWithPreview.tsx)
+  - JS Worker Builder: [JsWorkerExerciseBuilder.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/lab/_components/JsWorkerExerciseBuilder.tsx)
+  - Sql Worker Builder: [SqlExerciseBuilder.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/lab/_components/SqlExerciseBuilder.tsx)
 - **Backend Codebase**:
   - Labs Controller: [labs.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/labs/labs.controller.ts)
+  - Labs Service: [labs.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/labs/labs.service.ts)
 - **Related Workflows**:
   - Series Creation: [05-create-series.md](file:///d:/Projects/study-web/docs/workflows/05-create-series.md)
   - Content Review & Publishing: [07-content-review-and-publish.md](file:///d:/Projects/study-web/docs/workflows/07-content-review-and-publish.md)
   - Web Worker Sandbox Execution: [03-lab-practice-webworker.md](file:///d:/Projects/study-web/docs/workflows/03-lab-practice-webworker.md)
+  - Contributor Onboarding: [13-contributor-onboarding-and-application.md](file:///d:/Projects/study-web/docs/workflows/13-contributor-onboarding-and-application.md)
