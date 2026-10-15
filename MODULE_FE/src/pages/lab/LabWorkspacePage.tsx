@@ -64,10 +64,6 @@ import {
   CloudUpload,
   CheckCircle2,
   Clock,
-  BookOpen,
-  KeyRound,
-  Lock,
-  History,
   Copy,
   Check,
   Code2,
@@ -90,7 +86,7 @@ export function LabWorkspacePage() {
   const hasSolutionAccess = can(user, 'SOLUTION_ACCESS');
 
   // Left pane active tab
-  const [leftTab, setLeftTab] = useState<'description' | 'solution' | 'submissions'>('description');
+  const [leftTab, setLeftTab] = useState<'description' | 'solution' | 'history'>('description');
 
   // Right bottom pane tab for code
   const [rightBottomTab, setRightBottomTab] = useState<'testcase' | 'result'>('testcase');
@@ -399,10 +395,9 @@ export function LabWorkspacePage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2.5 text-xs font-semibold gap-1.5 text-muted-foreground hover:text-foreground shrink-0 hover:bg-muted/60"
+                className="h-7 px-2.5 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground shrink-0 hover:bg-muted/60"
                 title="Curriculum & Lab List"
               >
-                <Layers className="size-3.5 text-primary" />
                 <span>Lab List</span>
                 <ChevronDown className="size-3 text-muted-foreground opacity-60" />
               </Button>
@@ -674,21 +669,14 @@ export function LabWorkspacePage() {
         <aside className="w-full md:w-[45%] lg:w-[42%] border-b md:border-b-0 md:border-r border-border flex flex-col bg-card overflow-hidden shrink-0">
           <Tabs value={leftTab} onValueChange={(v) => setLeftTab(v as any)} className="flex flex-col h-full">
             <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/30 p-1 h-9 gap-1">
-              <TabsTrigger value="description" className="text-xs font-medium gap-1.5">
-                <BookOpen className="size-3.5" />
-                <span>Instructions</span>
+              <TabsTrigger value="description" className="text-xs font-medium px-3">
+                Instructions
               </TabsTrigger>
-              <TabsTrigger value="solution" className="text-xs font-medium gap-1.5">
-                {hasSolutionAccess ? (
-                  <KeyRound className="size-3.5 text-emerald-500" />
-                ) : (
-                  <Lock className="size-3.5 text-amber-500" />
-                )}
-                <span>Solution {hasSolutionAccess ? '(PRO)' : '[PRO Locked]'}</span>
+              <TabsTrigger value="solution" className="text-xs font-medium px-3">
+                Solution {hasSolutionAccess ? '(PRO)' : '[PRO Locked]'}
               </TabsTrigger>
-              <TabsTrigger value="history" className="text-xs font-medium gap-1.5">
-                <History className="size-3.5" />
-                <span>Submissions ({submissions.length})</span>
+              <TabsTrigger value="history" className="text-xs font-medium px-3">
+                Submissions ({submissions.length})
               </TabsTrigger>
             </TabsList>
 

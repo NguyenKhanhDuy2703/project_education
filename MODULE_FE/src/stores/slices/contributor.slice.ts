@@ -31,6 +31,22 @@ export const contributorSlice = createSlice({
         state.mySeries.unshift(action.payload);
       }
     },
+    replaceOptimisticSeries: (
+      state,
+      action: PayloadAction<{ tempId: string; series: LabSeries }>
+    ) => {
+      const index = state.mySeries.findIndex(
+        (s) => s.id === action.payload.tempId || s.id === action.payload.series.id
+      );
+      if (index >= 0) {
+        state.mySeries[index] = action.payload.series;
+      } else {
+        state.mySeries.unshift(action.payload.series);
+      }
+    },
+    removeOptimisticSeries: (state, action: PayloadAction<string>) => {
+      state.mySeries = state.mySeries.filter((s) => s.id !== action.payload);
+    },
     updateSeriesStatus: (
       state,
       action: PayloadAction<{ id: string; status: ContentLifecycleStatus; feedback?: string }>
@@ -67,6 +83,8 @@ export const contributorSlice = createSlice({
 export const {
   setMySeries,
   addOptimisticSeries,
+  replaceOptimisticSeries,
+  removeOptimisticSeries,
   updateSeriesStatus,
   setMyLabs,
   addOptimisticLab,

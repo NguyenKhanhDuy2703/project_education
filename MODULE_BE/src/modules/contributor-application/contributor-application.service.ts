@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UserRole } from '@prisma/client';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { ApplyContributorDto } from './dto/apply-contributor.dto';
 import { ReviewContributorAction, ReviewContributorDto } from './dto/review-contributor.dto';
@@ -180,8 +181,9 @@ export class ContributorApplicationService {
     await this.prisma.user.update({
       where: { id: application.userId },
       data: {
-        isContributor: isApproved ? true : false,
+        isContributor: isApproved,
         contributorStatus: isApproved ? 'APPROVED' : 'REJECTED',
+        ...(isApproved && application.user.role === UserRole.user ? { role: UserRole.contributor } : {}),
       },
     });
 

@@ -1,23 +1,17 @@
 import type { ComponentType } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { useAppSelector } from '@/stores/store';
 import { labApi } from '@/features/lab/api/lab.api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   BookOpen,
   Flame,
   Layers,
-  ArrowRight,
   CheckCircle2,
-  Sparkles,
 } from 'lucide-react';
 
 export function DashboardOverviewView() {
-  const { user } = useAppSelector((state) => state.auth);
-
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: labApi.getDashboardStats,
@@ -30,32 +24,6 @@ export function DashboardOverviewView() {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      {/* ── Welcome Banner ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Learner Dashboard
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Welcome back, {user?.name || 'Learner'} 👋 Here's your study streak and progress.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {user?.isContributor && (
-            <Badge variant="outline" className="text-xs font-semibold gap-1.5 border-primary/30 text-primary">
-              <Sparkles className="size-3.5" />
-              Contributor
-            </Badge>
-          )}
-          <Badge
-            variant={user?.role === 'admin' ? 'destructive' : user?.role === 'userPro' ? 'default' : 'secondary'}
-            className="uppercase text-xs font-bold"
-          >
-            {user?.role || 'user'}
-          </Badge>
-        </div>
-      </div>
-
       {/* ── Stats grid ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -84,9 +52,7 @@ export function DashboardOverviewView() {
       {(isLoading || (stats?.seriesProgress ?? []).length > 0) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Layers className="size-4 text-primary" /> Progress by Series
-            </CardTitle>
+            <CardTitle className="text-sm">Progress by Series</CardTitle>
           </CardHeader>
           <CardContent className="border-t border-border pt-4 space-y-4">
             {isLoading
@@ -124,18 +90,13 @@ export function DashboardOverviewView() {
         <CardContent className="space-y-3 border-t border-border pt-4">
           <Link
             to="/series"
-            className="flex items-center justify-between p-3 rounded-lg border border-border/60 hover:bg-muted/60 transition-colors group"
+            className="flex items-center justify-between p-3.5 rounded-lg border border-border/60 hover:bg-muted/60 transition-colors group"
           >
-            <div className="flex items-center gap-3">
-              <div className="size-8 bg-primary/10 text-primary rounded-md flex items-center justify-center">
-                <BookOpen className="size-4" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground">Interactive Lab Series Catalog</p>
-                <p className="text-[11px] text-muted-foreground">Hands-on practice labs for DevOps, Cloud & Fullstack</p>
-              </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">Interactive Practice Series Catalog</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Hands-on practice labs for SQL, TypeScript, Backend & Systems</p>
             </div>
-            <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="text-xs font-semibold text-primary">Browse Catalog</span>
           </Link>
         </CardContent>
       </Card>

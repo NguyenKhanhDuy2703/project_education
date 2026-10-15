@@ -6,6 +6,7 @@
  *
  * Design: shadcn/ui Dialog, zero icons.
  */
+import { Link } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -68,7 +69,7 @@ export function UpgradeModal({ open, labTitle, onClose }: Props) {
             Close
           </Button>
           <Button size="sm" asChild className="text-xs font-bold">
-            <a href="/pricing">Upgrade to PRO Now</a>
+            <Link to="/pricing" onClick={onClose}>Upgrade to PRO Now</Link>
           </Button>
         </DialogFooter>
       </DialogContent>

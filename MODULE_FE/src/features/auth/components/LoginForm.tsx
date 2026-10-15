@@ -25,8 +25,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     try {
       await login({ phoneOrEmail: phoneOrEmail.trim(), password });
       onSuccess?.();
-    } catch {
-      setErrorMessage('Thông tin đăng nhập không chính xác.');
+    } catch (err: any) {
+      const serverMsg = err?.response?.data?.message;
+      setErrorMessage(serverMsg || 'Invalid phone/email or password.');
     }
   };
 
@@ -39,8 +40,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     <div className="w-full space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Đăng nhập</h1>
-        <p className="text-sm text-muted-foreground mt-1">Tiếp tục học trên StudyIT</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Sign In</h1>
+        <p className="text-sm text-muted-foreground mt-1">Continue your learning journey on StudyIT</p>
       </div>
 
       {/* Error */}
@@ -54,13 +55,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Identifier */}
         <div className="space-y-1.5">
-          <Label htmlFor="phoneOrEmail" className="text-xs font-semibold">SĐT hoặc Email <span className="text-destructive">*</span></Label>
+          <Label htmlFor="phoneOrEmail" className="text-xs font-semibold">Phone or Email <span className="text-destructive">*</span></Label>
           <div className="relative">
             <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               id="phoneOrEmail"
               type="text"
-              placeholder="0912345678 hoặc email@..."
+              placeholder="0912345678 or email@example.com"
               autoComplete="username"
               value={phoneOrEmail}
               onChange={(e) => setPhoneOrEmail(e.target.value)}
@@ -74,8 +75,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         {/* Password */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-xs font-semibold">Mật khẩu <span className="text-destructive">*</span></Label>
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline">Quên mật khẩu?</Link>
+            <Label htmlFor="password" className="text-xs font-semibold">Password <span className="text-destructive">*</span></Label>
+            <Link to="/forgot-password" className="text-xs text-primary hover:underline">Forgot password?</Link>
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -94,7 +95,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Hiện/ẩn mật khẩu"
+              aria-label="Toggle password visibility"
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
@@ -104,11 +105,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         {/* Remember me */}
         <div className="flex items-center gap-2">
           <Checkbox id="remember" checked={rememberMe} onCheckedChange={(v) => setRememberMe(Boolean(v))} />
-          <Label htmlFor="remember" className="text-xs text-muted-foreground font-normal cursor-pointer">Ghi nhớ đăng nhập</Label>
+          <Label htmlFor="remember" className="text-xs text-muted-foreground font-normal cursor-pointer">Remember me</Label>
         </div>
 
         <Button type="submit" disabled={isLoggingIn} className="w-full h-10 font-semibold gap-2">
-          {isLoggingIn ? <><Loader2 className="size-4 animate-spin" />Đang xác thực...</> : <><LogIn className="size-4" />Đăng nhập</>}
+          {isLoggingIn ? <><Loader2 className="size-4 animate-spin" />Signing in...</> : <><LogIn className="size-4" />Sign In</>}
         </Button>
       </form>
 
@@ -116,19 +117,19 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       <div className="relative">
         <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Hoặc</span>
+          <span className="bg-card px-2 text-muted-foreground">OR</span>
         </div>
       </div>
 
       {/* Google */}
       <Button type="button" variant="outline" onClick={handleGoogle} disabled={isLoggingIn} className="w-full h-10 gap-3">
         <GoogleIcon />
-        Đăng nhập với Google
+        Sign in with Google
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
-        Chưa có tài khoản?{' '}
-        <Link to="/register" className="font-semibold text-primary hover:underline">Đăng ký miễn phí</Link>
+        Don't have an account?{' '}
+        <Link to="/register" className="font-semibold text-primary hover:underline">Sign up for free</Link>
       </p>
     </div>
   );

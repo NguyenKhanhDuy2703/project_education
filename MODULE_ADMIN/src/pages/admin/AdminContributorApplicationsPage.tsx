@@ -19,7 +19,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  Sparkles,
+  Award,
   Search,
   ExternalLink,
   CheckCircle2,
@@ -97,7 +97,7 @@ export function AdminContributorApplicationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-            <Sparkles className="size-6" />
+            <Award className="size-6" />
             <h1 className="text-2xl font-bold text-foreground">Hồ Sơ Xét Duyệt Contributor</h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -163,7 +163,7 @@ export function AdminContributorApplicationsPage() {
         </div>
       ) : filteredItems.length === 0 ? (
         <Card className="p-12 text-center border-dashed">
-          <Sparkles className="size-10 mx-auto text-muted-foreground/40 mb-3" />
+          <Award className="size-10 mx-auto text-muted-foreground/40 mb-3" />
           <h3 className="font-semibold text-base text-foreground">Không có hồ sơ nào</h3>
           <p className="text-xs text-muted-foreground mt-1">
             Không tìm thấy đơn đăng ký nào phù hợp với bộ lọc hiện tại.

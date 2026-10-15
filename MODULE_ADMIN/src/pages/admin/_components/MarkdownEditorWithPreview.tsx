@@ -10,7 +10,7 @@ import {
   Heading2,
   Table as TableIcon,
   Link as LinkIcon,
-  Sparkles,
+  FileText,
   Maximize2,
   Minimize2,
   Eye,
@@ -273,7 +273,7 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             className="h-7 text-[11px] font-semibold gap-1 px-2.5 text-primary border-primary/30 hover:bg-primary/5"
             title="Chèn nội dung mẫu chuẩn theo loại bài tập"
           >
-            <Sparkles className="size-3" />
+            <FileText className="size-3" />
             <span>Mẫu {sandboxType === 'sql_worker' ? 'SQL' : sandboxType === 'quizlet' ? 'Quizlet' : 'JS'}</span>
           </Button>
         </div>

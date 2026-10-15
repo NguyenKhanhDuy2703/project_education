@@ -22,4 +22,8 @@ export const feedbackAdminApi = {
     const res = await apiClient.get<any>('/feedback/admin');
     return res.data?.data || res.data || [];
   },
+
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/feedback/admin/${id}`);
+  },
 };

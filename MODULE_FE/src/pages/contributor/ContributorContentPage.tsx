@@ -21,17 +21,9 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { StatusBadge } from '@/components/domain/StatusBadge';
 import {
-  Plus,
-  Send,
-  MessageSquareQuote,
   Search,
-  Eye,
-  Edit,
   CheckCircle2,
   AlertTriangle,
-  Layers,
-  Code2,
-  PlusCircle,
   Tag,
 } from 'lucide-react';
 import type { ContentLifecycleStatus, LabSeries } from '@/types/lab.types';
@@ -84,19 +76,39 @@ export function ContributorContentPage({
     queryFn: () => seriesApi.getMySeries(),
   });
 
-  // Keep redux in sync when server returns
+  // Keep redux in sync when server returns without infinite dispatch loop
   useEffect(() => {
-    if (serverSeries.length > 0 && reduxSeries.length === 0) {
-      dispatch(setMySeries(serverSeries));
+    if (serverSeries && serverSeries.length > 0) {
+      const seen = new Set<string>();
+      const dedupedServer = serverSeries.filter((s) => {
+        if (!s.id || seen.has(s.id)) return false;
+        seen.add(s.id);
+        return true;
+      });
+      const hasOptimistic = reduxSeries.some((s) => s.id?.startsWith('temp-'));
+      if (!hasOptimistic) {
+        const isIdentical =
+          reduxSeries.length === dedupedServer.length &&
+          reduxSeries.every((item, idx) => item.id === dedupedServer[idx]?.id && item.updatedAt === dedupedServer[idx]?.updatedAt);
+        if (!isIdentical) {
+          dispatch(setMySeries(dedupedServer));
+        }
+      }
     }
-  }, [serverSeries, reduxSeries.length, dispatch]);
+  }, [serverSeries, reduxSeries, dispatch]);
 
-  // Combined author series (prioritize redux state for instant optimistic updates)
+  // Combined author series with strict deduplication by ID and Slug
   const authorSeries: LabSeries[] = useMemo(() => {
-    if (reduxSeries.length > 0) {
-      return reduxSeries;
-    }
-    return serverSeries;
+    const source = reduxSeries.length > 0 ? reduxSeries : serverSeries;
+    const seenIds = new Set<string>();
+    const seenSlugs = new Set<string>();
+    return source.filter((item) => {
+      if (item.id && seenIds.has(item.id)) return false;
+      if (item.slug && seenSlugs.has(item.slug)) return false;
+      if (item.id) seenIds.add(item.id);
+      if (item.slug) seenSlugs.add(item.slug);
+      return true;
+    });
   }, [reduxSeries, serverSeries]);
 
   // 2. Author's Labs from real API
@@ -276,30 +288,7 @@ export function ContributorContentPage({
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            My Content
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Author and manage curriculum series and practice labs.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => dispatch(openCreateDialog())}
-            size="sm"
-            className="h-8 text-xs font-semibold gap-1.5 shadow-xs"
-          >
-            <Plus className="size-3.5" />
-            <span>Create New Content</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Filters Bar */}
+      {/* Unified Search, Filter & Action Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative w-full">
@@ -313,21 +302,31 @@ export function ContributorContentPage({
           </div>
         </div>
 
-        {/* Status Dropdown */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Status:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 px-2.5 text-xs bg-card border border-border rounded-lg text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Status Dropdown */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Status:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 px-2.5 text-xs bg-card border border-border rounded-lg text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="all">All Statuses</option>
+              <option value="draft">Draft</option>
+              <option value="submitted">Pending Review</option>
+              <option value="changes_requested">Changes Requested</option>
+              <option value="approved">Approved</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+
+          <Button
+            onClick={() => dispatch(openCreateDialog())}
+            size="sm"
+            className="h-9 text-xs font-semibold shadow-xs px-3.5"
           >
-            <option value="all">All Statuses</option>
-            <option value="draft">Draft</option>
-            <option value="submitted">Pending Review</option>
-            <option value="changes_requested">Changes Requested</option>
-            <option value="approved">Approved</option>
-            <option value="published">Published</option>
-          </select>
+            Create New Content
+          </Button>
         </div>
       </div>
 
@@ -335,13 +334,11 @@ export function ContributorContentPage({
       <div className="w-full overflow-x-auto pb-1">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="h-9 p-1 bg-muted/60 flex w-max min-w-full">
-            <TabsTrigger value="series" className="text-xs px-3 font-medium gap-1.5">
-              <Layers className="size-3.5" />
-              <span>Series ({authorSeries.length})</span>
+            <TabsTrigger value="series" className="text-xs px-3 font-medium">
+              Series ({authorSeries.length})
             </TabsTrigger>
-            <TabsTrigger value="labs" className="text-xs px-3 font-medium gap-1.5">
-              <Code2 className="size-3.5" />
-              <span>My Labs ({authorLabs.length})</span>
+            <TabsTrigger value="labs" className="text-xs px-3 font-medium">
+              My Labs ({authorLabs.length})
             </TabsTrigger>
             <TabsTrigger value="all" className="text-xs px-3 font-medium">
               All ({authorSeries.length + authorLabs.length})
@@ -432,10 +429,9 @@ export function ContributorContentPage({
                     <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
                       {/* Add Lab to this Series */}
                       {item.type === 'series' && (
-                        <Link to={`/contributor/labs/new?seriesId=${item.id}`}>
-                          <Button size="sm" variant="outline" className="h-8 text-xs font-semibold gap-1 border-primary/30 text-primary hover:bg-primary/10">
-                            <PlusCircle className="size-3" />
-                            <span>Add Lab</span>
+                        <Link to={`/user/dashboard/labs/new?seriesId=${item.id}`}>
+                          <Button size="sm" variant="outline" className="h-8 text-xs font-semibold px-2.5 border-primary/30 text-primary hover:bg-primary/10">
+                            Add Lab
                           </Button>
                         </Link>
                       )}
@@ -446,9 +442,8 @@ export function ContributorContentPage({
                           size="sm"
                           variant="outline"
                           onClick={() => handleViewFeedback(item.title, item.reviewFeedback)}
-                          className="h-8 text-xs font-semibold gap-1.5 border-amber-500/40 text-amber-600 hover:bg-amber-500/10"
+                          className="h-8 text-xs font-semibold px-2.5 border-amber-500/40 text-amber-600 hover:bg-amber-500/10"
                         >
-                          <MessageSquareQuote className="size-3.5" />
                           View Feedback
                         </Button>
                       )}
@@ -464,22 +459,20 @@ export function ContributorContentPage({
                               type: item.type,
                             })
                           }
-                          className="h-8 text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-xs"
+                          className="h-8 text-xs font-bold px-3 bg-primary text-primary-foreground shadow-xs"
                         >
-                          <Send className="size-3" />
                           {isChangesRequested ? 'Resubmit' : 'Submit for Review'}
                         </Button>
                       )}
 
                       {/* Preview as Student */}
                       {item.type === 'lab' && (
-                        <Link to={`/labs/${item.id}`} target="_blank">
+                        <Link to={`/labs/${item.id}`}>
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                            className="h-8 text-xs px-2.5 text-muted-foreground hover:text-foreground"
                           >
-                            <Eye className="size-3.5" />
                             Preview
                           </Button>
                         </Link>
@@ -487,10 +480,9 @@ export function ContributorContentPage({
 
                       {/* Edit Lab in Contributor Lab Studio */}
                       {item.type === 'lab' && (
-                        <Link to={`/contributor/labs/${item.id}/edit`}>
-                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1">
-                            <Edit className="size-3" />
-                            <span>Edit Lab</span>
+                        <Link to={`/user/dashboard/labs/${item.id}/edit`}>
+                          <Button size="sm" variant="outline" className="h-8 text-xs font-semibold px-2.5">
+                            Edit Lab
                           </Button>
                         </Link>
                       )}
@@ -533,8 +525,7 @@ export function ContributorContentPage({
       <Dialog open={submitModalOpen} onOpenChange={setSubmitModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base flex items-center gap-2">
-              <Send className="size-4 text-primary" />
+            <DialogTitle className="text-base font-bold">
               Submit Content for Admin Review
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
@@ -567,9 +558,8 @@ export function ContributorContentPage({
               size="sm"
               onClick={handleConfirmSubmit}
               disabled={isSubmitting}
-              className="text-xs font-bold gap-1.5"
+              className="text-xs font-bold px-4"
             >
-              <Send className="size-3" />
               {isSubmitting ? 'Submitting...' : 'Confirm Submit'}
             </Button>
           </DialogFooter>

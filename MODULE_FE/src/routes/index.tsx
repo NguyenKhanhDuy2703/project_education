@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { LabLayout } from '@/layouts/LabLayout';
@@ -7,7 +7,11 @@ import { UserDashboardLayout } from '@/layouts/UserDashboardLayout';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { GoogleCallbackPage } from '@/pages/auth/GoogleCallbackPage';
+import { TermsPage } from '@/pages/legal/TermsPage';
+import { PrivacyPage } from '@/pages/legal/PrivacyPage';
+import { PricingPage } from '@/pages/PricingPage';
 
 import { DashboardOverviewView } from '@/pages/dashboard/views/DashboardOverviewView';
 import { UserProfileView } from '@/pages/dashboard/views/UserProfileView';
@@ -18,11 +22,18 @@ import { UserLabSubmissionsView } from '@/pages/dashboard/views/UserLabSubmissio
 
 import { SeriesHubPage } from '@/pages/lab/SeriesHubPage';
 import { SeriesDetailPage } from '@/pages/lab/SeriesDetailPage';
+import { RoadmapsPage } from '@/pages/lab/RoadmapsPage';
 import { LabWorkspacePage } from '@/pages/lab/LabWorkspacePage';
 import { LabStudioPage } from '@/pages/lab/LabStudioPage';
 
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
+
+// Helper to dynamically redirect legacy /contributor/labs/:labId/edit with actual param
+function LegacyLabEditRedirect() {
+  const { labId } = useParams<{ labId: string }>();
+  return <Navigate to={`/user/dashboard/labs/${labId}/edit`} replace />;
+}
 
 export const router = createBrowserRouter([
   // ── Public catalog & Landing routes ───────────────────────────────────────
@@ -33,6 +44,10 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'series', element: <SeriesHubPage /> },
       { path: 'series/:slug', element: <SeriesDetailPage /> },
+      { path: 'roadmaps', element: <RoadmapsPage /> },
+      { path: 'pricing', element: <PricingPage /> },
+      { path: 'terms', element: <TermsPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
       { path: 'user', element: <Navigate to="/user/dashboard" replace /> },
       { path: 'dashboard', element: <Navigate to="/user/dashboard" replace /> },
       { path: 'settings', element: <Navigate to="/user/dashboard/profile" replace /> },
@@ -79,7 +94,7 @@ export const router = createBrowserRouter([
       { path: 'series', element: <Navigate to="/user/dashboard/content?tab=series" replace /> },
       { path: 'labs', element: <Navigate to="/user/dashboard/content?tab=labs" replace /> },
       { path: 'labs/new', element: <Navigate to="/user/dashboard/labs/new" replace /> },
-      { path: 'labs/:labId/edit', element: <Navigate to="/user/dashboard/labs/:labId/edit" replace /> },
+      { path: 'labs/:labId/edit', element: <LegacyLabEditRedirect /> },
       { path: 'feedback', element: <Navigate to="/user/dashboard/feedback" replace /> },
       { path: 'published', element: <Navigate to="/user/dashboard/content?tab=published" replace /> },
       { path: '*', element: <Navigate to="/user/dashboard/content" replace /> },
@@ -107,6 +122,7 @@ export const router = createBrowserRouter([
     children: [
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
+      { path: 'forgot-password', element: <ForgotPasswordPage /> },
     ],
   },
 
