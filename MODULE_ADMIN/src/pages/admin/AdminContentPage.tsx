@@ -52,7 +52,7 @@ export function AdminContentPage() {
             className="text-xs font-semibold gap-1.5"
           >
             <Tag className="size-3.5 text-primary" />
-            <span>Quản lý Thẻ Topic</span>
+            <span>Manage Topic Tags</span>
           </Button>
 
           <Button variant="outline" size="sm" asChild className="text-xs font-semibold gap-1.5">

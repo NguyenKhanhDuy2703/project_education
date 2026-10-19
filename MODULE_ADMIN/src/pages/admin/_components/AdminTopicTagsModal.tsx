@@ -20,13 +20,13 @@ import {
 } from '@/services/topicTags.service';
 
 const COLOR_PRESETS = [
-  { label: 'Emerald (Xanh lá)', value: 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' },
-  { label: 'Blue (Xanh dương)', value: 'border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10' },
-  { label: 'Purple (Tím)', value: 'border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10' },
-  { label: 'Amber (Cam)', value: 'border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10' },
-  { label: 'Rose (Hồng)', value: 'border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-500/10' },
-  { label: 'Cyan (Xanh lơ)', value: 'border-cyan-500/30 text-cyan-600 dark:text-cyan-400 bg-cyan-500/10' },
-  { label: 'Indigo (Chàm)', value: 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' },
+  { label: 'Emerald', value: 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' },
+  { label: 'Blue', value: 'border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10' },
+  { label: 'Purple', value: 'border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10' },
+  { label: 'Amber', value: 'border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10' },
+  { label: 'Rose', value: 'border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-500/10' },
+  { label: 'Cyan', value: 'border-cyan-500/30 text-cyan-600 dark:text-cyan-400 bg-cyan-500/10' },
+  { label: 'Indigo', value: 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' },
 ];
 
 interface AdminTopicTagsModalProps {
@@ -87,7 +87,7 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
 
     // Check duplicate key if creating new
     if (!editingKey && tags.some((t) => t.key === trimmedKey)) {
-      alert(`Mã thẻ "${trimmedKey}" đã tồn tại. Vui lòng chọn mã khác.`);
+      alert(`Tag key "${trimmedKey}" already exists. Please choose a different key.`);
       return;
     }
 
@@ -103,7 +103,7 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
             }
           : t
       );
-      showToast(`Đã cập nhật thẻ "${tagTitle.trim()}"`);
+      showToast(`Updated topic tag "${tagTitle.trim()}"`);
     } else {
       const newTag: TopicTag = {
         key: trimmedKey,
@@ -112,7 +112,7 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
         tagColor: selectedColor,
       };
       updatedList = [...tags, newTag];
-      showToast(`Đã tạo mới thẻ topic "${newTag.title}"`);
+      showToast(`Created new topic tag "${newTag.title}"`);
     }
 
     setTags(updatedList);
@@ -130,24 +130,24 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
 
   const handleDeleteTag = (key: string, title: string) => {
     if (tags.length <= 1) {
-      alert('Hệ thống cần tối thiểu 1 thẻ topic để phân loại nội dung.');
+      alert('The system requires at least one topic tag for content categorization.');
       return;
     }
-    if (window.confirm(`Bạn có chắc chắn muốn xóa thẻ topic "${title}"?`)) {
+    if (window.confirm(`Are you sure you want to delete topic tag "${title}"?`)) {
       const filtered = tags.filter((t) => t.key !== key);
       setTags(filtered);
       saveSystemTopicTags(filtered);
       if (editingKey === key) resetForm();
-      showToast(`Đã xóa thẻ topic "${title}"`);
+      showToast(`Deleted topic tag "${title}"`);
     }
   };
 
   const handleResetDefaults = () => {
-    if (window.confirm('Khôi phục danh sách thẻ topic về mặc định ban đầu của hệ thống?')) {
+    if (window.confirm('Reset topic tags to the system default configuration?')) {
       setTags(DEFAULT_TOPIC_TAGS);
       saveSystemTopicTags(DEFAULT_TOPIC_TAGS);
       resetForm();
-      showToast('Đã khôi phục các thẻ topic mặc định!');
+      showToast('Restored default topic tags successfully!');
     }
   };
 
@@ -162,10 +162,10 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
               </span>
               <div>
                 <DialogTitle className="text-base font-bold text-foreground">
-                  Quản lý Danh mục Thẻ Topic (Topic Tags)
+                  Topic Tags Management
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  Định nghĩa các phân loại kỹ năng hệ thống. Contributor chỉ được phép chọn gắn các thẻ này vào Series/Lab.
+                  Define system skill and domain categories. Contributors can select from these tags when authoring Series and Practice Labs.
                 </DialogDescription>
               </div>
             </div>
@@ -176,10 +176,10 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
               size="sm"
               onClick={handleResetDefaults}
               className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
-              title="Khôi phục mặc định"
+              title="Restore default topic tags"
             >
               <RotateCcw className="size-3" />
-              <span className="hidden sm:inline">Khôi phục mặc định</span>
+              <span className="hidden sm:inline">Restore Defaults</span>
             </Button>
           </div>
         </DialogHeader>
@@ -197,44 +197,44 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
           {/* Form Create / Edit (5 cols) */}
           <form onSubmit={handleSaveTag} className="md:col-span-5 space-y-3 p-4 rounded-xl border border-border bg-background/50 h-fit">
             <span className="text-xs font-bold text-foreground uppercase tracking-wider block">
-              {editingKey ? 'Chỉnh sửa Thẻ Topic' : 'Thêm Thẻ Topic Mới'}
+              {editingKey ? 'Edit Topic Tag' : 'Add New Topic Tag'}
             </span>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-muted-foreground">Tên thẻ hiển thị *</label>
+              <label className="text-[11px] font-semibold text-muted-foreground">Display Title *</label>
               <Input
                 value={tagTitle}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="vd: Mobile App & Flutter"
+                placeholder="e.g. Mobile App & Flutter"
                 className="h-8 text-xs bg-card"
                 required
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-muted-foreground">Mã định danh (Key/Slug) *</label>
+              <label className="text-[11px] font-semibold text-muted-foreground">Key Identifier (Slug) *</label>
               <Input
                 value={tagKey}
                 onChange={(e) => setTagKey(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
-                placeholder="vd: mobile_flutter"
+                placeholder="e.g. mobile_flutter"
                 className="h-8 text-xs font-mono bg-card"
                 required
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-muted-foreground">Mô tả ngắn</label>
+              <label className="text-[11px] font-semibold text-muted-foreground">Description</label>
               <Textarea
                 rows={2}
                 value={tagDesc}
                 onChange={(e) => setTagDesc(e.target.value)}
-                placeholder="Mô tả kỹ năng hoặc công nghệ của thẻ..."
+                placeholder="Brief summary of skills or domain technologies..."
                 className="text-xs bg-card min-h-[60px]"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-muted-foreground block">Màu sắc đại diện</label>
+              <label className="text-[11px] font-semibold text-muted-foreground block">Badge Theme Color</label>
               <div className="grid grid-cols-4 gap-1.5 pt-0.5">
                 {COLOR_PRESETS.map((cp) => (
                   <button
@@ -254,12 +254,12 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
             <div className="pt-2 flex items-center justify-end gap-2">
               {editingKey && (
                 <Button type="button" variant="ghost" size="sm" onClick={resetForm} className="h-7 text-xs">
-                  Hủy
+                  Cancel
                 </Button>
               )}
               <Button type="submit" size="sm" className="h-7 text-xs font-bold gap-1 bg-primary text-primary-foreground">
                 {editingKey ? <Edit3 className="size-3" /> : <Plus className="size-3" />}
-                <span>{editingKey ? 'Cập nhật' : 'Thêm thẻ'}</span>
+                <span>{editingKey ? 'Save Changes' : 'Create Tag'}</span>
               </Button>
             </div>
           </form>
@@ -268,7 +268,7 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
           <div className="md:col-span-7 space-y-2.5">
             <div className="flex items-center justify-between pb-1">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Danh sách Thẻ Topic Hệ thống ({tags.length})
+                System Topic Tags ({tags.length})
               </span>
             </div>
 
@@ -299,7 +299,7 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
                       size="sm"
                       onClick={() => handleStartEdit(t)}
                       className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                      title="Chỉnh sửa thẻ này"
+                      title="Edit tag"
                     >
                       <Edit3 className="size-3.5" />
                     </Button>
@@ -309,7 +309,7 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
                       size="sm"
                       onClick={() => handleDeleteTag(t.key, t.title)}
                       className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
-                      title="Xóa thẻ"
+                      title="Delete tag"
                     >
                       <Trash2 className="size-3.5" />
                     </Button>
@@ -322,10 +322,10 @@ export function AdminTopicTagsModal({ open, onClose }: AdminTopicTagsModalProps)
 
         <DialogFooter className="pt-3 border-t border-border shrink-0 flex items-center justify-between">
           <span className="text-[11px] text-muted-foreground">
-            Các thay đổi được lưu và đồng bộ tức thì với bộ chọn thẻ của Contributor.
+            Changes persist in system settings and synchronize immediately across authoring tools.
           </span>
           <Button type="button" variant="outline" size="sm" onClick={onClose} className="text-xs">
-            Đóng
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -9,6 +9,24 @@ import type {
 } from '@/types/lab.types';
 
 export const labApi = {
+  preflightSql: async (payload: {
+    schemaSql: string;
+    seedSql?: string;
+    solution: string;
+    statementPolicy?: 'read_only' | 'mutable';
+    verificationSql?: string;
+    timeoutMs?: number;
+  }): Promise<{
+    status: 'passed' | 'failed';
+    timeMs: number;
+    testLogs: string;
+    rows?: Array<Record<string, unknown>>;
+    columns?: string[];
+  }> => {
+    const res = await apiClient.post<any>('/labs/sql/preflight', payload);
+    return res.data?.data ?? res.data;
+  },
+
   /** Fetch lab detail by slug (Public / Student view) */
   getBySlug: async (slug: string): Promise<LabDetail> => {
     const res = await apiClient.get<any>(`/labs/${slug}`);

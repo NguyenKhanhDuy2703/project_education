@@ -54,29 +54,29 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
     setSuccessMessage(null);
 
     if (newPassword.length < 8) {
-      setErrorMessage('Mật khẩu mới phải có tối thiểu 8 ký tự.');
+      setErrorMessage('New password must be at least 8 characters.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMessage('Xác nhận mật khẩu mới không khớp.');
+      setErrorMessage('Password confirmation does not match.');
       return;
     }
 
     if (currentPassword === newPassword) {
-      setErrorMessage('Mật khẩu mới không được trùng với mật khẩu hiện tại.');
+      setErrorMessage('New password cannot be identical to current password.');
       return;
     }
 
     setIsLoading(true);
     try {
       const res = await authApi.changePassword({ currentPassword, newPassword });
-      setSuccessMessage(res?.message || 'Đổi mật khẩu quản trị viên thành công!');
+      setSuccessMessage(res?.message || 'Admin password updated successfully!');
       setTimeout(() => {
         handleClose();
       }, 1500);
     } catch (err: any) {
-      const backendMsg = err?.response?.data?.message || err?.message || 'Không thể đổi mật khẩu. Vui lòng kiểm tra lại.';
+      const backendMsg = err?.response?.data?.message || err?.message || 'Unable to update password. Please check your credentials and try again.';
       setErrorMessage(backendMsg);
     } finally {
       setIsLoading(false);
@@ -93,10 +93,10 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
             </div>
             <div>
               <DialogTitle className="text-base font-bold text-foreground">
-                Đổi Mật Khẩu Quản Trị Viên
+                Change Administrator Password
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Cập nhật thông tin đăng nhập bảo mật cho tài khoản của bạn.
+                Update security login credentials for your administrator account.
               </DialogDescription>
             </div>
           </div>
@@ -120,7 +120,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
           {/* Current Password */}
           <div className="space-y-1.5">
             <Label htmlFor="current-pw" className="text-xs font-semibold">
-              Mật khẩu hiện tại <span className="text-destructive">*</span>
+              Current Password <span className="text-destructive">*</span>
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -128,7 +128,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
                 id="current-pw"
                 type={showCurrent ? 'text' : 'password'}
                 required
-                placeholder="Nhập mật khẩu hiện tại"
+                placeholder="Enter current password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className="pl-9 pr-9 text-xs"
@@ -148,7 +148,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
           {/* New Password */}
           <div className="space-y-1.5">
             <Label htmlFor="new-pw" className="text-xs font-semibold">
-              Mật khẩu mới <span className="text-destructive">*</span>
+              New Password <span className="text-destructive">*</span>
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -156,7 +156,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
                 id="new-pw"
                 type={showNew ? 'text' : 'password'}
                 required
-                placeholder="Tối thiểu 8 ký tự"
+                placeholder="Minimum 8 characters"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="pl-9 pr-9 text-xs"
@@ -176,7 +176,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
           {/* Confirm Password */}
           <div className="space-y-1.5">
             <Label htmlFor="confirm-pw" className="text-xs font-semibold">
-              Xác nhận mật khẩu mới <span className="text-destructive">*</span>
+              Confirm New Password <span className="text-destructive">*</span>
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -184,7 +184,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
                 id="confirm-pw"
                 type={showConfirm ? 'text' : 'password'}
                 required
-                placeholder="Nhập lại mật khẩu mới"
+                placeholder="Re-enter new password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="pl-9 pr-9 text-xs"
@@ -210,7 +210,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               disabled={isLoading}
               className="text-xs"
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               type="submit"
@@ -221,12 +221,12 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               {isLoading ? (
                 <>
                   <Loader2 className="size-3.5 animate-spin" />
-                  <span>Đang cập nhật...</span>
+                  <span>Updating...</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="size-3.5" />
-                  <span>Lưu mật khẩu mới</span>
+                  <span>Save New Password</span>
                 </>
               )}
             </Button>

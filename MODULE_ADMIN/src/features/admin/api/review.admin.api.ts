@@ -8,7 +8,11 @@ export interface ReviewQueueItem {
   status: ContentLifecycleStatus;
   authorId?: string;
   authorName?: string;
+  author?: { id: string; name?: string; email?: string; role?: string };
   version?: string;
+  category?: string;
+  slug?: string;
+  parentTitle?: string | null;
   description?: string;
   instructions?: string;
   initialSnippet?: string;
@@ -16,6 +20,15 @@ export interface ReviewQueueItem {
   solution?: string;
   reviewFeedback?: string;
   submittedAt?: string;
+  sandboxType?: string;
+  config?: any;
+  envelope?: any;
+  sqlSchema?: string;
+  sampleData?: any[];
+  expectedQueryResult?: any[];
+  quizQuestions?: any[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ReviewQueueResponse {

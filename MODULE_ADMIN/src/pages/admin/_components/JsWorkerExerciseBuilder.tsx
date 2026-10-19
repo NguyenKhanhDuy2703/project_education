@@ -67,14 +67,14 @@ export function JsWorkerExerciseBuilder({
     return [
       {
         id: 'tc-1',
-        name: 'Trường hợp thông thường (Standard input)',
+        name: 'Standard input case',
         input: 'solution("hello")',
         expected: '"HELLO"',
         isHidden: false,
       },
       {
         id: 'tc-2',
-        name: 'Trường hợp biên (Edge case chuỗi rỗng)',
+        name: 'Edge case (empty string)',
         input: 'solution("")',
         expected: '""',
         isHidden: true,
@@ -141,7 +141,7 @@ export function JsWorkerExerciseBuilder({
 
   const handleDeleteCard = (index: number) => {
     if (testCases.length <= 1) {
-      alert('Bài lab cần tối thiểu 1 test case để kiểm thử tự động.');
+      alert('The lab requires at least 1 test case for automated evaluation.');
       return;
     }
     setTestCases((prev) => prev.filter((_, i) => i !== index));
@@ -169,7 +169,7 @@ export function JsWorkerExerciseBuilder({
   // Fill Smart Default JS Template
   const handleApplyJsTemplate = () => {
     onInitialSnippetChange(`function solution(str) {
-  // Viết code xử lý chuỗi ở đây
+  // Implement string transformation here
   return str;
 }`);
     onSolutionChange(`function solution(str) {
@@ -179,14 +179,14 @@ export function JsWorkerExerciseBuilder({
     setTestCases([
       {
         id: 'tc-1',
-        name: 'Chuyển chuỗi thường thành hoa',
+        name: 'Convert lowercase to uppercase',
         input: 'solution("hello")',
         expected: '"HELLO"',
         isHidden: false,
       },
       {
         id: 'tc-2',
-        name: 'Xử lý chuỗi rỗng',
+        name: 'Handle empty string',
         input: 'solution("")',
         expected: '""',
         isHidden: true,
@@ -200,13 +200,13 @@ export function JsWorkerExerciseBuilder({
       <div className="p-4 rounded-2xl border border-border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-foreground">Cấu hình Bài tập JavaScript Worker</h3>
+            <h3 className="text-sm font-bold text-foreground">JavaScript Worker Exercise Configuration</h3>
             <Badge variant="outline" className="text-[10px] font-mono">
               In-Browser Sandbox
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Cung cấp code khởi đầu cho học viên, các thẻ test case kiểm thử và bài giải mẫu.
+            Configure starter code for learners, automated test case cards, and reference solution.
           </p>
         </div>
 
@@ -219,7 +219,7 @@ export function JsWorkerExerciseBuilder({
             className="h-8 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground"
           >
             <FileCode2 className="size-3.5 text-primary" />
-            <span>Mẫu JS chuẩn</span>
+            <span>Standard JS Template</span>
           </Button>
 
           <Button
@@ -230,7 +230,7 @@ export function JsWorkerExerciseBuilder({
             className="h-8 text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-xs"
           >
             <Play className="size-3.5 fill-current" />
-            <span>{runnerStatus === 'running' ? 'Đang chạy thử...' : '▶ Chạy thử Solution'}</span>
+            <span>{runnerStatus === 'running' ? 'Running Tests...' : '▶ Run Solution Tests'}</span>
           </Button>
         </div>
       </div>
@@ -253,15 +253,15 @@ export function JsWorkerExerciseBuilder({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider">
-                  {runnerResult.passed ? 'Kết quả: Tất cả test cases đã PASS ✓' : 'Kết quả: Kiểm thử THẤT BẠI ✗'}
+                  {runnerResult.passed ? 'Result: All test cases PASSED ✓' : 'Result: Test execution FAILED ✗'}
                 </span>
                 <span className="font-mono text-[11px] opacity-75">({runnerResult.timeMs}ms)</span>
               </div>
               <p className="text-xs opacity-90 mt-0.5">
                 {runnerResult.passed
-                  ? `Solution vượt qua thành công ${runnerResult.testCases.length}/${runnerResult.testCases.length} test cases.`
+                  ? `Solution successfully passed ${runnerResult.testCases.length}/${runnerResult.testCases.length} test cases.`
                   : runnerResult.error ||
-                    `Có test case không khớp giá trị mong đợi. Hãy kiểm tra lại giải pháp hoặc test case.`}
+                    `Some test cases did not match expected values. Please check solution or assertions.`}
               </p>
             </div>
           </div>
@@ -286,10 +286,10 @@ export function JsWorkerExerciseBuilder({
           <div className="flex items-center justify-between pb-1 border-b border-border/60">
             <div>
               <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                1. Code khởi đầu (Starter Code) *
+                1. Starter Code *
               </label>
               <p className="text-[11px] text-muted-foreground">
-                Hiển thị sẵn trong editor của học viên khi mở bài lab.
+                Pre-populated in learner's code editor when opening this lab.
               </p>
             </div>
             <Code2 className="size-4 text-muted-foreground" />
@@ -300,7 +300,7 @@ export function JsWorkerExerciseBuilder({
             required
             value={initialSnippet}
             onChange={(e) => onInitialSnippetChange(e.target.value)}
-            placeholder="function solution(input) {&#10;  // Học viên viết mã xử lý tại đây&#10;  return null;&#10;}"
+            placeholder="function solution(input) {&#10;  // Learners implement solution here&#10;  return null;&#10;}"
             className="w-full font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
           />
         </div>
@@ -310,14 +310,14 @@ export function JsWorkerExerciseBuilder({
           <div className="flex items-center justify-between pb-1 border-b border-border/60">
             <div>
               <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                2. Lời giải mẫu (Reference Solution) *
+                2. Reference Model Solution *
               </label>
               <p className="text-[11px] text-muted-foreground">
-                Dùng để đối chiếu và chạy thử nghiệm ngặt trước khi xuất bản.
+                Used for validation checks before publication.
               </p>
             </div>
             <Badge variant="secondary" className="text-[10px] font-bold">
-              CHUẨN
+              MODEL
             </Badge>
           </div>
 
@@ -326,7 +326,7 @@ export function JsWorkerExerciseBuilder({
             required
             value={solution}
             onChange={(e) => onSolutionChange(e.target.value)}
-            placeholder="function solution(input) {&#10;  // Thuật toán chuẩn hoàn chỉnh&#10;  return result;&#10;}"
+            placeholder="function solution(input) {&#10;  // Correct reference implementation&#10;  return result;&#10;}"
             className="w-full font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
           />
         </div>
@@ -338,14 +338,14 @@ export function JsWorkerExerciseBuilder({
           <div>
             <div className="flex items-center gap-2">
               <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                3. Danh sách Test Cases kiểm thử ({testCases.length})
+                3. Evaluation Test Cases ({testCases.length})
               </h4>
               <Badge variant="outline" className="text-[10px] font-mono">
                 Auto Assert
               </Badge>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Hệ thống sẽ tự động đối chiếu kết quả của <code className="text-primary font-mono">Input === Expected</code>.
+              The worker automatically validates that <code className="text-primary font-mono">Input === Expected</code>.
             </p>
           </div>
 
@@ -357,7 +357,7 @@ export function JsWorkerExerciseBuilder({
               onClick={() => setEditMode(editMode === 'cards' ? 'raw' : 'cards')}
               className="h-7 text-xs px-2 text-muted-foreground"
             >
-              {editMode === 'cards' ? 'Xem Script Raw' : 'Chuyển về Dạng Thẻ'}
+              {editMode === 'cards' ? 'View Raw Script' : 'Card View'}
             </Button>
 
             <Button
@@ -368,7 +368,7 @@ export function JsWorkerExerciseBuilder({
               className="h-7 text-xs font-bold gap-1"
             >
               <Plus className="size-3.5" />
-              <span>Thêm Test Case</span>
+              <span>Add Test Case</span>
             </Button>
           </div>
         </div>
@@ -376,7 +376,7 @@ export function JsWorkerExerciseBuilder({
         {editMode === 'raw' ? (
           <div>
             <label className="text-xs font-semibold text-foreground mb-1 block">
-              Script kiểm thử tùy chỉnh (assert)
+              Raw Test Script (assert)
             </label>
             <textarea
               rows={8}
@@ -403,7 +403,7 @@ export function JsWorkerExerciseBuilder({
                         type="text"
                         value={tc.name}
                         onChange={(e) => handleUpdateCard(index, 'name', e.target.value)}
-                        placeholder="Mô tả test case (vd: Chuỗi chứa ký tự đặc biệt)"
+                        placeholder="Test case description (e.g. String with special characters)"
                         className="flex-1 bg-transparent border-0 text-xs font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground"
                       />
                     </div>
@@ -431,10 +431,10 @@ export function JsWorkerExerciseBuilder({
                         className={`h-7 px-2 text-[11px] gap-1 ${
                           tc.isHidden ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
                         }`}
-                        title={tc.isHidden ? 'Test case ẩn (dùng khi chấm điểm)' : 'Test case công khai cho học viên'}
+                        title={tc.isHidden ? 'Hidden test case (evaluation only)' : 'Public test case (visible to learners)'}
                       >
                         {tc.isHidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                        <span>{tc.isHidden ? 'Ẩn' : 'Hiện'}</span>
+                        <span>{tc.isHidden ? 'Hidden' : 'Public'}</span>
                       </Button>
 
                       <Button
@@ -443,7 +443,7 @@ export function JsWorkerExerciseBuilder({
                         size="sm"
                         onClick={() => handleDuplicateCard(index)}
                         className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                        title="Nhân bản test case này"
+                        title="Duplicate test case"
                       >
                         <Copy className="size-3" />
                       </Button>
@@ -454,7 +454,7 @@ export function JsWorkerExerciseBuilder({
                         size="sm"
                         onClick={() => handleDeleteCard(index)}
                         className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
-                        title="Xóa test case"
+                        title="Delete test case"
                       >
                         <Trash2 className="size-3" />
                       </Button>
@@ -464,26 +464,26 @@ export function JsWorkerExerciseBuilder({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
                       <span className="text-[11px] font-semibold text-muted-foreground block mb-1">
-                        Input Expression (Gọi hàm) *
+                        Input Expression (Function Call) *
                       </span>
                       <input
                         type="text"
                         value={tc.input}
                         onChange={(e) => handleUpdateCard(index, 'input', e.target.value)}
-                        placeholder='vd: solution("abc")'
+                        placeholder='e.g. solution("abc")'
                         className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                     </div>
 
                     <div>
                       <span className="text-[11px] font-semibold text-muted-foreground block mb-1">
-                        Expected Value (Giá trị mong đợi) *
+                        Expected Value *
                       </span>
                       <input
                         type="text"
                         value={tc.expected}
                         onChange={(e) => handleUpdateCard(index, 'expected', e.target.value)}
-                        placeholder='vd: "ABC" hoặc true'
+                        placeholder='e.g. "ABC" or true'
                         className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                     </div>

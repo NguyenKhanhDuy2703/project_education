@@ -40,7 +40,7 @@ export function useLabWorker() {
       );
       workerRef.current = worker;
 
-      // ── Timeout Guard (Workflow step: Bật đếm thời gian giới hạn 2000ms) ──
+      // ── Timeout Guard (Workflow step: 2000ms execution timeout) ──
       timerRef.current = setTimeout(() => {
         cleanup();
         setStatus('timeout');
@@ -49,7 +49,7 @@ export function useLabWorker() {
           timeMs: TIMEOUT_MS,
           testCases: [],
           logs: [],
-          error: `Time Limit Exceeded (>${TIMEOUT_MS}ms) — vòng lặp vô tận hoặc tác vụ quá nặng.`,
+          error: `Time Limit Exceeded (>${TIMEOUT_MS}ms) — possible infinite loop or heavy blocking operation.`,
         });
       }, TIMEOUT_MS);
 

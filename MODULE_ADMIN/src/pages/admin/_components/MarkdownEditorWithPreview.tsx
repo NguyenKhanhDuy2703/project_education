@@ -31,7 +31,7 @@ export function MarkdownEditorWithPreview({
   onChange,
   sandboxType = 'sql_worker',
   minHeight = '520px',
-  placeholder = 'Soạn nội dung lý thuyết bằng Markdown...',
+  placeholder = 'Draft theoretical content in Markdown...',
 }: MarkdownEditorWithPreviewProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -99,16 +99,16 @@ export function MarkdownEditorWithPreview({
   const handleApplyTemplate = (type: string) => {
     let templateText = '';
     if (type === 'sql_worker') {
-      templateText = `# Học về GROUP BY & Aggregate Functions
+      templateText = `# Understanding GROUP BY & Aggregate Functions
 
-## 1. Lý thuyết cốt lõi
-Mệnh đề \`GROUP BY\` trong SQL dùng để gom nhóm các dòng có cùng giá trị trên một hoặc nhiều cột. Lệnh này thường được sử dụng kết hợp với các hàm tổng hợp (\`Aggregate Functions\`) như:
-- \`COUNT()\`: Đếm số lượng dòng trong mỗi nhóm.
-- \`SUM()\`: Tính tổng giá trị số.
-- \`AVG()\`: Tính giá trị trung bình.
-- \`MIN() / MAX()\`: Tìm giá trị nhỏ nhất hoặc lớn nhất.
+## 1. Core Theory
+The \`GROUP BY\` clause in SQL groups rows with matching values across one or more columns into summary rows. It is commonly used with aggregate functions such as:
+- \`COUNT()\`: Counts the number of rows in each group.
+- \`SUM()\`: Calculates the total sum of numeric values.
+- \`AVG()\`: Calculates the average value.
+- \`MIN() / MAX()\`: Finds the minimum or maximum value.
 
-## 2. Cú pháp cơ bản
+## 2. Basic Syntax
 \`\`\`sql
 SELECT column_name, COUNT(*) AS total_count, AVG(amount) AS avg_amount
 FROM table_name
@@ -118,44 +118,44 @@ HAVING COUNT(*) > 1
 ORDER BY total_count DESC;
 \`\`\`
 
-## 3. Yêu cầu bài thực hành
-Thực hiện truy vấn theo lược đồ dữ liệu được cung cấp ở bước tiếp theo để trích xuất số liệu thống kê chính xác.`;
+## 3. Practice Requirements
+Execute the query against the schema provided in the next step to extract the required statistical metrics accurately.`;
     } else if (type === 'quizlet') {
-      templateText = `# Tổng quan về Database Indexing & Tối ưu Truy vấn
+      templateText = `# Database Indexing & Query Optimization Overview
 
-## 1. Lý thuyết tổng quan
-Chỉ mục (Index) là cấu trúc dữ liệu giúp hệ quản trị cơ sở dữ liệu (RDBMS) tìm kiếm và truy xuất dòng dữ liệu nhanh hơn mà không cần quét toàn bộ bảng (\`Full Table Scan\`).
+## 1. Theoretical Overview
+An Index is a data structure that enables the Database Management System (RDBMS) to locate and retrieve rows faster without performing a full table scan (\`Full Table Scan\`).
 
-- **B-Tree Index**: Cấu trúc cây cân bằng, là loại chỉ mục mặc định của PostgreSQL và MySQL, tối ưu cho các phép so sánh bằng (\`=\`) và phạm vi (\`<\`, \`>\`, \`BETWEEN\`).
-- **Hash Index**: Tối ưu riêng cho so sánh bằng tuyệt đối (\`=\`), không hỗ trợ tìm kiếm khoảng.
-- **Chi phí đánh đổi**: Index giúp tăng tốc độ đọc (\`SELECT\`) nhưng làm chậm thao tác ghi (\`INSERT\`, \`UPDATE\`, \`DELETE\`) và tốn dung lượng lưu trữ đĩa.
+- **B-Tree Index**: Balanced tree structure, default index type in PostgreSQL and MySQL, optimal for equality (\`=\`) and range (\`<\`, \`>\`, \`BETWEEN\`) queries.
+- **Hash Index**: Optimized for exact equality matches (\`=\`), does not support range queries.
+- **Trade-offs**: Indexes accelerate read queries (\`SELECT\`) at the expense of write operations (\`INSERT\`, \`UPDATE\`, \`DELETE\`) and additional disk storage.
 
-## 2. Hướng dẫn làm bài
-Hãy ôn kỹ các định nghĩa trên trước khi chuyển sang Bước 2 để hoàn thành các câu hỏi trắc nghiệm.`;
+## 2. Quiz Guidelines
+Review the theoretical concepts above thoroughly before proceeding to Step 2 to complete the quiz questions.`;
     } else {
-      templateText = `# Thao tác Xử lý Mảng và Chuỗi trong JavaScript
+      templateText = `# Array & String Manipulation in JavaScript
 
-## 1. Lý thuyết cốt lõi
-Trong JavaScript hiện đại, các phương thức hàm bậc cao (\`Higher-Order Functions\`) giúp xử lý mảng dữ liệu gọn gàng và hạn chế lỗi:
-- \`map()\`: Chuyển đổi từng phần tử thành phần tử mới.
-- \`filter()\`: Lọc ra các phần tử thỏa mãn điều kiện.
-- \`reduce()\`: Tích lũy các phần tử về một giá trị duy nhất.
+## 1. Core Theory
+In modern JavaScript, higher-order functions allow concise and declarative data transformations:
+- \`map()\`: Transforms each element into a new representation.
+- \`filter()\`: Selects elements matching a given predicate condition.
+- \`reduce()\`: Accumulates array elements into a single aggregate value.
 
-## 2. Cú pháp mẫu
+## 2. Code Example
 \`\`\`javascript
 const activeUsers = users
   .filter((user) => user.isActive)
   .map((user) => user.name.trim().toUpperCase());
 \`\`\`
 
-## 3. Yêu cầu bài thực hành
-Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào và vượt qua tất cả các test case kiểm thử.`;
+## 3. Practice Requirements
+Implement the solution function to process input datasets and satisfy all unit test assertions.`;
     }
 
     if (value && value.trim().length > 20) {
       if (
         !window.confirm(
-          'Áp dụng template mẫu sẽ thay thế nội dung markdown hiện tại. Bạn có chắc chắn muốn tiếp tục?'
+          'Applying this template will replace the current markdown content. Are you sure you want to continue?'
         )
       ) {
         return;
@@ -177,9 +177,9 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => insertFormatting('**', '**', 'văn bản đậm')}
+            onClick={() => insertFormatting('**', '**', 'bold text')}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-            title="Đậm (Ctrl+B)"
+            title="Bold (Ctrl+B)"
           >
             <Bold className="size-3.5" />
           </Button>
@@ -188,9 +188,9 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => insertFormatting('*', '*', 'văn bản nghiêng')}
+            onClick={() => insertFormatting('*', '*', 'italic text')}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-            title="Nghiêng (Ctrl+I)"
+            title="Italic (Ctrl+I)"
           >
             <Italic className="size-3.5" />
           </Button>
@@ -199,9 +199,9 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => insertFormatting('`', '`', 'mã_inline')}
+            onClick={() => insertFormatting('`', '`', 'inline_code')}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-            title="Mã inline"
+            title="Inline code"
           >
             <Code className="size-3.5" />
           </Button>
@@ -214,11 +214,11 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
               insertFormatting(
                 '```' + (sandboxType === 'sql_worker' ? 'sql' : 'javascript') + '\n',
                 '\n```',
-                '-- Code tại đây'
+                '// Code here'
               )
             }
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-            title="Khối code"
+            title="Code block"
           >
             <FileCode className="size-3.5" />
           </Button>
@@ -227,9 +227,9 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => insertFormatting('## ', '', 'Tiêu đề mục')}
+            onClick={() => insertFormatting('## ', '', 'Section Heading')}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-            title="Tiêu đề H2"
+            title="Heading 2"
           >
             <Heading2 className="size-3.5" />
           </Button>
@@ -240,13 +240,13 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             size="sm"
             onClick={() =>
               insertFormatting(
-                '| Tiêu đề 1 | Tiêu đề 2 |\n|---|---|\n| Dữ liệu 1 | Dữ liệu 2 |\n',
+                '| Column 1 | Column 2 |\n|---|---|\n| Data 1 | Data 2 |\n',
                 '',
                 ''
               )
             }
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-            title="Bảng Markdown"
+            title="Markdown Table"
           >
             <TableIcon className="size-3.5" />
           </Button>
@@ -255,9 +255,9 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => insertFormatting('[', '](https://example.com)', 'Liên kết')}
+            onClick={() => insertFormatting('[', '](https://example.com)', 'Link')}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-            title="Thêm liên kết"
+            title="Insert Link"
           >
             <LinkIcon className="size-3.5" />
           </Button>
@@ -271,10 +271,10 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             size="sm"
             onClick={() => handleApplyTemplate(sandboxType)}
             className="h-7 text-[11px] font-semibold gap-1 px-2.5 text-primary border-primary/30 hover:bg-primary/5"
-            title="Chèn nội dung mẫu chuẩn theo loại bài tập"
+            title="Insert standard exercise template"
           >
             <FileText className="size-3" />
-            <span>Mẫu {sandboxType === 'sql_worker' ? 'SQL' : sandboxType === 'quizlet' ? 'Quizlet' : 'JS'}</span>
+            <span>Template {sandboxType === 'sql_worker' ? 'SQL' : sandboxType === 'quizlet' ? 'Quizlet' : 'JS'}</span>
           </Button>
         </div>
 
@@ -289,18 +289,18 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
               <TabsList className="h-7 p-0.5">
                 <TabsTrigger value="edit" className="text-xs px-2.5 gap-1">
                   <Edit3 className="size-3" />
-                  <span>Soạn</span>
+                  <span>Edit</span>
                 </TabsTrigger>
                 <TabsTrigger value="preview" className="text-xs px-2.5 gap-1">
                   <Eye className="size-3" />
-                  <span>Xem trước</span>
+                  <span>Preview</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
           <Badge variant="outline" className="hidden sm:inline-flex text-[10px] font-mono text-muted-foreground">
-            {value.length} ký tự
+            {value.length} characters
           </Badge>
 
           <Button
@@ -309,7 +309,7 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             size="sm"
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-            title={isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
           </Button>
@@ -328,7 +328,7 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
           }`}
         >
           <div className="px-3.5 py-1.5 border-b border-border/50 bg-muted/10 text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
-            <span>SOẠN THẢO MARKDOWN</span>
+            <span>MARKDOWN EDITOR</span>
             <span className="text-[10px] font-mono">GFM Syntax</span>
           </div>
           <textarea
@@ -349,8 +349,8 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
           }`}
         >
           <div className="px-3.5 py-1.5 border-b border-border/50 bg-muted/10 text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
-            <span>XEM TRƯỚC THỰC TẾ (LIVE PREVIEW)</span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Cuộn đồng bộ</span>
+            <span>LIVE PREVIEW</span>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Sync Scroll</span>
           </div>
           <div
             ref={previewRef}
@@ -360,7 +360,7 @@ Viết hàm giải pháp trong bài tập để xử lý dữ liệu đầu vào
             dangerouslySetInnerHTML={{
               __html:
                 renderMarkdown(value) ||
-                '<p class="text-xs text-muted-foreground italic">Chưa có nội dung xem trước. Hãy nhập markdown ở cột bên trái...</p>',
+                '<p class="text-xs text-muted-foreground italic">No preview content yet. Enter markdown in the editor on the left...</p>',
             }}
           />
         </div>
