@@ -21,6 +21,11 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Python cache & bytecode
+**/__pycache__/
+*.py[cod]
+*$py.class
+
 # AI Agent & Skills configs (Local only)
 .claude/
 .kiro/

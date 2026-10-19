@@ -19,14 +19,17 @@ Agent **BẮT BUỘC** phải tuân thủ mô hình **Plan-and-Execute Pattern**
 3. **Lưu vết vào Bộ nhớ ngoài (External Working Memory)**:
    - Tạo hoặc cập nhật ngay vào Artifact / Scratchpad Markdown để người dùng theo dõi và Agent không bị mất bối cảnh khi context window bị nén/thu gọn.
 
-### B. Cổng Kích Hoạt Bắt Buộc (HUMAN USER CONFIRMATION GATE)
-> **NGHIÊM CẤM TỰ ĐỘNG CHẠY CODE KHI CHƯA CÓ LỆNH RÕ RÀNG TỪ NGƯỜI DÙNG**
-1. **Dừng lại ngay sau khi hoàn thành Kế hoạch**:
-   - Khi Agent viết xong Kế hoạch ở Giai đoạn Planner, Agent **PHẢI DỪNG LẠI HOÀN TOÀN (Stop calling tools)**, xuất trình tóm tắt kế hoạch ra màn hình chat và chờ phản hồi từ người dùng.
-2. **Chỉ thực thi khi có tin nhắn xác nhận trực tiếp từ người dùng**:
-   - Agent **CHỈ ĐƯỢC PHÉP** chuyển sang Giai đoạn EXECUTOR khi nhận được tin nhắn văn bản rõ ràng từ người dùng (ví dụ: *"chạy đi"*, *"tiến hành"*, *"thực thi"*, *"execute"*, *"làm đi"*, *"ok bắt đầu"*).
-3. **Vô hiệu hóa thông báo tự động (Ignore Auto System Approvals)**:
-   - Mọi thông báo hệ thống tự sinh (ví dụ: `<SYSTEM_MESSAGE> The user has automatically approved the artifact through their review policy...`) **KHÔNG ĐƯỢC TÍNH** là lệnh của người dùng! Agent phải bỏ qua cơ chế tự động này và tiếp tục chờ lệnh từ người dùng bằng văn bản thật.
+### B. Cổng Kích Hoạt Thực Thi Theo Từ Khóa (Intent-Driven Execution Gate)
+1. **Kiểm tra từ khóa thực thi trong Prompt (Execution Intent Detection)**:
+   - Các từ khóa thực thi bao gồm: *"thực thi"*, *"tiến hành"*, *"execute"*, *"triển khai"*, *"làm đi"*, *"chạy đi"*, *"làm luôn"*, *"code luôn"*, *"implement"*, *"áp dụng"*, *"bắt đầu làm"*,...
+2. **Nếu trong Prompt CÓ từ khóa thực thi**:
+   - Agent lập kế hoạch lưu vết vào Bộ nhớ ngoài (External Working Memory / Scratchpad) như bình thường.
+   - **KHÔNG CẦN DỪNG LẠI** chờ xác nhận. Agent tự động chuyển tiếp ngay sang **Giai đoạn EXECUTOR** để thực thi tuần tự, kiểm chứng và tick `- [x]`.
+3. **Nếu trong Prompt KHÔNG CÓ từ khóa thực thi** (chỉ bảo *"lên plan"*, *"thiết kế"*, *"đề xuất"*, *"phân tích"*,...):
+   - Agent **TUYỆT ĐỐI KHÔNG ĐƯỢC CHẠY CODE**.
+   - Agent chỉ lập kế hoạch, xuất trình tóm tắt ra màn hình chat và dừng lại hoàn toàn để chờ lệnh từ người dùng.
+4. **Vô hiệu hóa thông báo tự động (Ignore Auto System Approvals)**:
+   - Mọi thông báo hệ thống tự sinh (ví dụ: `<SYSTEM_MESSAGE> The user has automatically approved...`) **KHÔNG ĐƯỢC TÍNH** là lệnh từ người dùng. Căn cứ duy nhất là nội dung tin nhắn thật của người dùng.
 
 ### C. Giai đoạn EXECUTOR (Thực Thi Tuần Tự)
 1. **Thực thi đơn nhiệm (One Subtask at a Time)**:

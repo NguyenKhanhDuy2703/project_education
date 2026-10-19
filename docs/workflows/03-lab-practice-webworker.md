@@ -135,10 +135,13 @@ sequenceDiagram
 ## 3. References & Source Links
 
 - **Frontend Codebase**:
-  - Lab Workspace: [LabWorkspace.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/components/LabWorkspace.tsx)
-  - Web Worker Runner: [lab-runner.worker.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/workers/lab-runner.worker.ts)
-  - Test Output Panel: [TestOutputPanel.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/components/TestOutputPanel.tsx)
+  - Strategy Registry: [workspaceRegistry.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/strategies/workspaceRegistry.ts)
+  - Automation Test Workspace: [AutomationTestWorkspace.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/strategies/AutomationTestWorkspace.tsx)
+  - SQL Practice Workspace: [SqlPracticeWorkspace.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/strategies/SqlPracticeWorkspace.tsx)
+  - Quiz Assignment Workspace: [QuizAssignmentWorkspace.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/strategies/QuizAssignmentWorkspace.tsx)
+  - Automation Web Worker: [lab-runner.worker.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/workers/lab-runner.worker.ts)
+  - SQL PGlite Web Worker: [sql-runner.worker.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/workers/sql-runner.worker.ts)
 - **Related Workflows**:
   - Course Discovery & Lab Access: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
   - Submission & Progress Tracking: [04-lab-submission-progress.md](file:///d:/Projects/study-web/docs/workflows/04-lab-submission-progress.md)
-  - Two-Step Lab Studio: [06-create-lab-studio.md](file:///d:/Projects/study-web/docs/workflows/06-create-lab-studio.md)
+  - Markdown-First Lab Studio: [06-create-lab-studio.md](file:///d:/Projects/study-web/docs/workflows/06-create-lab-studio.md)

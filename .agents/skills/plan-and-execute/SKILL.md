@@ -79,19 +79,24 @@ Trước khi viết bất kỳ dòng code logic nào:
 
 ---
 
-### Giai đoạn 1.5: CỔNG XÁC NHẬN TỪ NGƯỜI DÙNG (HUMAN USER CONFIRMATION GATE)
+### Giai đoạn 1.5: CỔNG KÍCH HOẠT THỰC THI THEO TỪ KHÓA (INTENT-DRIVEN EXECUTION GATE)
 
-> [!CAUTION]
-> **BẮT BUỘC DỪNG LẠI SAU KHI LẬP KẾ HOẠCH - NÀO CÓ LỆNH CỦA NGƯỜI DÙNG MỚI ĐƯỢC CHẠY!**
-> Tuyệt đối không tự ý chạy code nếu chưa có lệnh rõ ràng bằng tin nhắn văn bản từ người dùng.
+> [!NOTE]
+> **Quy tắc phân luồng thông minh**:
+> - Nếu trong prompt người dùng **ĐÃ CÓ** từ khóa thực thi: Agent lập kế hoạch xong thì **chạy bình thường luôn** mà không cần dừng lại chờ xác nhận.
+> - Nếu trong prompt người dùng **KHÔNG CÓ** từ khóa thực thi (chỉ bảo lên plan, thiết kế, phân tích): Agent **TUYỆT ĐỐI KHÔNG ĐƯỢC CHẠY PLAN / KHÔNG SỬA CODE**, chỉ xuất trình kế hoạch và dừng lại.
 
-1. **Dừng lại ngay sau khi lập kế hoạch (Halt Tool Execution)**:
-   - Ngay sau khi hoàn thành việc tạo/cập nhật Kế hoạch (Artifact / Scratchpad), Agent **PHẢI DỪNG LẠI HOÀN TOÀN**, không gọi thêm bất kỳ tool nào để can thiệp code.
-   - Trình bày tóm tắt kế hoạch, gửi link artifact và yêu cầu người dùng xác nhận hoặc ra lệnh tiếp tục.
-2. **Chỉ thực thi khi có lệnh rõ ràng từ người dùng**:
-   - Agent **CHỈ ĐƯỢC CHUYỂN SANG GIAI ĐOẠN 2 (EXECUTOR)** khi nhận được tin nhắn trực tiếp từ người dùng (ví dụ: *"chạy đi"*, *"tiến hành"*, *"thực thi"*, *"execute"*, *"làm đi"*, *"ok bắt đầu"*).
-3. **Vô hiệu hóa thông báo tự động (Ignore Auto System Messages)**:
-   - Mọi thông báo tự động sinh từ hệ thống (ví dụ: `<SYSTEM_MESSAGE> The user has automatically approved the artifact...`) **KHÔNG PHẢI** là lệnh từ người dùng. Agent phải bỏ qua thông báo này và tiếp tục chờ lệnh từ con người.
+1. **Nhận diện từ khóa thực thi trong Prompt (Execution Intent)**:
+   - Các từ khóa thực thi gồm: *"thực thi"*, *"tiến hành"*, *"execute"*, *"triển khai"*, *"làm đi"*, *"chạy đi"*, *"làm luôn"*, *"code luôn"*, *"implement"*, *"áp dụng"*, *"bắt đầu làm"*,...
+2. **Kịch bản A: Prompt CÓ từ khóa thực thi**:
+   - Agent lập kế hoạch chi tiết vào External Working Memory (Artifact / Scratchpad) theo chuẩn 2 tầng.
+   - **TỰ ĐỘNG CHUYỂN TIẾP SANG GIAI ĐOẠN 2 (EXECUTOR)** ngay sau khi lập kế hoạch xong, không cần dừng lại hỏi người dùng.
+3. **Kịch bản B: Prompt KHÔNG CÓ từ khóa thực thi**:
+   - Khi người dùng chỉ nói *"lên plan giúp tôi..."*, *"thiết kế..."*, *"phân tích..."*:
+   - Agent **BẮT BUỘC DỪNG LẠI HOÀN TOÀN** sau khi lập kế hoạch, không gọi thêm bất kỳ tool nào để can thiệp code.
+   - Trình bày tóm tắt kế hoạch, gửi link artifact/scratchpad và chờ tin nhắn văn bản từ người dùng có từ khóa thực thi mới được làm.
+4. **Vô hiệu hóa thông báo tự động (Ignore Auto System Messages)**:
+   - Mọi thông báo tự động sinh từ hệ thống (ví dụ: `<SYSTEM_MESSAGE> The user has automatically approved...`) **KHÔNG ĐƯỢC TÍNH** là lệnh từ người dùng. Căn cứ duy nhất là nội dung tin nhắn thật của người dùng.
 
 ---
 
@@ -146,4 +151,4 @@ Trước khi viết bất kỳ dòng code logic nào:
 1. **Không tick trước khi Verify**: Nghiêm cấm đổi `- [ ]` thành `- [x]` nếu chưa thực sự chạy lệnh verify hoặc xác nhận kết quả thành công.
 2. **Không làm ngầm ngoài Kế hoạch**: Nếu trong quá trình code phát hiện thêm vấn đề mới (phát sinh bug, thiếu type, thiếu config), Agent PHẢI bổ sung thêm subtask vào file Working Memory trước khi bắt tay vào sửa.
 3. **Bộ nhớ ngoài là Chân lý (Source of Truth)**: Khi Agent bị nén context (compact) hoặc trải qua nhiều lượt hội thoại, file Scratchpad/Artifact luôn là căn cứ duy nhất để xác định bước tiếp theo cần làm.
-4. **Không chạy khi chưa có lệnh từ người dùng**: Sau khi lập plan, Agent bắt buộc phải dừng lại. Tuyệt đối không tự động chuyển sang Executor nếu chưa có câu lệnh rõ ràng từ người dùng. Bỏ qua mọi auto system approval.
+4. **Không chạy khi prompt không có từ khóa thực thi**: Khi prompt của người dùng chỉ yêu cầu lên kế hoạch/thiết kế mà không chứa từ khóa thực thi, Agent bắt buộc phải dừng lại sau khi lập plan. Chỉ tự động chạy tiếp khi prompt ban đầu đã có từ khóa thực thi rõ ràng. Bỏ qua mọi auto system approval.
