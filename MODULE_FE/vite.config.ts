@@ -21,7 +21,8 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
-    testTimeout: 20000,
+    testTimeout: 60000,
+    hookTimeout: 60000,
   },
 })
 

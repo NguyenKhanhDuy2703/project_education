@@ -163,4 +163,29 @@ describe('LabContentCodec Suite (Subtask 2.2)', () => {
     expect(config.blanks).toHaveLength(1);
     expect(config.blanks[0].id).toBe('code_status');
   });
+
+  it('self-heals SQL lab by synthesizing schema and seed when schemaSql is missing but sampleData exists', () => {
+    const legacyMissingSchema = {
+      id: 'sql-legacy-missing',
+      sandboxType: 'sql_worker',
+      instructions: 'Query all customers from Customers table: SELECT * FROM Customers',
+      initialSnippet: 'SELECT * FROM Customers;',
+      sampleData: [
+        { CustomerID: 1, CustomerName: 'Alfreds Futterkiste', Country: 'Germany' },
+        { CustomerID: 2, CustomerName: 'Ana Trujillo', Country: 'Mexico' },
+      ],
+    };
+
+    const normalized = normalizeLabDetail(legacyMissingSchema as any);
+    expect(normalized.sandboxType).toBe('sql_worker');
+    if (normalized.envelope.sandboxType === 'sql_worker') {
+      const sqlConfig = normalized.envelope.config;
+      expect(sqlConfig.schemaSql).toContain('CREATE TABLE IF NOT EXISTS Customers');
+      expect(sqlConfig.schemaSql).toContain('CustomerID INTEGER PRIMARY KEY');
+      expect(sqlConfig.schemaSql).toContain('CustomerName TEXT');
+      expect(sqlConfig.schemaSql).toContain('INSERT INTO Customers');
+      expect(sqlConfig.schemaSql).toContain('Alfreds Futterkiste');
+    }
+  });
 });
+

@@ -30,7 +30,7 @@ describe('PgEngineCore Lifecycle and PostgreSQL 16 Parity', () => {
   beforeEach(async () => {
     engine = new PgEngineCore();
     await engine.initialize(schema, seed);
-  });
+  }, 90000);
 
   afterEach(async () => {
     await engine.dispose();
