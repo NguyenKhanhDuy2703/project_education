@@ -4,6 +4,11 @@ import Editor from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from '@/components/ui/resizable';
+import {
   Database,
   Play,
   CloudUpload,
@@ -335,30 +340,42 @@ export function SqlPracticeWorkspace({
         </div>
       )}
 
-      {/* ── Monaco Editor ─────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 relative">
-        <Editor
-          height="100%"
-          language="sql"
-          theme="vs-dark"
-          value={code}
-          onChange={(val) => handleCodeChange(val || '')}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 13,
-            lineNumbers: 'on',
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            padding: { top: 12, bottom: 12 },
-            tabSize: 2,
-            wordWrap: 'on',
-            suggestOnTriggerCharacters: true,
-          }}
-        />
-      </div>
+      {/* ── Monaco Editor & Results Split (Resizable) ──────────────────────── */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <ResizablePanelGroup
+          direction="vertical"
+          autoSaveId="study-web-sql-vertical-split"
+          className="flex-1 min-h-0 w-full"
+        >
+          {/* Top Panel: Monaco Editor */}
+          <ResizablePanel defaultSize="58%" minSize="25%" className="flex flex-col min-h-0">
+            <div className="flex-1 min-h-0 relative h-full">
+              <Editor
+                height="100%"
+                language="sql"
+                theme="vs-dark"
+                value={code}
+                onChange={(val) => handleCodeChange(val || '')}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 13,
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  padding: { top: 12, bottom: 12 },
+                  tabSize: 2,
+                  wordWrap: 'on',
+                  suggestOnTriggerCharacters: true,
+                }}
+              />
+            </div>
+          </ResizablePanel>
 
-      {/* ── Bottom Results & Schema Panel ─────────────────────────────────── */}
-      <div className="h-64 border-t border-border bg-card flex flex-col shrink-0">
+          <ResizableHandle withHandle />
+
+          {/* Bottom Panel: Results, Diff & Schema */}
+          <ResizablePanel defaultSize="42%" minSize="18%" className="flex flex-col min-h-0">
+            <div className="h-full border-t-0 bg-card flex flex-col flex-1 overflow-hidden">
         {/* Panel Tabs Header */}
         <div className="h-8 border-b border-border bg-muted/40 flex items-center justify-between px-3">
           <div className="flex items-center gap-1">
@@ -649,6 +666,9 @@ export function SqlPracticeWorkspace({
             <SqlSchemaPreview tables={tables} isLoading={isLoadingSchema} />
           )}
         </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
