@@ -1,114 +1,82 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# MODULE_BE — Backend API & Persistence Core
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+> Part of the **[study-web](https://github.com/NguyenKhanhDuy2703/study-web)** educational platform.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+`MODULE_BE` is the production-ready NestJS backend for `study-web`. It coordinates user authentication, session security (refresh token rotation with grace periods), role-based and dynamic feature-override authorization, curriculum content management, and isolated backend grading of student lab submissions.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🛠 Tech Stack
 
-## Project setup
+- **Framework**: [NestJS 12](https://nestjs.com/) (Express platform)
+- **Language**: TypeScript 5+ (Strict mode)
+- **Database & ORM**: [PostgreSQL 16](https://www.postgresql.org/) + [Prisma ORM 6](https://www.prisma.io/)
+- **Ephemeral Sandbox**: [@electric-sql/pglite](https://pglite.dev/) (Isolated Node WASM grader)
+- **Authentication**: Passport.js, JWT, Bcrypt, Google OAuth 2.0
+- **API Documentation**: OpenAPI / Swagger (`@nestjs/swagger`) with HTTP Basic Auth in production
+- **Security & Hardening**: Helmet, Cookie Parser, Class Validator, Trivy CVE scanned
 
+---
+
+## ✨ Architectural Features
+
+### 1. Refresh Token Rotation with Grace Window ([ADR-001](../docs/adr/ADR-001-auth-refresh-rotation.md))
+- Automatic token pair regeneration upon refresh.
+- SHA-256 hashed token storage in the `AuthSession` database table.
+- 30-second concurrency grace window to prevent false-positive session invalidations caused by concurrent frontend requests.
+- Cookie-based authentication via `HttpOnly`, `SameSite=Lax`, and `Secure` headers.
+
+### 2. Dynamic Entitlements & User Feature Overrides ([DOC-07](../docs/07-dynamic-authorization-and-entitlements.md))
+- 4 primary roles: `Admin`, `Contributor`, `UserPro`, `User`.
+- User-level feature override capability allowing admins to toggle specific permissions per account without mutating global roles.
+- `EntitlementsGuard` decorator-driven metadata checks.
+
+### 3. Ephemeral PGlite Submission Grader ([ADR-002](../docs/adr/002-pglite-sql-sandbox.md))
+- Untrusted student SQL is never executed against the platform PostgreSQL instance.
+- Ephemeral in-memory PGlite instances are instantiated on-the-fly, seeded with authoritative test datasets, executed under timeout limits, diffed against hidden solutions, and discarded.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js v20+
+- Running PostgreSQL instance (or Docker)
+
+### Installation & Development
 ```bash
-$ npm install
+# Navigate to MODULE_BE
+cd MODULE_BE
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env
+# Set DATABASE_URL, JWT_SECRET, SWAGGER_USER, SWAGGER_PASSWORD
+
+# Apply database schema & seed initial data
+npx prisma db push
+npx tsx prisma/seed.ts
+
+# Start NestJS development server
+npm run start:dev
 ```
 
-## Compile and run the project
+- **API Base URL**: `http://localhost:3000`
+- **Swagger Documentation**: `http://localhost:3000/api/docs` *(Protected by HTTP Basic Auth in production)*
+
+---
+
+## 🧪 Testing & Production Build
 
 ```bash
-# development
-$ npm run start
+# Execute unit and integration tests (TSX test runner - 13 tests across 6 suites)
+npm run test
 
-# watch mode
-$ npm run start:dev
+# Compile production bundle
+npm run build
 
-# production mode
-$ npm run start:prod
+# Start production server
+npm run start:prod
 ```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
