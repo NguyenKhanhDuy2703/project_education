@@ -1,6 +1,6 @@
 # Resizable Lab Panes Implementation Plan (Theory, Code & Results)
 
-> **Status**: IN PROGRESS  
+> **Status**: COMPLETED  
 > **Source Base**: `feat/docs-readme-video-preview-showcase-and-english`  
 > **Goal**: Integrate `shadcn` resizable (`react-resizable-panels`) to allow users to freely resize:
 > 1. Khối Lý thuyết (Theory pane) — Horizontal resize
@@ -34,5 +34,5 @@
   - *Verify*: Production build succeeds and tests pass (38/38 suites, 186/186 tests)
 - [x] Subtask 4.2: Verify resizing functionality via automated test suite.
   - *Verify*: Panels dynamically resize, `data-orientation` and `aria-orientation` attributes verified
-- [ ] Subtask 4.3: Commit and push changes to remote repository.
+- [x] Subtask 4.3: Commit and push changes to remote repository.
   - *Verify*: `git push` succeeds and working tree is clean
