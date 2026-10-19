@@ -29,10 +29,17 @@ with sync_playwright() as p:
         record_video_size={"width": 1280, "height": 720}
     )
     page = context.new_page()
+    # Signal manual trigger before navigation so it doesn't auto-start
+    page.add_init_script("window.__MANUAL_TRIGGER = true;")
     page.goto(HTML_PATH)
+    page.wait_for_selector(".workspace-body")
+    # Wait 400ms for Chromium to fully paint the complete initial workspace
+    page.wait_for_timeout(400)
     
-    # Wait for the exact 5.2-second timeline to complete
-    page.wait_for_timeout(5200)
+    # Start the demo timeline
+    page.evaluate("window.startDemoTimeline()")
+    # Record the 5.0-second action timeline plus a small buffer
+    page.wait_for_timeout(5100)
     
     context.close()
     video_path = page.video.path()
@@ -46,9 +53,10 @@ out_webm = RECORD_DIR / "demo-5s.webm"
 out_gif = RECORD_DIR / "demo-5s.gif"
 out_poster = RECORD_DIR / "demo-poster.png"
 
-# Step 2: Use ffmpeg to convert to crisp 5s MP4
+# Step 2: Use ffmpeg to convert to crisp 5s MP4, seeking past the navigation phase (~0.5s)
 cmd_mp4 = [
     FFMPEG_BIN, "-y",
+    "-ss", "0.5",
     "-i", str(raw_video),
     "-t", "5.0",
     "-c:v", "libx264",
@@ -61,11 +69,10 @@ cmd_mp4 = [
 print("Generating MP4:", " ".join(cmd_mp4))
 subprocess.run(cmd_mp4, check=True)
 
-# Step 3: Copy / re-encode WebM
+# Step 3: Re-encode WebM directly from trimmed out_mp4
 cmd_webm = [
     FFMPEG_BIN, "-y",
-    "-i", str(raw_video),
-    "-t", "5.0",
+    "-i", str(out_mp4),
     "-c:v", "libvpx-vp9",
     "-crf", "28",
     "-b:v", "0",

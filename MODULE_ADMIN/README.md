@@ -6,7 +6,7 @@
 
 ---
 
-## 🛠 Tech Stack
+## Technology Stack
 
 - **Framework**: [React 19](https://react.dev/) + [Vite 8](https://vite.dev/)
 - **Language**: TypeScript 5+ (Strict mode)
@@ -17,7 +17,7 @@
 
 ---
 
-## ✨ Core Features & Pages
+## Core Features & Pages
 
 | Page / Route | Component | Purpose |
 |:---|:---|:---|
@@ -31,7 +31,7 @@
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js v20+
@@ -53,7 +53,7 @@ The portal runs by default at `http://localhost:5174` (or next available port).
 
 ---
 
-## 🧪 Testing & Production Build
+## Testing & Production Build
 
 ```bash
 # Run unit and component test suites (Vitest - 40 tests across 5 suites)
@@ -68,6 +68,6 @@ npm run preview
 
 ---
 
-## 🏛 System Integration
+## System Integration
 
 `MODULE_ADMIN` communicates with `MODULE_BE` via cookie-based JWT authentication (`HttpOnly` session tokens). Users must possess the `Admin` or `Contributor` role to access administrative endpoints, enforced via NestJS `EntitlementsGuard`.

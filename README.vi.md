@@ -52,10 +52,10 @@
 <details>
 <summary><b>Trình tự Thực thi Kỹ thuật (0:00 – 0:05)</b> <i>(Nhấp để xem chi tiết)</i></summary>
 
-- **0.0s – 1.6s**: Học viên viết truy vấn CTE và hàm cửa sổ (Window Function) trực tiếp trong Monaco Editor với tính năng highlight cú pháp và gợi ý mã lệnh.
-- **1.6s – 2.4s**: Khi nhấn nút thực thi, bộ lọc AST phía client (`sqlGuard.ts`) phân tích cây cú pháp trừu tượng, xác thực tính hợp lệ và ngăn chặn các thao tác ghi phá hủy dữ liệu.
-- **2.4s – 3.8s**: Công cụ **PGlite 0.5.10** (PostgreSQL 16 biên dịch sang WebAssembly) chạy truy vấn trong Web Worker độc lập với độ trễ chỉ **7.8ms**, hoàn toàn loại bỏ độ trễ khởi động container trên máy chủ.
-- **3.8s – 5.0s**: Bộ so khớp diff tự động so sánh tập kết quả với đáp án chuẩn, xác nhận độ tương thích 100% và kích hoạt cấp điểm thưởng (+50 XP).
+- **0.0s – 1.2s**: Học viên hoàn thiện truy vấn trực tiếp trong Monaco Editor với tính năng tô sáng cú pháp và gợi ý mã lệnh tự động.
+- **1.2s – 1.8s**: Khi nhấn nút thực thi, bộ lọc AST phía client (`sqlGuard.ts`) phân tích cây cú pháp trừu tượng, xác thực tính an toàn và ngăn chặn các thao tác ghi phá hủy dữ liệu.
+- **1.8s – 2.9s**: Công cụ **PGlite 0.5.10** (PostgreSQL 16 biên dịch sang WebAssembly) chạy truy vấn trong Web Worker độc lập với độ trễ chỉ **7.8ms**, bộ so khớp diff xác nhận độ tương thích 100% với đáp án chuẩn.
+- **2.9s – 5.0s**: Hộp thoại hoàn thành chuẩn doanh nghiệp hiển thị kết quả kiểm chứng thành công và kích hoạt mở khóa điểm thưởng (+50 XP).
 
 </details>
 

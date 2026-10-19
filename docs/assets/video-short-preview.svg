@@ -64,7 +64,7 @@
     <text x="26" y="17" fill="#f8fafc" font-size="11" font-weight="700" class="sans" letter-spacing="0.5">60s VIDEO SHORT</text>
 
     <rect x="146" y="0" width="100" height="26" rx="13" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <text x="156" y="17" fill="#38bdf8" font-size="11" font-weight="600" class="sans">⚡ 10ms WASM</text>
+    <text x="156" y="17" fill="#38bdf8" font-size="11" font-weight="600" class="sans">&lt; 10ms WASM</text>
   </g>
 
   <!-- Code Snippet Card (Monaco Mobile View) -->
@@ -100,7 +100,7 @@
       <text y="0" fill="#94a3b8">&gt; PGlite WASM Execution:</text>
       <text y="20" fill="#34d399">✔ AST Guard: 0 violations</text>
       <text y="40" fill="#38bdf8">✔ Diff Checker: Match 100%</text>
-      <text y="60" fill="#a855f7">★ Grade: PASSED (+50 XP)</text>
+      <text y="60" fill="#a855f7">Grade: PASSED (+50 XP)</text>
     </g>
 
     <!-- Passed Pill Badge -->

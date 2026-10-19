@@ -52,10 +52,10 @@ The following recording demonstrates the real-time execution lifecycle of the **
 <details>
 <summary><b>Technical Execution Sequence (0:00 – 0:05)</b> <i>(Click to expand)</i></summary>
 
-- **0.0s – 1.6s**: Student constructs query in embedded Monaco Editor with SQL syntax highlighting and auto-completion.
-- **1.6s – 2.4s**: On execution trigger, the client-side Abstract Syntax Tree (AST) guard (`sqlGuard.ts`) verifies statement safety and ensures read-only isolation.
-- **2.4s – 3.8s**: In-browser **PGlite 0.5.10** (PostgreSQL 16 compiled to WebAssembly) executes the query against local seed tables within a dedicated Web Worker in **7.8ms**, eliminating cloud container cold starts.
-- **3.8s – 5.0s**: Automated diff grader compares execution result sets against expected schemas, confirms 100% multiset parity, and triggers authoritative score allocation (+50 XP).
+- **0.0s – 1.2s**: Student constructs query in embedded Monaco Editor with SQL syntax highlighting and auto-completion.
+- **1.2s – 1.8s**: On execution trigger, the client-side Abstract Syntax Tree (AST) guard (`sqlGuard.ts`) verifies statement safety and ensures read-only isolation.
+- **1.8s – 2.9s**: In-browser **PGlite 0.5.10** (PostgreSQL 16 compiled to WebAssembly) executes the query against local seed tables within a dedicated Web Worker in **7.8ms**, and the diff grader confirms 100% multiset parity against the solution.
+- **2.9s – 5.0s**: The enterprise completion modal confirms test pass verification and awards authenticated XP allocation (+50 XP).
 
 </details>
 

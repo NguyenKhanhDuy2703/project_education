@@ -404,22 +404,22 @@
       background: #34d399;
     }
 
-    /* Floating Celebration Modal */
+    /* Floating Celebration Modal (Enterprise Dialog) */
     .celebration-modal {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%) scale(0.9);
+      transform: translate(-50%, -50%) scale(0.92);
       opacity: 0;
       pointer-events: none;
-      width: 440px;
+      width: 420px;
       background: #0f172a;
-      border: 1px solid #6366f1;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(99, 102, 241, 0.35);
-      border-radius: 14px;
+      border: 1px solid #334155;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 25px rgba(56, 189, 248, 0.2);
+      border-radius: 12px;
       padding: 24px;
       text-align: center;
-      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 100;
     }
     .celebration-modal.show {
@@ -427,51 +427,77 @@
       transform: translate(-50%, -50%) scale(1);
       pointer-events: auto;
     }
-    .modal-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #10b981, #06b6d4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 14px;
-      font-size: 26px;
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+    .modal-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 4px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
     }
     .modal-title {
       font-size: 18px;
       font-weight: 700;
       color: #f8fafc;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     .modal-sub {
-      font-size: 13px;
+      font-size: 12px;
       color: #94a3b8;
       margin-bottom: 16px;
     }
-    .xp-pill {
-      display: inline-flex;
+    .modal-stats {
+      display: flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(139, 92, 246, 0.15);
-      border: 1px solid rgba(139, 92, 246, 0.4);
-      padding: 6px 16px;
-      border-radius: 20px;
-      color: #c084fc;
-      font-weight: 700;
-      font-size: 14px;
+      justify-content: space-around;
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 16px;
       margin-bottom: 18px;
+    }
+    .stat-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #64748b;
+      letter-spacing: 0.5px;
+    }
+    .stat-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .stat-val.pass {
+      color: #34d399;
+    }
+    .stat-val.score {
+      color: #38bdf8;
+    }
+    .stat-divider {
+      width: 1px;
+      height: 24px;
+      background: #1e293b;
     }
     .modal-btn {
       width: 100%;
-      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      background: #2563eb;
       color: #fff;
       border: none;
       padding: 10px;
       border-radius: 8px;
       font-weight: 600;
       font-size: 13px;
+      cursor: pointer;
+      box-shadow: 0 0 14px rgba(37, 99, 235, 0.35);
     }
   </style>
 </head>
@@ -660,21 +686,33 @@
     <div>study-web v1.2.0 • Clean Modular Monolith</div>
   </footer>
 
-  <!-- Celebratory Award Modal (Pops up at 4.2s) -->
+  <!-- Completion Celebration Dialog (matches MODULE_FE CompletionCelebrationDialog.tsx) -->
   <div id="celebrationModal" class="celebration-modal">
-    <div class="modal-icon">🏆</div>
-    <div class="modal-title">Lab Challenge Solved!</div>
-    <div class="modal-sub">Authoritative solution parity confirmed by PGlite WASM engine.</div>
-    <div class="xp-pill mono">
-      <span>★</span>
-      <span>+50 XP EARNED</span>
+    <div class="modal-badge mono">100% COMPLETED</div>
+    <div class="modal-title">Lab Challenge Completed!</div>
+    <div class="modal-sub">Authoritative solution parity confirmed by in-browser PGlite WASM engine.</div>
+    <div class="modal-stats mono">
+      <div class="stat-col">
+        <span class="stat-label">STATUS</span>
+        <span class="stat-val pass">Passed</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-col">
+        <span class="stat-label">RUNTIME</span>
+        <span class="stat-val">7.8ms</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-col">
+        <span class="stat-label">SCORE</span>
+        <span class="stat-val score">+50 XP</span>
+      </div>
     </div>
-    <button class="modal-btn">Advance to Next Lab ➔</button>
+    <button class="modal-btn">Continue to Next Lab</button>
   </div>
 
-  <!-- Timed Animation Script (5.0s sequence) -->
+  <!-- Timed Animation Script (Deterministic 5.0s sequence) -->
   <script>
-    const codeLines = [
+    const initialLines = [
       '<span class="kw">WITH</span> monthly_rev <span class="kw">AS</span> (',
       '  <span class="kw">SELECT</span> <span class="fn">date_trunc</span>(<span class="str">\'month\'</span>, created_at) <span class="kw">AS</span> month,',
       '         <span class="fn">sum</span>(amount_cents) <span class="kw">AS</span> total_gross',
@@ -682,7 +720,10 @@
       '  <span class="kw">WHERE</span> status = <span class="str">\'COMPLETED\'</span>',
       '  <span class="kw">GROUP BY</span> 1',
       ')',
-      '<span class="kw">SELECT</span> month, total_gross,',
+      '<span class="kw">SELECT</span> month, total_gross,'
+    ];
+
+    const typedLines = [
       '  <span class="fn">lag</span>(total_gross) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> month) <span class="kw">AS</span> prev_month,',
       '  <span class="fn">round</span>(((total_gross - <span class="fn">lag</span>(total_gross) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> month))',
       '        / <span class="fn">lag</span>(total_gross) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> month)::numeric) * 100, 2) <span class="kw">AS</span> mom_growth',
@@ -697,61 +738,81 @@
     const resultTableArea = document.getElementById('resultTableArea');
     const celebrationModal = document.getElementById('celebrationModal');
 
-    // 0.0s - 1.2s: Typing lines progressively
-    let lineIdx = 0;
-    function renderLines() {
-      if (lineIdx < codeLines.length) {
-        const div = document.createElement('div');
-        div.innerHTML = codeLines[lineIdx];
-        codeContainer.appendChild(div);
-        lineIdx++;
-        setTimeout(renderLines, 85);
-      } else {
-        const cursor = document.createElement('span');
-        cursor.className = 'cursor';
-        codeContainer.appendChild(cursor);
+    // Pre-render initial code so frame 0 is instantly populated
+    initialLines.forEach(line => {
+      const div = document.createElement('div');
+      div.innerHTML = line;
+      codeContainer.appendChild(div);
+    });
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    codeContainer.appendChild(cursor);
+
+    let timelineStarted = false;
+
+    window.startDemoTimeline = function() {
+      if (timelineStarted) return;
+      timelineStarted = true;
+
+      // 0.0s - 0.9s: Type remaining window function code
+      let lineIdx = 0;
+      function renderTypedLine() {
+        if (lineIdx < typedLines.length) {
+          const div = document.createElement('div');
+          div.innerHTML = typedLines[lineIdx];
+          codeContainer.insertBefore(div, cursor);
+          lineIdx++;
+          setTimeout(renderTypedLine, 260);
+        }
       }
-    }
-    renderLines();
+      setTimeout(renderTypedLine, 120);
 
-    // 1.8s: User triggers Execute Query
+      // 1.2s: Execute Query triggered
+      setTimeout(() => {
+        runBtn.classList.add('running');
+        runBtnLabel.textContent = 'Running in WASM...';
+        statusBadge.textContent = 'EXECUTING';
+        statusBadge.style.color = '#38bdf8';
+
+        const log = document.createElement('div');
+        log.className = 'log-line';
+        log.innerHTML = '<span style="color:#38bdf8;">&gt;</span><span>Running AST sqlGuard validation...</span>';
+        terminalLogs.appendChild(log);
+      }, 1200);
+
+      // 1.8s: Query executed & Diff Grader passed
+      setTimeout(() => {
+        const log1 = document.createElement('div');
+        log1.className = 'log-line success';
+        log1.innerHTML = '<span>✔</span><span>AST Guard: 0 violations, read-only verified</span>';
+        terminalLogs.appendChild(log1);
+
+        const log2 = document.createElement('div');
+        log2.className = 'log-line success';
+        log2.innerHTML = '<span>✔</span><span>PGlite execution finished in 7.8ms</span>';
+        terminalLogs.appendChild(log2);
+
+        runBtn.classList.remove('running');
+        runBtnLabel.textContent = 'Execute Query (PGlite WASM)';
+        statusBadge.textContent = 'PASSED';
+        statusBadge.className = 'badge-status pass mono';
+
+        // Show results table
+        resultTableArea.style.display = 'flex';
+      }, 1800);
+
+      // 2.9s: Trigger enterprise celebration modal
+      setTimeout(() => {
+        celebrationModal.classList.add('show');
+      }, 2900);
+    };
+
+    // Auto-start for manual browser view if not driven by test runner
     setTimeout(() => {
-      runBtn.classList.add('running');
-      runBtnLabel.textContent = 'Running in WASM...';
-      statusBadge.textContent = 'EXECUTING';
-      statusBadge.style.color = '#38bdf8';
-
-      const log = document.createElement('div');
-      log.className = 'log-line';
-      log.innerHTML = '<span style="color:#38bdf8;">&gt;</span><span>Running AST sqlGuard validation...</span>';
-      terminalLogs.appendChild(log);
-    }, 1600);
-
-    // 2.3s: Query finished, AST passed
-    setTimeout(() => {
-      const log1 = document.createElement('div');
-      log1.className = 'log-line success';
-      log1.innerHTML = '<span>✔</span><span>AST Guard: 0 violations, read-only verified</span>';
-      terminalLogs.appendChild(log1);
-
-      const log2 = document.createElement('div');
-      log2.className = 'log-line success';
-      log2.innerHTML = '<span>✔</span><span>PGlite execution finished in 7.8ms</span>';
-      terminalLogs.appendChild(log2);
-
-      runBtn.classList.remove('running');
-      runBtnLabel.textContent = 'Execute Query (PGlite WASM)';
-      statusBadge.textContent = 'PASSED';
-      statusBadge.className = 'badge-status pass mono';
-
-      // Show results table
-      resultTableArea.style.display = 'flex';
-    }, 2400);
-
-    // 3.8s: Trigger celebration modal
-    setTimeout(() => {
-      celebrationModal.classList.add('show');
-    }, 3600);
+      if (!timelineStarted && !window.__MANUAL_TRIGGER) {
+        window.startDemoTimeline();
+      }
+    }, 400);
   </script>
 </body>
 </html>
