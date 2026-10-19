@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminReviewApi, type ReviewQueueItem } from '@/features/admin/api/review.admin.api';
+import { labApi } from '@/features/lab/api/lab.api';
 import { usersAdminApi } from '@/features/admin/api/users.admin.api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -119,10 +120,20 @@ export function AdminReviewQueue() {
   }, [filteredItems, page, pageSize]);
 
   // Handlers for Review Actions
-  const handleOpenReview = (item: typeof selectedItem) => {
+  const handleOpenReview = async (item: typeof selectedItem) => {
+    if (!item) return;
     setSelectedItem(item);
     setPreviewMode('spec');
     setReviewModalOpen(true);
+
+    if (item.type === 'lab' && (!item.instructions || (!item.solution && !item.quizQuestions && !item.config))) {
+      try {
+        const fullLab = await labApi.getById(item.id);
+        if (fullLab) {
+          setSelectedItem((prev) => (prev && prev.id === item.id ? { ...prev, ...fullLab } : prev));
+        }
+      } catch {}
+    }
   };
 
   const handleApprove = async (id: string, type: 'series' | 'lab') => {
@@ -382,7 +393,7 @@ export function AdminReviewQueue() {
             </div>
 
             <DialogDescription className="text-xs text-muted-foreground flex items-center gap-3 pt-1">
-              <span>Contributor Author: <strong>{selectedItem?.authorName}</strong></span>
+              <span>Contributor Author: <strong>{selectedItem?.authorName || selectedItem?.author?.name || 'Contributor'}</strong></span>
               <span>•</span>
               <span>Version: <strong className="font-semibold">{selectedItem?.version || 'v1.0'}</strong></span>
             </DialogDescription>
@@ -405,6 +416,170 @@ export function AdminReviewQueue() {
                     )}
                   </div>
                 </div>
+
+                {/* V2 Smart Cloze Configuration & Blanks Inspection */}
+                {selectedItem?.type === 'lab' && (() => {
+                  let config = selectedItem.config || selectedItem.envelope?.config;
+                  if (!config && selectedItem.envelope && typeof selectedItem.envelope === 'object' && selectedItem.envelope.version === '2.0') {
+                    config = selectedItem.envelope;
+                  }
+                  if (typeof config === 'string') {
+                    try { config = JSON.parse(config); } catch {}
+                  }
+                  const isV2 =
+                    (typeof config?.version === 'string' && parseFloat(config.version) >= 2.0) ||
+                    Array.isArray(config?.blanks);
+                  if (!isV2) return null;
+
+                  return (
+                    <div className="space-y-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="border-amber-500/40 text-amber-600 bg-amber-500/10 text-[10px] font-bold">
+                            Smart Cloze V2 Envelope
+                          </Badge>
+                          <span className="text-xs font-semibold text-foreground">
+                            {config.framework || 'API'} Framework • {config.interactionMode || 'smart_cloze'}
+                          </span>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px] font-mono">
+                          {config.blanks?.length || 0} Blank Decisions
+                        </Badge>
+                      </div>
+
+                      {config.blanks && config.blanks.length > 0 && (
+                        <div className="space-y-1.5">
+                          <h5 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Defined Blanks &amp; Options:
+                          </h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            {config.blanks.map((b: any) => (
+                              <div key={b.id} className="p-2.5 rounded-lg border border-border bg-card/80 space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-mono font-bold text-amber-500 text-[11px]">{b.id}</span>
+                                  <Badge variant="outline" className="text-[9px] uppercase">{b.kind}</Badge>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground line-clamp-1">{b.label || b.id}</p>
+                                {b.options && b.options.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 pt-0.5">
+                                    {b.options.map((opt: any) => (
+                                      <span key={String(opt.value)} className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">
+                                        {opt.label || String(opt.value)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Quiz Questions Inspection if available */}
+                {(() => {
+                  let questions: any[] = selectedItem?.quizQuestions || selectedItem?.config?.questions;
+                  if (!questions && Array.isArray(selectedItem?.config)) {
+                    questions = selectedItem.config;
+                  }
+                  if (!questions || questions.length === 0) return null;
+
+                  return (
+                    <div className="space-y-3 p-4 rounded-xl border border-purple-500/30 bg-purple-500/5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="border-purple-500/40 text-purple-600 bg-purple-500/10 text-[10px] font-bold">
+                            Quizlet Questions
+                          </Badge>
+                          <span className="text-xs font-semibold text-foreground">
+                            {questions.length} Multiple Choice Questions
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 pt-1">
+                        {questions.map((q: any, idx: number) => (
+                          <div key={q.id || idx} className="p-3 rounded-lg border border-border bg-card/80 space-y-2 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-foreground">
+                                Q{idx + 1}: {q.question}
+                              </span>
+                            </div>
+                            {q.options && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                {q.options.map((opt: string, optIdx: number) => {
+                                  const isCorrect = optIdx === q.correctIndex;
+                                  return (
+                                    <div
+                                      key={optIdx}
+                                      className={`px-2.5 py-1.5 rounded-md border text-[11px] flex items-center justify-between ${
+                                        isCorrect
+                                          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold'
+                                          : 'border-border bg-muted/20 text-muted-foreground'
+                                      }`}
+                                    >
+                                      <span>{opt}</span>
+                                      {isCorrect && <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {q.explanation && (
+                              <p className="text-[11px] text-muted-foreground italic border-t border-border/50 pt-1">
+                                💡 Explanation: {q.explanation}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* SQL Schema Preview if available */}
+                {selectedItem?.sqlSchema && (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                        SQL Schema DDL/DML:
+                      </h4>
+                      <pre className="p-3 rounded-lg border border-sky-500/20 bg-sky-500/5 font-mono text-xs overflow-x-auto max-h-36">
+                        {selectedItem.sqlSchema}
+                      </pre>
+                    </div>
+
+                    {/* Sample Data Mock Rows if present */}
+                    {selectedItem.sampleData && selectedItem.sampleData.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Sample Mock Data ({selectedItem.sampleData.length} Rows):
+                          </h5>
+                        </div>
+                        <pre className="p-2.5 rounded-lg border border-border bg-card font-mono text-[11px] overflow-x-auto max-h-28 text-muted-foreground">
+                          {JSON.stringify(selectedItem.sampleData, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+
+                    {/* Expected Query Result Rows if present */}
+                    {selectedItem.expectedQueryResult && selectedItem.expectedQueryResult.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            Expected Query Result ({selectedItem.expectedQueryResult.length} Rows):
+                          </h5>
+                        </div>
+                        <pre className="p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 font-mono text-[11px] overflow-x-auto max-h-28">
+                          {JSON.stringify(selectedItem.expectedQueryResult, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Starter Code Snippet & Solution */}
                 {selectedItem?.type === 'lab' && (
@@ -449,6 +624,80 @@ export function AdminReviewQueue() {
                   <Badge variant="outline" className="text-[10px]">Student Simulation</Badge>
                 </div>
                 <h3 className="text-base font-bold text-foreground">{selectedItem?.title}</h3>
+
+                {/* V2 Smart Cloze Simulation Summary */}
+                {(() => {
+                  let config = selectedItem?.config || selectedItem?.envelope?.config;
+                  if (typeof config === 'string') {
+                    try { config = JSON.parse(config); } catch {}
+                  }
+                  if (
+                    (typeof config?.version === 'string' && parseFloat(config.version) >= 2.0) ||
+                    Array.isArray(config?.blanks)
+                  ) {
+                    return (
+                      <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 text-xs space-y-2">
+                        <div className="flex items-center justify-between font-semibold text-amber-600 dark:text-amber-400">
+                          <span>Smart Cloaked Code Exercise Preview</span>
+                          <span className="text-[11px]">{config.blanks?.length || 0} Interactive Blanks</span>
+                        </div>
+                        <p className="text-muted-foreground text-[11px]">
+                          Learners will complete {config.blanks?.length || 0} guided code decision blanks without editing raw boilerplate.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* Quizlet Student Simulation */}
+                {(() => {
+                  let questions: any[] = selectedItem?.quizQuestions || selectedItem?.config?.questions;
+                  if (!questions && Array.isArray(selectedItem?.config)) {
+                    questions = selectedItem.config;
+                  }
+                  if (!questions || questions.length === 0) return null;
+
+                  return (
+                    <div className="space-y-3 pt-2">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Simulated Quiz Assignment ({questions.length} Questions):
+                      </h4>
+                      <div className="space-y-3">
+                        {questions.map((q: any, qIdx: number) => (
+                          <div key={q.id || qIdx} className="p-3.5 rounded-xl border border-border bg-card/60 space-y-2.5">
+                            <p className="text-xs font-semibold text-foreground">
+                              {qIdx + 1}. {q.question}
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                              {q.options?.map((opt: string, optIdx: number) => (
+                                <div
+                                  key={optIdx}
+                                  className="p-2 rounded-lg border border-border bg-muted/20 text-muted-foreground text-xs hover:border-primary/40 cursor-pointer transition-colors"
+                                >
+                                  {opt}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* SQL Starter Query Student Simulation */}
+                {selectedItem?.sqlSchema && (
+                  <div className="space-y-1.5 pt-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                      Starter Query:
+                    </h4>
+                    <pre className="p-3 rounded-lg border border-border bg-muted/30 font-mono text-xs overflow-x-auto">
+                      {selectedItem.initialSnippet || '-- Write your query here...'}
+                    </pre>
+                  </div>
+                )}
+
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed"
                   dangerouslySetInnerHTML={{

@@ -77,16 +77,16 @@ export function QuizletExerciseBuilder({
 
   const handleAddOption = () => {
     if (currentQuestion.options.length >= 6) {
-      alert('Tối đa 6 lựa chọn cho một câu hỏi trắc nghiệm.');
+      alert('A multiple-choice question supports a maximum of 6 options.');
       return;
     }
-    const nextOpts = [...currentQuestion.options, `Lựa chọn ${String.fromCharCode(65 + currentQuestion.options.length)}`];
+    const nextOpts = [...currentQuestion.options, `Option ${String.fromCharCode(65 + currentQuestion.options.length)}`];
     handleUpdateCurrentQuestion({ options: nextOpts });
   };
 
   const handleRemoveOption = (optIdx: number) => {
     if (currentQuestion.options.length <= 2) {
-      alert('Cần tối thiểu 2 lựa chọn cho câu trắc nghiệm.');
+      alert('A multiple-choice question requires at least 2 options.');
       return;
     }
     const nextOpts = currentQuestion.options.filter((_, i) => i !== optIdx);
@@ -99,15 +99,15 @@ export function QuizletExerciseBuilder({
 
   const handleAddQuestion = () => {
     if (questions.length >= 30) {
-      alert('Một bài lab Quizlet hỗ trợ tối đa 30 câu hỏi.');
+      alert('A Quizlet lab supports a maximum of 30 questions.');
       return;
     }
     const newQ: QuizQuestion = {
       id: `q-${Date.now()}`,
-      question: `Câu hỏi ${questions.length + 1}: Nhập nội dung câu hỏi (hỗ trợ Markdown)...`,
-      options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
+      question: `Question ${questions.length + 1}: Enter question content (Markdown supported)...`,
+      options: ['Option A', 'Option B', 'Option C', 'Option D'],
       correctIndex: 0,
-      explanation: 'Giải thích vì sao lựa chọn này là chính xác.',
+      explanation: 'Explanation for why this option is correct.',
     };
     const nextList = [...questions, newQ];
     onChange(nextList);
@@ -116,7 +116,7 @@ export function QuizletExerciseBuilder({
 
   const handleDeleteCurrentQuestion = () => {
     if (questions.length <= 1) {
-      alert('Cần tối thiểu 1 câu hỏi trong bộ Quizlet.');
+      alert('A Quizlet lab requires at least 1 question.');
       return;
     }
 
@@ -159,7 +159,7 @@ export function QuizletExerciseBuilder({
 
     try {
       // Split by numbers or ##
-      const rawBlocks = bulkImportText.split(/(?:^|\n)(?=\d+[\.\)]|##\s*Câu)/).filter(Boolean);
+      const rawBlocks = bulkImportText.split(/(?:^|\n)(?=\d+[\.\)]|##\s*Câu|##\s*Question)/).filter(Boolean);
       const parsedList: QuizQuestion[] = [];
 
       rawBlocks.forEach((block, idx) => {
@@ -167,7 +167,7 @@ export function QuizletExerciseBuilder({
         if (lines.length < 3) return;
 
         // Prompt line
-        const prompt = lines[0].replace(/^\d+[\.\)]\s*|^##\s*Câu\s*\d*[:\.]?\s*/i, '').trim();
+        const prompt = lines[0].replace(/^\d+[\.\)]\s*|^##\s*(?:Câu|Question)\s*\d*[:\.]?\s*/i, '').trim();
 
         // Option lines (A. B. C. D.)
         const options: string[] = [];
@@ -207,12 +207,12 @@ export function QuizletExerciseBuilder({
         setActiveQuestionIndex(0);
         setIsBulkImportOpen(false);
         setBulkImportText('');
-        alert(`Đã nhập thành công ${parsedList.length} câu hỏi trắc nghiệm!`);
+        alert(`Successfully imported ${parsedList.length} multiple-choice questions!`);
       } else {
-        alert('Không tìm thấy câu hỏi hợp lệ trong văn bản. Hãy đảm bảo định dạng đúng (1. Câu hỏi, A. Đáp án A, B. Đáp án B, Đáp án: A).');
+        alert('No valid questions found. Ensure format matches: 1. Question prompt, A. Option A, B. Option B, Answer: A.');
       }
     } catch (err: any) {
-      alert('Lỗi phân tích cú pháp: ' + err.message);
+      alert('Parse error: ' + err.message);
     }
   };
 
@@ -222,7 +222,7 @@ export function QuizletExerciseBuilder({
       {deletedBackup && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 p-3.5 rounded-xl border border-border bg-card shadow-xl animate-in fade-in slide-in-from-bottom-2">
           <span className="text-xs text-foreground font-medium">
-            Đã xóa câu hỏi #{deletedBackup.index + 1}.
+            Deleted Question #{deletedBackup.index + 1}.
           </span>
           <Button
             type="button"
@@ -231,7 +231,7 @@ export function QuizletExerciseBuilder({
             className="h-7 text-xs font-bold gap-1 bg-primary text-primary-foreground"
           >
             <Undo2 className="size-3" />
-            <span>Hoàn tác (5s)</span>
+            <span>Undo (5s)</span>
           </Button>
         </div>
       )}
@@ -240,13 +240,13 @@ export function QuizletExerciseBuilder({
       <div className="p-4 rounded-2xl border border-border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-foreground">Soạn Thảo Bộ Trắc Nghiệm Quizlet</h3>
+            <h3 className="text-sm font-bold text-foreground">Quizlet Multiple-Choice Studio</h3>
             <Badge variant="outline" className="text-[10px] font-mono">
-              {questions.length} / 30 CÂU
+              {questions.length} / 30 QUESTIONS
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Mỗi câu hỏi có 2 đến 6 lựa chọn, hỗ trợ định dạng Markdown và xem trước góc nhìn học viên.
+            Each question supports 2 to 6 options with Markdown formatting and student simulation preview.
           </p>
         </div>
 
@@ -259,7 +259,7 @@ export function QuizletExerciseBuilder({
             className="h-8 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground"
           >
             <Upload className="size-3.5" />
-            <span>Nhập từ Markdown</span>
+            <span>Import from Markdown</span>
           </Button>
 
           <Button
@@ -270,7 +270,7 @@ export function QuizletExerciseBuilder({
             className="h-8 text-xs font-bold gap-1 bg-primary text-primary-foreground shadow-xs"
           >
             <Plus className="size-3.5" />
-            <span>Thêm câu hỏi ({questions.length}/30)</span>
+            <span>Add Question ({questions.length}/30)</span>
           </Button>
         </div>
       </div>
@@ -280,7 +280,7 @@ export function QuizletExerciseBuilder({
         <div className="p-5 rounded-2xl border border-primary/30 bg-card shadow-lg space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-              Nhập hàng loạt câu hỏi từ văn bản Markdown
+              Bulk Import Questions from Markdown
             </span>
             <Button
               type="button"
@@ -289,7 +289,7 @@ export function QuizletExerciseBuilder({
               onClick={() => setIsBulkImportOpen(false)}
               className="h-6 text-xs text-muted-foreground"
             >
-              Đóng
+              Close
             </Button>
           </div>
 
@@ -297,7 +297,7 @@ export function QuizletExerciseBuilder({
             rows={7}
             value={bulkImportText}
             onChange={(e) => setBulkImportText(e.target.value)}
-            placeholder={`1. PostgreSQL sử dụng chỉ mục nào làm mặc định cho khóa chính?&#10;A. Hash Index&#10;B. B-Tree Index&#10;C. GiST Index&#10;D. GIN Index&#10;Đáp án: B&#10;Giải thích: B-Tree tối ưu cho tìm kiếm bằng và khoảng.`}
+            placeholder={`1. What index does PostgreSQL use by default for PRIMARY KEY constraints?\nA. Hash Index\nB. B-Tree Index\nC. GiST Index\nD. GIN Index\nAnswer: B\nExplanation: B-Tree indexes are optimized for equality and range queries.`}
             className="w-full font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
           />
 
@@ -309,7 +309,7 @@ export function QuizletExerciseBuilder({
               onClick={() => setIsBulkImportOpen(false)}
               className="text-xs"
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               type="button"
@@ -317,7 +317,7 @@ export function QuizletExerciseBuilder({
               onClick={handleExecuteBulkImport}
               className="text-xs font-bold bg-primary text-primary-foreground"
             >
-              Phân tích &amp; Nhập dữ liệu
+              Parse &amp; Import Questions
             </Button>
           </div>
         </div>
@@ -329,10 +329,10 @@ export function QuizletExerciseBuilder({
         <div className="lg:col-span-3 p-4 rounded-2xl border border-border bg-card shadow-xs space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-border/70">
             <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-              Danh sách câu hỏi
+              Questions List
             </span>
             <span className="text-[11px] font-mono text-muted-foreground">
-              {statuses.filter((s) => s === 'ready').length}/{questions.length} Sẵn sàng
+              {statuses.filter((s) => s === 'ready').length}/{questions.length} Ready
             </span>
           </div>
 
@@ -357,22 +357,22 @@ export function QuizletExerciseBuilder({
                       {idx + 1}
                     </span>
                     <span className="text-xs truncate">
-                      {q.question.replace(/^[#\*\s]+/, '') || `Câu hỏi ${idx + 1}`}
+                      {q.question.replace(/^[#\*\s]+/, '') || `Question ${idx + 1}`}
                     </span>
                   </div>
 
                   {status === 'ready' && (
-                    <span title="Đầy đủ thông tin">
+                    <span title="Complete and valid">
                       <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     </span>
                   )}
                   {status === 'warning' && (
-                    <span title="Chưa đủ lựa chọn hoặc chưa chọn đáp án đúng">
+                    <span title="Incomplete options or missing correct answer">
                       <AlertTriangle className="size-4 text-amber-500 shrink-0" />
                     </span>
                   )}
                   {status === 'empty' && (
-                    <span title="Chưa nhập nội dung">
+                    <span title="Missing question prompt">
                       <Circle className="size-3.5 text-muted-foreground/40 shrink-0" />
                     </span>
                   )}
@@ -390,7 +390,7 @@ export function QuizletExerciseBuilder({
             className="w-full h-8 text-xs font-semibold gap-1"
           >
             <Plus className="size-3.5" />
-            <span>Thêm câu mới</span>
+            <span>Add New Question</span>
           </Button>
         </div>
 
@@ -399,7 +399,7 @@ export function QuizletExerciseBuilder({
           <div className="flex items-center justify-between pb-2 border-b border-border/70">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-foreground">
-                Câu hỏi #{activeQuestionIndex + 1}
+                Question #{activeQuestionIndex + 1}
               </span>
               <Badge
                 variant="outline"
@@ -409,7 +409,7 @@ export function QuizletExerciseBuilder({
                     : 'border-amber-500/40 text-amber-600'
                 }`}
               >
-                {statuses[activeQuestionIndex] === 'ready' ? 'Hợp lệ ✓' : 'Chưa hoàn tất ⚠'}
+                {statuses[activeQuestionIndex] === 'ready' ? 'Valid ✓' : 'Incomplete ⚠'}
               </Badge>
             </div>
 
@@ -422,7 +422,7 @@ export function QuizletExerciseBuilder({
                 className="h-7 text-xs px-2 gap-1 text-muted-foreground"
               >
                 {questionPreviewMode ? <Edit3 className="size-3" /> : <Eye className="size-3" />}
-                <span>{questionPreviewMode ? 'Sửa' : 'Xem Markdown'}</span>
+                <span>{questionPreviewMode ? 'Edit' : 'Preview Markdown'}</span>
               </Button>
 
               {questions.length > 1 && (
@@ -432,7 +432,7 @@ export function QuizletExerciseBuilder({
                   size="sm"
                   onClick={handleDeleteCurrentQuestion}
                   className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
-                  title="Xóa câu hỏi này"
+                  title="Delete this question"
                 >
                   <Trash2 className="size-3.5" />
                 </Button>
@@ -443,7 +443,7 @@ export function QuizletExerciseBuilder({
           {/* Question Prompt */}
           <div>
             <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block mb-1">
-              Nội dung câu hỏi (Markdown) *
+              Question Prompt (Markdown) *
             </label>
             {questionPreviewMode ? (
               <div
@@ -456,7 +456,7 @@ export function QuizletExerciseBuilder({
                 required
                 value={currentQuestion.question}
                 onChange={(e) => handleUpdateCurrentQuestion({ question: e.target.value })}
-                placeholder="vd: Cấu trúc nào là mặc định trong PostgreSQL khi tạo `PRIMARY KEY`?"
+                placeholder="e.g. Which index structure is default in PostgreSQL when creating a `PRIMARY KEY`?"
                 className="w-full font-mono text-xs bg-background border border-border rounded-xl p-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
               />
             )}
@@ -466,7 +466,7 @@ export function QuizletExerciseBuilder({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold text-foreground uppercase tracking-wider">
-                Các phương án lựa chọn ({currentQuestion.options.length}/6) *
+                Answer Options ({currentQuestion.options.length}/6) *
               </label>
               {currentQuestion.options.length < 6 && (
                 <Button
@@ -476,7 +476,7 @@ export function QuizletExerciseBuilder({
                   onClick={handleAddOption}
                   className="h-6 text-[11px] px-2 text-primary"
                 >
-                  + Thêm lựa chọn
+                  + Add Option
                 </Button>
               )}
             </div>
@@ -500,7 +500,7 @@ export function QuizletExerciseBuilder({
                       checked={isCorrect}
                       onChange={() => handleUpdateCurrentQuestion({ correctIndex: optIdx })}
                       className="size-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                      title="Đánh dấu đây là đáp án đúng"
+                      title="Mark as correct answer"
                     />
 
                     <span className="font-mono text-xs font-bold text-muted-foreground w-4 text-center">
@@ -512,13 +512,13 @@ export function QuizletExerciseBuilder({
                       required
                       value={opt}
                       onChange={(e) => handleUpdateOption(optIdx, e.target.value)}
-                      placeholder={`Lựa chọn ${String.fromCharCode(65 + optIdx)}`}
+                      placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
                       className="flex-1 bg-transparent border-0 text-xs text-foreground focus:outline-none font-medium"
                     />
 
                     {isCorrect && (
                       <Badge className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0 h-4 shrink-0">
-                        Đáp án đúng ✓
+                        Correct Answer ✓
                       </Badge>
                     )}
 
@@ -527,7 +527,7 @@ export function QuizletExerciseBuilder({
                         type="button"
                         onClick={() => handleRemoveOption(optIdx)}
                         className="text-muted-foreground hover:text-destructive p-1"
-                        title="Xóa lựa chọn này"
+                        title="Remove option"
                       >
                         ×
                       </button>
@@ -541,13 +541,13 @@ export function QuizletExerciseBuilder({
           {/* Explanation */}
           <div>
             <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block mb-1">
-              Giải thích đáp án (Hiển thị sau khi học viên nộp bài)
+              Answer Explanation (Revealed after submission)
             </label>
             <textarea
               rows={2}
               value={currentQuestion.explanation || ''}
               onChange={(e) => handleUpdateCurrentQuestion({ explanation: e.target.value })}
-              placeholder="Giải thích vì sao đáp án này là chính xác..."
+              placeholder="Explain why this option is correct..."
               className="w-full font-mono text-xs bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
             />
           </div>
@@ -558,7 +558,7 @@ export function QuizletExerciseBuilder({
           <div className="flex items-center justify-between pb-2 border-b border-border/70">
             <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Eye className="size-3.5 text-primary" />
-              <span>Góc nhìn Học viên (Live Preview)</span>
+              <span>Student Simulation (Live Preview)</span>
             </span>
             <Badge variant="outline" className="text-[10px] font-mono">
               PREVIEW
@@ -569,8 +569,8 @@ export function QuizletExerciseBuilder({
             {/* Student Card simulation */}
             <div className="p-4 rounded-xl border border-border bg-background space-y-3">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Câu {activeQuestionIndex + 1} / {questions.length}</span>
-                <span className="font-mono">1 Điểm</span>
+                <span>Question {activeQuestionIndex + 1} of {questions.length}</span>
+                <span className="font-mono">1 Point</span>
               </div>
 
               <div
@@ -578,7 +578,7 @@ export function QuizletExerciseBuilder({
                 dangerouslySetInnerHTML={{
                   __html:
                     renderMarkdown(currentQuestion.question) ||
-                    '<p class="italic text-muted-foreground">Nhập câu hỏi để xem trước...</p>',
+                    '<p class="italic text-muted-foreground">Enter question prompt to preview...</p>',
                 }}
               />
 
@@ -591,14 +591,14 @@ export function QuizletExerciseBuilder({
                     <span className="size-5 rounded border border-border/80 text-[10px] font-mono font-bold flex items-center justify-center bg-muted/30">
                       {String.fromCharCode(65 + i)}
                     </span>
-                    <span className="text-foreground">{opt || `(Lựa chọn ${String.fromCharCode(65 + i)})`}</span>
+                    <span className="text-foreground">{opt || `(Option ${String.fromCharCode(65 + i)})`}</span>
                   </div>
                 ))}
               </div>
 
               {currentQuestion.explanation && (
                 <div className="mt-3 p-3 rounded-lg bg-muted/40 border border-border/60 text-[11px] text-muted-foreground space-y-1">
-                  <span className="font-bold text-foreground block">💡 Giải thích chi tiết:</span>
+                  <span className="font-bold text-foreground block">💡 Explanation:</span>
                   <p>{currentQuestion.explanation}</p>
                 </div>
               )}

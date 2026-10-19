@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), !process.env.VITEST ? tailwindcss() : null].filter(Boolean) as any,
   server: {
     port: 5174,
     host: true,
@@ -19,5 +19,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
     },
+  },
+  // @ts-expect-error vitest config
+  test: {
+    environment: 'happy-dom',
+    globals: true,
+    testTimeout: 20000,
   },
 });

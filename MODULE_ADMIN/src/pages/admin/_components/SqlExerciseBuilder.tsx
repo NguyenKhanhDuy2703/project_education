@@ -15,6 +15,8 @@ import {
   Eye,
   Layers,
 } from 'lucide-react';
+import { labApi } from '@/features/lab/api/lab.api';
+import type { SqlLabConfig } from '@/types/lab.types';
 
 export interface SqlColumn {
   name: string;
@@ -35,6 +37,8 @@ interface SqlExerciseBuilderProps {
   sampleData?: any[];
   onSampleDataChange?: (val: any[]) => void;
   onValidationChange?: (isValid: boolean, hasRunPassed: boolean) => void;
+  sqlConfig?: Partial<SqlLabConfig>;
+  onSqlConfigChange?: (config: Partial<SqlLabConfig>) => void;
 }
 
 export function SqlExerciseBuilder({
@@ -47,10 +51,13 @@ export function SqlExerciseBuilder({
   sampleData,
   onSampleDataChange,
   onValidationChange,
+  sqlConfig = {},
+  onSqlConfigChange,
 }: SqlExerciseBuilderProps) {
   const [activeTab, setActiveTab] = useState<'schema' | 'starter' | 'solution' | 'testcases'>('schema');
   const [showSchemaPreview, setShowSchemaPreview] = useState(false);
   const [testResult, setTestResult] = useState<{ passed: boolean; message: string; rows?: any[] } | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
 
   // Parse tables and mock rows from DDL/DML sqlSchema
   const parsedSchema = useMemo(() => {
@@ -108,10 +115,7 @@ export function SqlExerciseBuilder({
     if (sampleData && sampleData.length > 0) {
       return sampleData;
     }
-    return [
-      { id: '1', full_name: 'Alice Johnson', total_spent: '1500.00' },
-      { id: '3', full_name: 'Charlie Brown', total_spent: '2200.00' },
-    ];
+    return [];
   });
 
   // Sync sampleData to parent
@@ -125,9 +129,9 @@ export function SqlExerciseBuilder({
     return (
       sqlSchema.trim().length > 20 &&
       solution.trim().length > 10 &&
-      expectedRows.length > 0
+      (sqlConfig.statementPolicy !== 'mutable' || Boolean(sqlConfig.verificationSql?.trim()))
     );
-  }, [sqlSchema, solution, expectedRows]);
+  }, [sqlSchema, solution, sqlConfig.statementPolicy, sqlConfig.verificationSql]);
 
   useEffect(() => {
     if (onValidationChange) {
@@ -135,103 +139,76 @@ export function SqlExerciseBuilder({
     }
   }, [isValid, testResult, onValidationChange]);
 
-  // Generate expected output grid automatically from solution & schema
-  const handleGenerateFromSolution = () => {
+  useEffect(() => {
+    setTestResult(null);
+  }, [sqlSchema, solution]);
+
+  const runReferenceSolution = async () => {
     if (!solution.trim()) {
-      alert('Vui lòng nhập câu query giải pháp (Solution) trước khi sinh kết quả kiểm thử.');
-      return;
+      throw new Error('Please enter a reference solution query first.');
     }
-
-    // Heuristic: determine which columns the solution selects
-    const selectMatch = solution.match(/SELECT\s+(.+?)\s+FROM/i);
-    let targetCols = parsedSchema.columns.map((c) => c.name);
-
-    if (selectMatch && !selectMatch[1].includes('*')) {
-      targetCols = selectMatch[1]
-        .split(',')
-        .map((c) => {
-          const aliasMatch = c.match(/(?:AS\s+)?([a-zA-Z0-9_]+)$/i);
-          return aliasMatch ? aliasMatch[1].trim() : c.trim();
-        })
-        .filter(Boolean);
+    if (!sqlSchema.trim()) {
+      throw new Error('Please enter schema and seed SQL first.');
     }
-
-    // Filter parsed rows based on simple condition in solution
-    let filteredRows = [...parsedSchema.rows];
-    if (solution.toUpperCase().includes('WHERE')) {
-      const whereMatch = solution.match(/WHERE\s+([^;]+?)(?:\s+ORDER|\s+GROUP|\s+LIMIT|;|$)/i);
-      if (whereMatch) {
-        const cond = whereMatch[1];
-        // simple numeric compare simulation (e.g. total_spent > 1000)
-        const compMatch = cond.match(/([a-zA-Z0-9_]+)\s*(>|<|>=|<=|=)\s*([0-9.]+)/);
-        if (compMatch) {
-          const [, colName, op, valStr] = compMatch;
-          const targetVal = parseFloat(valStr);
-          filteredRows = filteredRows.filter((r) => {
-            const rowVal = parseFloat(r[colName]);
-            if (isNaN(rowVal)) return true;
-            if (op === '>') return rowVal > targetVal;
-            if (op === '<') return rowVal < targetVal;
-            if (op === '>=') return rowVal >= targetVal;
-            if (op === '<=') return rowVal <= targetVal;
-            if (op === '=') return rowVal === targetVal;
-            return true;
-          });
-        }
-      }
-    }
-
-    // Project columns
-    const projected = filteredRows.map((row) => {
-      const newRow: Record<string, any> = {};
-      targetCols.forEach((col) => {
-        newRow[col] = row[col] !== undefined ? row[col] : '-';
-      });
-      return newRow;
-    });
-
-    if (targetCols.length > 0) {
-      setExpectedColumns(targetCols);
-    }
-    if (projected.length > 0) {
-      setExpectedRows(projected);
-    } else if (parsedSchema.rows.length > 0) {
-      setExpectedRows(parsedSchema.rows.slice(0, 2));
-    }
-
-    setTestResult({
-      passed: true,
-      message: `Đã sinh tự động ${projected.length || parsedSchema.rows.length} hàng kết quả từ Solution.`,
-      rows: projected.length > 0 ? projected : parsedSchema.rows,
+    return labApi.preflightSql({
+      schemaSql: sqlSchema,
+      solution,
+      statementPolicy: sqlConfig.statementPolicy || 'read_only',
+      verificationSql: sqlConfig.verificationSql,
+      timeoutMs: sqlConfig.timeoutMs || 3000,
     });
   };
 
-  // Test Solution against Test Cases
-  const handleTestSolution = () => {
-    if (!solution.trim()) {
-      alert('Vui lòng nhập Reference Solution.');
-      return;
-    }
-    if (expectedRows.length === 0) {
-      alert('Vui lòng tạo ít nhất 1 dòng kết quả mong đợi trong Test Cases.');
-      return;
-    }
-
-    // Validate that solution references valid tables and columns
-    const hasTable = parsedSchema.tableName && solution.toLowerCase().includes(parsedSchema.tableName.toLowerCase());
-    if (!hasTable && parsedSchema.tableName !== 'sample_table') {
+  // Generate expected output using the same isolated PostgreSQL engine used by grading.
+  const handleGenerateFromSolution = async () => {
+    setIsTesting(true);
+    try {
+      const result = await runReferenceSolution();
+      const rows = result.rows || [];
+      const columns = result.columns || (rows[0] ? Object.keys(rows[0]) : []);
+      setExpectedColumns(columns);
+      setExpectedRows(rows);
+      setTestResult({
+        passed: result.status === 'passed',
+        message: result.status === 'passed'
+          ? `Generated ${rows.length} expected row(s) with PGlite in ${result.timeMs}ms.`
+          : result.testLogs,
+        rows,
+      });
+    } catch (error) {
       setTestResult({
         passed: false,
-        message: `Lỗi truy vấn: Bảng "${parsedSchema.tableName}" không được tham chiếu trong câu lệnh FROM.`,
+        message: error instanceof Error ? error.message : 'PGlite preflight failed.',
       });
-      return;
+    } finally {
+      setIsTesting(false);
     }
+  };
 
-    setTestResult({
-      passed: true,
-      message: `Query cú pháp hợp lệ. Khớp toàn bộ ${expectedRows.length} dòng kết quả mong đợi.`,
-      rows: expectedRows,
-    });
+  // Test Solution against Test Cases
+  const handleTestSolution = async () => {
+    setIsTesting(true);
+    try {
+      const result = await runReferenceSolution();
+      const rows = result.rows || [];
+      const columns = result.columns || (rows[0] ? Object.keys(rows[0]) : []);
+      if (result.status === 'passed') {
+        setExpectedColumns(columns);
+        setExpectedRows(rows);
+      }
+      setTestResult({
+        passed: result.status === 'passed',
+        message: result.testLogs,
+        rows,
+      });
+    } catch (error) {
+      setTestResult({
+        passed: false,
+        message: error instanceof Error ? error.message : 'PGlite preflight failed.',
+      });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const handleApplyPreset = () => {
@@ -248,7 +225,7 @@ INSERT INTO customers VALUES
 (3, 'Charlie Brown', 2200.00, 'San Francisco'),
 (4, 'Diana Prince', 3100.00, 'Seattle');`);
 
-    onInitialSnippetChange(`-- Viết truy vấn lấy các khách hàng có total_spent > 1000
+    onInitialSnippetChange(`-- Write query to select customers with total_spent > 1000
 SELECT id, full_name, total_spent
 FROM customers
 WHERE ...
@@ -273,13 +250,13 @@ ORDER BY total_spent DESC;`);
       <div className="p-4 rounded-2xl border border-border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-foreground">Cấu hình Bài tập SQL Database Challenge</h3>
+            <h3 className="text-sm font-bold text-foreground">SQL Database Challenge Configuration</h3>
             <Badge variant="outline" className="text-[10px] font-mono">
               PostgreSQL Sandbox
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Thiết lập lược đồ dữ liệu DDL/DML, câu query khởi đầu cho học viên, và bộ kiểm thử kết quả.
+            Configure DDL/DML schema, starter query for learners, and expected test grid.
           </p>
         </div>
 
@@ -292,17 +269,18 @@ ORDER BY total_spent DESC;`);
             className="h-8 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground"
           >
             <FileCode2 className="size-3.5 text-primary" />
-            <span>Mẫu SQL chuẩn</span>
+            <span>Standard SQL Template</span>
           </Button>
 
           <Button
             type="button"
             size="sm"
             onClick={handleTestSolution}
+            disabled={isTesting}
             className="h-8 text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-xs"
           >
             <Play className="size-3.5 fill-current" />
-            <span>▶ Chạy thử Solution</span>
+            <span>{isTesting ? 'Running PGlite…' : '▶ Test Run Solution'}</span>
           </Button>
         </div>
       </div>
@@ -324,7 +302,7 @@ ORDER BY total_spent DESC;`);
             )}
             <div>
               <span className="text-xs font-bold uppercase tracking-wider block">
-                {testResult.passed ? 'Kiểm thử Solution THÀNH CÔNG ✓' : 'Lỗi kiểm thử truy vấn ✗'}
+                {testResult.passed ? 'Solution Test PASSED ✓' : 'Query Test FAILED ✗'}
               </span>
               <p className="text-xs opacity-90 mt-0.5">{testResult.message}</p>
             </div>
@@ -370,10 +348,10 @@ ORDER BY total_spent DESC;`);
             <div className="flex items-center justify-between pb-2 border-b border-border/70">
               <div>
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Cơ sở Dữ liệu &amp; Dữ liệu mẫu (CREATE TABLE &amp; INSERT INTO) *
+                  Database Schema &amp; Seed Data (CREATE TABLE &amp; INSERT INTO) *
                 </label>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Định nghĩa cấu trúc bảng và chèn các dòng dữ liệu mẫu ban đầu cho học viên thực hành.
+                  Define table structure and initial sample seed rows for practice.
                 </p>
               </div>
 
@@ -385,7 +363,7 @@ ORDER BY total_spent DESC;`);
                 className="h-7 text-xs font-medium gap-1"
               >
                 <Eye className="size-3.5" />
-                <span>{showSchemaPreview ? 'Ẩn xem dữ liệu' : 'Xem dữ liệu lưới'}</span>
+                <span>{showSchemaPreview ? 'Hide Data Grid' : 'Preview Data Grid'}</span>
               </Button>
             </div>
 
@@ -398,15 +376,64 @@ ORDER BY total_spent DESC;`);
               className="w-full font-mono text-xs bg-background border border-border rounded-xl p-3.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
             />
 
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="space-y-1 text-xs font-semibold">
+                Statement policy
+                <select
+                  value={sqlConfig.statementPolicy || 'read_only'}
+                  onChange={(event) => onSqlConfigChange?.({ ...sqlConfig, statementPolicy: event.target.value as 'read_only' | 'mutable' })}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 font-normal"
+                >
+                  <option value="read_only">Read-only query</option>
+                  <option value="mutable">Data/schema mutation</option>
+                </select>
+              </label>
+              <label className="space-y-1 text-xs font-semibold">
+                Timeout (ms)
+                <input
+                  type="number"
+                  min={500}
+                  max={10000}
+                  value={sqlConfig.timeoutMs || 3000}
+                  onChange={(event) => onSqlConfigChange?.({ ...sqlConfig, timeoutMs: Number(event.target.value) })}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 font-normal"
+                />
+              </label>
+              <label className="flex items-end gap-2 pb-2 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={Boolean(sqlConfig.orderSensitive)}
+                  onChange={(event) => onSqlConfigChange?.({ ...sqlConfig, orderSensitive: event.target.checked })}
+                />
+                Result order must match
+              </label>
+            </div>
+
+            {sqlConfig.statementPolicy === 'mutable' && (
+              <label className="block space-y-1 text-xs font-semibold">
+                Hidden verification query *
+                <textarea
+                  rows={3}
+                  value={sqlConfig.verificationSql || ''}
+                  onChange={(event) => onSqlConfigChange?.({ ...sqlConfig, verificationSql: event.target.value })}
+                  placeholder="SELECT id, active FROM users ORDER BY id;"
+                  className="w-full rounded-xl border border-border bg-background p-3 font-mono text-xs font-normal"
+                />
+                <span className="block text-[11px] font-normal text-muted-foreground">
+                  Runs after the learner mutation and is never sent to learners.
+                </span>
+              </label>
+            )}
+
             {/* Grid preview of seeded table */}
             {showSchemaPreview && (
               <div className="mt-3 p-4 rounded-xl border border-border/80 bg-background/50 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-foreground">
-                    Bảng: <code className="text-primary font-mono">{parsedSchema.tableName}</code> ({parsedSchema.rows.length} dòng)
+                    Table: <code className="text-primary font-mono">{parsedSchema.tableName}</code> ({parsedSchema.rows.length} rows)
                   </span>
                   <Badge variant="outline" className="text-[10px] font-mono">
-                    {parsedSchema.columns.length} CỘT
+                    {parsedSchema.columns.length} COLUMNS
                   </Badge>
                 </div>
 
@@ -437,7 +464,7 @@ ORDER BY total_spent DESC;`);
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">
-                    Chưa phân tích được bảng. Hãy đảm bảo cú pháp có `CREATE TABLE` và `INSERT INTO`.
+                    Could not parse table schema. Ensure DDL includes CREATE TABLE and INSERT INTO statements.
                   </p>
                 )}
               </div>
@@ -450,10 +477,10 @@ ORDER BY total_spent DESC;`);
           <div className="p-5 rounded-2xl border border-border bg-card shadow-xs space-y-3">
             <div className="pb-2 border-b border-border/70">
               <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Câu lệnh truy vấn ban đầu (Starter Query)
+                Starter Query
               </label>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Hiển thị sẵn trong trình soạn thảo code của học viên khi mở bài lab này.
+                Pre-populated in learner's query editor when starting this lab.
               </p>
             </div>
 
@@ -461,7 +488,7 @@ ORDER BY total_spent DESC;`);
               rows={8}
               value={initialSnippet}
               onChange={(e) => onInitialSnippetChange(e.target.value)}
-              placeholder="-- Viết truy vấn lấy các khách hàng theo yêu cầu...&#10;SELECT id, full_name FROM customers WHERE ...;"
+              placeholder="-- Write query according to requirements...&#10;SELECT id, full_name FROM customers WHERE ...;"
               className="w-full font-mono text-xs bg-background border border-border rounded-xl p-3.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
             />
           </div>
@@ -473,10 +500,10 @@ ORDER BY total_spent DESC;`);
             <div className="flex items-center justify-between pb-2 border-b border-border/70">
               <div>
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Lời giải mẫu (Reference Solution) *
+                  Reference Model Solution *
                 </label>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Câu lệnh SQL chuẩn để kiểm tra tính hợp lệ và tự động sinh test cases.
+                  Standard SQL query used to validate correctness and generate expected rows.
                 </p>
               </div>
 
@@ -484,10 +511,11 @@ ORDER BY total_spent DESC;`);
                 type="button"
                 size="sm"
                 onClick={handleGenerateFromSolution}
+                disabled={isTesting}
                 className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
               >
                 <Zap className="size-3.5" />
-                <span>⚡ Sinh test case từ Solution</span>
+                <span>⚡ Generate Test Cases from Solution</span>
               </Button>
             </div>
 
@@ -509,14 +537,14 @@ ORDER BY total_spent DESC;`);
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    Kết quả mong đợi dạng bảng (Expected Result Grid)
+                    Expected Result Grid
                   </h4>
                   <Badge variant="outline" className="text-[10px] font-mono">
-                    {expectedRows.length} DÒNG
+                    {expectedRows.length} ROWS
                   </Badge>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Học viên cần viết câu query trả về đúng các cột và hàng được liệt kê dưới đây.
+                  Learners must write a query returning the exact columns and rows below.
                 </p>
               </div>
 
@@ -526,10 +554,11 @@ ORDER BY total_spent DESC;`);
                   variant="outline"
                   size="sm"
                   onClick={handleGenerateFromSolution}
+                  disabled={isTesting}
                   className="h-7 text-xs font-semibold gap-1 text-primary border-primary/30"
                 >
                   <Zap className="size-3" />
-                  <span>⚡ Tự sinh từ Solution</span>
+                  <span>⚡ Auto-generate from Solution</span>
                 </Button>
 
                 <Button
@@ -544,14 +573,14 @@ ORDER BY total_spent DESC;`);
                   className="h-7 text-xs font-semibold gap-1"
                 >
                   <Plus className="size-3" />
-                  <span>Thêm dòng</span>
+                  <span>Add Row</span>
                 </Button>
               </div>
             </div>
 
             {/* Editable Columns row */}
             <div className="flex items-center gap-2 pb-1 overflow-x-auto">
-              <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Các cột:</span>
+              <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Columns:</span>
               {expectedColumns.map((col, idx) => (
                 <div key={idx} className="flex items-center bg-muted/40 border border-border rounded-lg px-2 py-1 gap-1 text-xs font-mono">
                   <input
@@ -587,7 +616,7 @@ ORDER BY total_spent DESC;`);
                 }}
                 className="h-6 text-[11px] px-2 text-primary"
               >
-                + Cột
+                + Column
               </Button>
             </div>
 
@@ -602,7 +631,7 @@ ORDER BY total_spent DESC;`);
                         {col}
                       </th>
                     ))}
-                    <th className="px-3 py-2 text-right w-16">Xóa</th>
+                    <th className="px-3 py-2 text-right w-16">Delete</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40 font-mono">
@@ -630,7 +659,7 @@ ORDER BY total_spent DESC;`);
                           size="sm"
                           onClick={() => {
                             if (expectedRows.length <= 1) {
-                              alert('Cần có ít nhất 1 dòng dữ liệu mong đợi.');
+                              alert('At least 1 expected row is required.');
                               return;
                             }
                             setExpectedRows(expectedRows.filter((_, i) => i !== rIdx));
