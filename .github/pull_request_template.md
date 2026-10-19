@@ -1,68 +1,43 @@
-## Feature Name
-<!-- Short, descriptive feature name. E.g.: Google OAuth2 + Session Authentication -->
+## Agent Pull Request & Verification Report
 
+### 1. Thông tin Tổng quan
+- **Agent Role**: `[Agent-PM/ARCH | Agent-AUTH-BE | Agent-AUTH-FE | Agent-CONTRACT | Agent-SHELL | Agent-AUTO | Agent-SQL | Agent-QUIZ | Agent-STUDIO | Agent-QA/DOCS]`
+- **Task Scope**: `[Task 0 | 1A | 1B | 2 | 3 | 4 | 5 | 6 | 7 | 8]`
+- **Branch / Worktree**:
+- **Master Plan Subtasks Completed**: `[e.g., Subtask 0.1, 0.2]`
 
-## Description of Changes
-<!-- Summary of what this PR does and why the change is needed -->
+---
 
+### 2. Danh sách File Thay đổi & Ranh giới Ownership
+- [ ] Tôi xác nhận CHỈ thay đổi các file thuộc phạm vi ownership được phân công.
+- [ ] Không có drive-by refactoring hoặc sửa đổi code ngoài luồng.
+- [ ] Bảo toàn toàn bộ dirty files của các nhánh tính năng khác.
 
-## Related Tasks
-<!-- Link to related Jira issue or task -->
-- Task: <!-- [BE-XXX / FE-XXX](jira_link) -->
-- Closes #
+**Files Changed**:
+- `path/to/file`
 
-## Scope of Changes
+---
 
-| Module | Description of Changes | Changed |
-|--------|------------------------|:-------:|
-| `MODULE_BE` — Backend (NestJS / Prisma / Auth) | <!-- E.g.: Added API, updated service, migration --> | [ ] |
-| `MODULE_FE` — Frontend (React / Canvas) | <!-- E.g.: Added component, updated UI --> | [ ] |
-| `.github/workflows` — CI/CD Pipeline | <!-- E.g.: Added job, updated trigger --> | [ ] |
-| `docs/` — Documentation | <!-- E.g.: Updated README, added plan --> | [ ] |
-| `packages/` — Shared packages | <!-- E.g.: Updated cv-contracts, types --> | [ ] |
-| Other | <!-- Specify --> | [ ] |
-
-## Test Results
-
-### Test Commands
-```bash
-# cd MODULE_BE && npm test
-# cd MODULE_FE && npm test
+### 3. Cổng Kiểm chứng (Verification Gates Passed)
+- [ ] `npm test` hoặc test suite liên quan đã pass (đính kèm log bên dưới):
+```text
+[Paste terminal test execution output here]
 ```
-
-### Execution Results
-<!-- Terminal output after running tests -->
+- [ ] `npm run build` thành công không có lỗi type:
+```text
+[Paste build output here]
 ```
-# Paste output here
-```
+- [ ] `git diff --check` không có khoảng trắng thừa hoặc conflict marker.
 
-### Test Cases
+---
 
-| # | Test case | Input | Expected output | Status |
-|---|-----------|-------|-----------------|--------|
-| 1 |           |       |                 | Pass / Fail |
-| 2 |           |       |                 | Pass / Fail |
-| 3 |           |       |                 | Pass / Fail |
+### 4. Tương thích Ngược & Quản lý Rủi ro (Backward Compatibility & Risk)
+- [ ] Tương thích ngược với dữ liệu cũ (Legacy seeds / envelopes).
+- [ ] Không rò rỉ token hoặc bí mật vào log / git history.
+- [ ] Kế hoạch khôi phục (Rollback plan) nếu phát sinh lỗi trên môi trường staging/production.
 
-<!-- Examples:
-| 1 | Valid login credentials | { account: "user1", password: "abc" } | 200 OK + accessToken | Pass |
-| 2 | Incorrect password       | { account: "user1", password: "bad" } | 401 Unauthorized     | Pass |
-| 3 | Expired token            | Bearer <expired_token>                | 401 Unauthorized     | Pass |
--->
+---
 
-## Self-review Checklist
-- [ ] Local tests passed successfully (`npm test`)
-- [ ] Local build succeeded (`npm run build`)
-- [ ] No `.env` files or sensitive information committed
-- [ ] No merge conflict markers (`<<<<<<< HEAD`)
-- [ ] Commit messages follow Conventional Commits format (`feat(be): ...`)
-- [ ] No changes outside task scope (no drive-by refactoring)
-
-## Breaking Changes
-- [ ] No breaking changes
-- [ ] Breaking changes introduced → describe below:
-
-<!-- Describe breaking changes and migration steps if applicable -->
-
-## Notes for Reviewer
-<!-- Additional context, design decisions, or areas needing attention -->
+### 5. Handoff tiếp theo
+- **Yêu cầu đối tác / Agent kế tiếp**:
+- **API / Contract bàn giao**:

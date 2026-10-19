@@ -17,6 +17,15 @@ Tài liệu được quản lý theo tiêu chuẩn **Docs-as-Code**, lưu trữ 
 | **DOC-09** | Kế hoạch Nâng cấp Backend: IAM, Contributor & Review Queue | 1.1 | 2026-10-13 | Nguyen Khanh Duy | Implemented (Final) | [09-backend-iam-contributor-review-plan.md](file:///d:/Projects/study-web/docs/09-backend-iam-contributor-review-plan.md) |
 | **DOC-11** | Phân tách Role Admin vs Contributor & Standalone App | 1.2 | 2026-10-15 | Nguyen Khanh Duy | Implemented (Final) | [11-admin-contributor-separation-and-user-crud.md](file:///d:/Projects/study-web/docs/11-admin-contributor-separation-and-user-crud.md) |
 | **DOC-12** | Hướng dẫn Triển khai Admin Subdomain (Vercel/Nginx) | 1.0 | 2026-10-15 | Nguyen Khanh Duy | Final | [deployment/admin-subdomain-setup.md](file:///d:/Projects/study-web/docs/deployment/admin-subdomain-setup.md) |
+| **DOC-13** | Phân tích Nâng cấp Auth, Lab Workspace và Contributor Studio | 1.0 | 2026-10-17 | Nguyen Khanh Duy & Antigravity | Implemented (Final) | [12-lab-platform-upgrade-analysis.md](12-lab-platform-upgrade-analysis.md) |
+| **DOC-14** | Kế hoạch Phân công Agent — Nâng cấp Auth, Lab Workspace và Contributor Studio | 1.0 | 2026-10-17 | Nguyen Khanh Duy & Antigravity | Implemented (100% Verified) | [13-lab-platform-upgrade-agent-execution-plan.md](13-lab-platform-upgrade-agent-execution-plan.md) |
+| **DOC-15** | Bộ Runbook Phân công Agent — Lab Platform Upgrade | 1.0 | 2026-10-17 | Nguyen Khanh Duy & Antigravity | Implemented (Final) | [agent-guides/README.md](agent-guides/README.md) |
+| **ADR-001** | Architecture Decision Record: Auth Refresh Token Rotation & Session Mgmt | 1.0 | 2026-10-17 | Antigravity Architecture Agent | Accepted | [adr/ADR-001-auth-refresh-rotation.md](adr/ADR-001-auth-refresh-rotation.md) |
+| **SPEC-01** | Quy chuẩn Markdown Block Grammar V1 | 1.0 | 2026-10-17 | Antigravity Platform Agent | Frozen | [specs/lab-markdown-v1.md](specs/lab-markdown-v1.md) |
+| **SPEC-02** | Lab Content Contract Envelope V1 JSON Schema | 1.0 | 2026-10-17 | Antigravity Platform Agent | Frozen | [specs/lab-content-contract-v1.json](specs/lab-content-contract-v1.json) |
+| **REP-01** | Báo cáo kiểm định Performance Budget | 1.0 | 2026-10-17 | Antigravity Platform Agent | Passed | [reports/lab-upgrade-performance.md](reports/lab-upgrade-performance.md) |
+| **REP-02** | Báo cáo kiểm định An ninh (Security Audit) | 1.0 | 2026-10-17 | Antigravity Platform Agent | Passed | [reports/lab-upgrade-security.md](reports/lab-upgrade-security.md) |
+| **REP-03** | Báo cáo tổng kết Release Readiness Audit | 1.0 | 2026-10-17 | Antigravity Platform Agent | Production Ready | [reports/release-readiness-audit.md](reports/release-readiness-audit.md) |
 
 ---
 

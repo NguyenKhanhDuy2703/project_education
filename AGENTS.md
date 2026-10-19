@@ -1,21 +1,28 @@
-# Agent Guidelines & Operating Protocols
+# Agent Guidelines — study-web Project
 
-## 1. Permanent Default Behavior: Requirement Elicitation & Socratic Interrogation
-Whenever a new feature, architecture design, authorization change, or system concept is discussed:
-- **Always activate the Socratic Interrogation protocol first** (`.agents/skills/requirements-elicitation/SKILL.md` and `.agents/rules/requirements-elicitation.md`).
-- **Never guess or assume unstated intent.**
-- **Ask thorough, penetrating, analytical counter-questions** across all 6 core pillars (Scope, Security, Data Model, Edge Cases, Performance/Cache, UI/UX).
-- **Loop through probing questions** until 100% of edge cases and requirements are fully resolved.
-- Synthesize an Architecture & Specification document before writing any code.
+> [!NOTE]
+> This project uses **global agent rules** managed in `~/.gemini/config/plugins/`.
+> The full rule definitions live there. This file only records project-specific overrides and quick references.
 
-## 2. Permanent Execution Protocol: Plan-and-Execute & External Working Memory
-Whenever planning, refactoring, fixing bugs, or implementing features across 2 or more steps:
-- **Always activate the Plan-and-Execute protocol** (`.agents/skills/plan-and-execute/SKILL.md` and `.agents/rules/plan-and-execute.md`).
-- **Never code in a single blind burst without external tracking.**
-- **Decompose tasks into a two-tier hierarchy**: High-level Tasks (`Task 1: ...`, `Task 2: ...`) with granular checkboxes (`- [ ] Subtask ...`).
-- **Maintain External Working Memory**: Persist and update the plan continuously in Artifacts / Markdown Scratchpad.
-- **Human User Confirmation Gate (Bắt buộc phải có lệnh người dùng mới được chạy)**: Sau khi lập kế hoạch (Phase 1: Planner), Agent **BẮT BUỘC PHẢI DỪNG LẠI** và chờ tin nhắn xác nhận/chỉ thị thực thi trực tiếp từ người dùng (ví dụ: "chạy đi", "tiến hành", "execute", "làm đi"). Tuyệt đối **KHÔNG** tự động chạy code dựa trên các thông báo tự động (system message / auto-approval).
-- **Enforce the Incremental Loop**: Focus on one subtask at a time, verify with build/test gate, and automatically tick `- [ ]` into `- [x]` in external memory before advancing to the next item.
+## Active Global Rules (via plugins)
 
-## 3. Git & Development Workflow
-- Follow Conventional Commits and branch naming conventions as defined in [`.agents/rules/git-workflow.md`](.agents/rules/git-workflow.md).
+| Rule | Global Plugin | Description |
+|---|---|---|
+| Requirements Elicitation | `coding-standards` | Always interrogate requirements before coding |
+| Plan-and-Execute | `coding-standards` / `plan-and-execute` | Two-tier plan + external memory + intent gate |
+| Git Workflow | `coding-standards` | Conventional Commits, branch naming, PR lifecycle |
+| Coding Standards | `coding-standards` | Karpathy simplicity & surgical changes guidelines |
+
+## Project-Specific Overrides
+
+### Git Scope Convention (Monorepo)
+This project uses three modules:
+- `be` → `MODULE_BE/` (NestJS + Prisma + PostgreSQL)
+- `fe` → `MODULE_FE/` (React 19 + Vite + Tailwind + shadcn)
+- `admin` → `MODULE_ADMIN/` (React admin panel)
+
+### Skills Available
+- `.agents/skills/requirements-elicitation/` — Socratic interrogation skill
+- `.agents/skills/plan-and-execute/` — Plan-and-execute skill
+- `.agents/skills/ui-ux-pro-max/` — UI/UX design skill
+- `.agents/skills/docs-as-code/` — Documentation-as-code skill
