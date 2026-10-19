@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { store } from '@/stores/store';
 import { setTokens, logout } from '@/stores/slices/auth.slice';
+import { defaultRefreshCoordinator } from '@/features/auth/services/refreshCoordinator';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
@@ -23,23 +24,6 @@ apiClient.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error)
 );
 
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (token: string) => void;
-  reject: (error: any) => void;
-}> = [];
-
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach((promise) => {
-    if (error) {
-      promise.reject(error);
-    } else if (token) {
-      promise.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -58,59 +42,36 @@ apiClient.interceptors.response.use(
       requestUrl.includes('/auth/logout');
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
-      if (isRefreshing) {
-        return new Promise<string>((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((newToken) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            }
-            return apiClient(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
-
-      const refreshToken =
-        store.getState().auth.refreshToken || localStorage.getItem('refresh_token');
 
       try {
-        const response = await axios.post(
-          `${API_BASE_URL}/auth/refresh`,
-          { refreshToken: refreshToken || undefined },
-          { withCredentials: true }
-        );
+        const newAccessToken = await defaultRefreshCoordinator.requestRefresh(async () => {
+          const response = await axios.post(
+            `${API_BASE_URL}/auth/refresh`,
+            {}, // Cookie-first: relies on HttpOnly cookie
+            { withCredentials: true }
+          );
 
-        const data = response.data?.data || response.data;
-        const newAccessToken = data?.accessToken;
-        const newRefreshToken = data?.refreshToken;
+          const data = response.data?.data || response.data;
+          const token = data?.accessToken;
+          if (!token) {
+            throw new Error('Refresh response missing access token');
+          }
 
-        if (!newAccessToken) {
-          throw new Error('Refresh response missing access token');
-        }
-
-        store.dispatch(
-          setTokens({
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken || refreshToken,
-          })
-        );
-
-        processQueue(null, newAccessToken);
+          store.dispatch(setTokens({ accessToken: token }));
+          return token;
+        });
 
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         }
         return apiClient(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        store.dispatch(logout());
+      } catch (refreshError: any) {
+        // Only invalidate local session if backend explicitly rejects credentials
+        if (refreshError?.response?.status === 401 || refreshError?.response?.status === 403) {
+          store.dispatch(logout());
+        }
         return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
     }
 

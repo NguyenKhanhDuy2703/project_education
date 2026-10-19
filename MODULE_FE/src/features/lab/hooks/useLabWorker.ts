@@ -77,5 +77,11 @@ export function useLabWorker() {
     [cleanup]
   );
 
-  return { run, status, result };
+  const reset = useCallback(() => {
+    cleanup();
+    setStatus('idle');
+    setResult(null);
+  }, [cleanup]);
+
+  return { run, reset, status, result };
 }

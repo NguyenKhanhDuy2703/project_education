@@ -16,6 +16,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UpgradeModal } from '@/features/lab/components/UpgradeModal';
 import { StatusBadge } from '@/components/domain/StatusBadge';
 import { Crown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  normalizeTopicKey,
+  getTopicTitle,
+  getTopicBadgeClass,
+} from '@/services/topicTags.service';
+import { getFormatInfo, getSeriesFormat } from '@/services/formatBadge.service';
 import type { LabSummary } from '@/types/lab.types';
 
 export function SeriesDetailPage() {
@@ -56,10 +63,22 @@ export function SeriesDetailPage() {
     );
   }
 
+  const topicKey = normalizeTopicKey(series.category || series.topic);
+  const topicTitle = getTopicTitle(topicKey, 'Series');
+  const topicBadgeClass = getTopicBadgeClass(topicKey);
+  const seriesFormat = getSeriesFormat(series);
+  const seriesFormatInfo = getFormatInfo(seriesFormat);
+
   const handleOpenUpgrade = (labTitle: string) => {
     setSelectedLabTitle(labTitle);
     setUpgradeModalOpen(true);
   };
+
+  const totalMinutes =
+    series.estimatedMinutes ||
+    (series.labs && series.labs.length > 0
+      ? series.labs.reduce((acc, l) => acc + (l.durationMinutes || l.estimatedMinutes || 20), 0)
+      : 60);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 max-w-3xl space-y-7">
@@ -67,8 +86,18 @@ export function SeriesDetailPage() {
       <div className="space-y-3 bg-card border border-border p-6 rounded-xl shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs uppercase font-semibold tracking-wider">
-              {series.topic || 'Series'}
+            <Badge
+              variant="outline"
+              className={cn('text-xs uppercase font-semibold tracking-wider border', topicBadgeClass)}
+            >
+              {topicTitle}
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn('text-xs font-semibold border gap-1', seriesFormatInfo.badgeClass)}
+            >
+              <span className={cn('size-1.5 rounded-full', seriesFormatInfo.dotClass)} />
+              {seriesFormatInfo.label}
             </Badge>
             {series.isProOnly && (
               <Badge variant="secondary" className="text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 gap-1">
@@ -77,6 +106,7 @@ export function SeriesDetailPage() {
               </Badge>
             )}
           </div>
+
           {series.status && (
             <StatusBadge status={series.status} size="sm" />
           )}
@@ -88,7 +118,7 @@ export function SeriesDetailPage() {
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border/50">
           <span>{series.totalLabs || series.labs?.length || 0} practice labs</span>
           <span>•</span>
-          <span>~{series.estimatedMinutes || 60} mins to complete</span>
+          <span>~{totalMinutes} mins to complete</span>
           {series.authorName && (
             <>
               <span>•</span>
@@ -116,6 +146,7 @@ export function SeriesDetailPage() {
               lab={lab}
               index={index}
               hasProAccess={hasProAccess}
+              seriesIsProOnly={Boolean(series.isProOnly)}
               onUpgradeClick={() => handleOpenUpgrade(lab.title)}
             />
           ))}
@@ -137,14 +168,18 @@ function LabRowItem({
   lab,
   index,
   hasProAccess,
+  seriesIsProOnly,
   onUpgradeClick,
 }: {
   lab: LabSummary;
   index: number;
   hasProAccess: boolean;
+  seriesIsProOnly: boolean;
   onUpgradeClick: () => void;
 }) {
-  const locked = lab.isProOnly && !hasProAccess;
+  const isLabPro = Boolean(lab.isProOnly || (seriesIsProOnly && !lab.isFreePreview));
+  const locked = isLabPro && !hasProAccess;
+  const formatInfo = getFormatInfo(lab.sandboxType);
 
   const renderStatus = () => {
     if (lab.userStatus === 'passed') {
@@ -175,12 +210,23 @@ function LabRowItem({
       {renderStatus()}
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground truncate">{lab.title}</p>
-        <p className="text-[11px] text-muted-foreground">{lab.estimatedMinutes} mins</p>
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="text-sm font-semibold text-foreground truncate">{lab.title}</p>
+          <Badge
+            variant="outline"
+            className={cn('text-[10px] h-4.5 px-1.5 font-bold border shrink-0 gap-1', formatInfo.badgeClass)}
+          >
+            <span className={cn('size-1.5 rounded-full', formatInfo.dotClass)} />
+            {formatInfo.label}
+          </Badge>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          {lab.durationMinutes || lab.estimatedMinutes || 20} mins
+        </p>
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        {lab.isProOnly && (
+        {isLabPro && (
           <Badge variant="secondary" className="text-[10px] font-bold h-4.5 px-1.5 bg-amber-500/10 text-amber-600 border border-amber-500/20">
             PRO
           </Badge>

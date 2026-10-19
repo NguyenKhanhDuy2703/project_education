@@ -1,13 +1,18 @@
 /**
- * AdminLabStudioPage — /admin/labs/new hoặc /admin/labs/:labId/edit
+ * LabStudioPage — /admin/labs/new hoặc /admin/labs/:labId/edit
  * Also mounted at /contributor/labs/new and /contributor/labs/:labId/edit
  *
- * Trình tạo bài thực hành thông minh (Practice Lab Creation Studio):
- * - BƯỚC 1: Theory & Guidelines (Bố cục 2 cột: Cột trái hẹp 280px thông tin chung & checklist, Cột phải Split 50/50 Markdown + Live Preview cuộn đồng bộ)
- * - BƯỚC 2: Cấu hình bài tập theo bản chất từng loại (JS Worker với test cards & Web Worker runner, SQL với Schema DDL, Starter Query, Test Grid sinh tự động, Quizlet 3 cột với live student preview & undo)
- * - Header cố định duy nhất 1 nút Publish / Gửi duyệt với Cổng kiểm duyệt Pre-publish Checklist Gate.
+ * Studio Thiết kế & Soạn thảo Bài Thực hành Thông minh (Lab Creation Studio):
+ * - TAB 1: Soạn thảo (Editor)
+ *   + Cột trái (~280px): Cấu hình bài lab (Series, Loại bài tập, Tiêu đề, Thời lượng, PRO, Điều kiện xuất bản).
+ *   + Cột chính:
+ *     * Phần 1: Lý thuyết & Hướng dẫn học viên (Markdown thuần túy với thanh công cụ định dạng nhanh đầy đủ).
+ *     * Phần 2: Cấu hình Bài tập thực hành chuyên biệt (SQL Schema/Starter/Solution, JS Worker Starter/Solution/Tests, hoặc Quizlet).
+ * - TAB 2: Xem trước học viên (Student Preview)
+ *   + Hiển thị toàn màn hình không gian mô phỏng phòng lab học viên (Theory Pane + Practice Workspace).
+ * - Header tối giản, tinh giản icon rườm rà, các nút bấm chuẩn phẳng, hỗ trợ kiểm thử Preflight trước khi gửi duyệt.
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { seriesApi } from '@/features/lab/api/series.api';
@@ -15,19 +20,31 @@ import { labApi } from '@/features/lab/api/lab.api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import {
-  CheckCircle2,
-  ChevronLeft,
-  ShieldAlert,
-  SlidersHorizontal,
-} from 'lucide-react';
-import type { CreateLabInput } from '@/types/lab.types';
-import { MarkdownEditorWithPreview } from './_components/MarkdownEditorWithPreview';
-import { JsWorkerExerciseBuilder } from './_components/JsWorkerExerciseBuilder';
+import { CheckCircle2, ShieldAlert } from 'lucide-react';
+import type { CreateLabInput, SandboxType, LabContentEnvelopeV1 } from '@/types/lab.types';
+import { SmartLabToolbar } from '@/features/lab/components/SmartLabToolbar';
+import { StudioStudentPreview } from './_components/StudioStudentPreview';
 import { SqlExerciseBuilder } from './_components/SqlExerciseBuilder';
+import { JsWorkerExerciseBuilder } from './_components/JsWorkerExerciseBuilder';
 import { QuizletExerciseBuilder } from './_components/QuizletExerciseBuilder';
+import { parseLabMarkdown, serializeLabMarkdown } from '@/features/lab/utils/lab-markdown-parser';
+import { normalizeLabDetail } from '@/features/lab/domain/labContentCodec';
+import {
+  getStudioDraftStorageKey,
+  saveStudioDraft,
+  loadStudioDraft,
+  clearStudioDraft,
+} from '@/features/lab/utils/studioDraftStorage';
 
-const DRAFT_STORAGE_PREFIX = 'studyweb_lab_draft_';
+const DEFAULT_THEORY_TEMPLATE = `# 1. Lý thuyết Cốt lõi
+
+Giải thích ngắn gọn và trực quan các khái niệm cần nắm vững trước khi thực hành.
+
+## 2. Cú pháp & Ví dụ Mẫu
+Nêu cú pháp cơ bản và các ví dụ minh họa trực quan.
+
+## 3. Yêu cầu Bài Thực hành
+Nêu rõ mục tiêu học viên cần hoàn thành trong phần bài tập bên dưới.`;
 
 export function LabStudioPage() {
   const { labId } = useParams<{ labId?: string }>();
@@ -40,42 +57,42 @@ export function LabStudioPage() {
   const returnUrl = '/user/dashboard/content';
   const isContributor = true;
 
-  // ── Stepper: Step 1 (Theory & Guidelines) vs Step 2 (Exercise Configuration) ──
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  // 2 Primary Tabs: 'editor' | 'preview'
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [preflightPassed, setPreflightPassed] = useState<boolean>(false);
 
-  // Form State
+  const theoryTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Form State: Theory and Exercise are cleanly decoupled
   const [form, setForm] = useState<CreateLabInput>({
     seriesId: seriesIdFromQuery,
     title: '',
     sandboxType: 'sql_worker',
     objective: '',
-    instructions: `# 1. Lý thuyết Cốt lõi
-
-Giải thích ngắn gọn và trực quan các khái niệm cần nắm vững trước khi thực hành.
-
-## 2. Cú pháp & Ví dụ Mẫu
-\`\`\`sql
-SELECT id, full_name FROM customers WHERE total_spent > 1000;
-\`\`\`
-
-## 3. Yêu cầu Bài Thực hành
-Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu chí trong phần bài tập.`,
-    initialSnippet: '',
+    instructions: DEFAULT_THEORY_TEMPLATE,
+    initialSnippet: 'SELECT * FROM customers;',
     testScript: '',
-    solution: '',
+    solution: 'SELECT id, full_name FROM customers WHERE total_spent > 1000;',
     durationMinutes: 20,
     isProOnly: false,
     orderIndex: 1,
     isActive: true,
-    sqlSchema: '',
+    sqlSchema: `CREATE TABLE customers (
+  id INT PRIMARY KEY,
+  full_name TEXT,
+  total_spent INT
+);
+
+INSERT INTO customers VALUES 
+  (1, 'Alice', 1200), 
+  (2, 'Bob', 450);`,
     sampleData: [],
     quizQuestions: [
       {
         id: 'q1',
-        question: 'Câu hỏi 1: Nhập nội dung câu hỏi trắc nghiệm (hỗ trợ `Markdown`)...',
+        question: 'Câu hỏi 1: Lựa chọn nào sau đây là chính xác?',
         options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
         correctIndex: 0,
         explanation: 'Giải thích vì sao lựa chọn A là chính xác.',
@@ -100,23 +117,33 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
   useEffect(() => {
     if (existingLab) {
       const labAny = existingLab as any;
+      const normalized = normalizeLabDetail(existingLab);
+      const env = normalized.envelope;
       setForm({
         seriesId: existingLab.seriesId || '',
         title: existingLab.title || '',
         sandboxType: existingLab.sandboxType || 'sql_worker',
         objective: labAny.objective || '',
-        instructions: existingLab.instructions || '',
-        initialSnippet: existingLab.initialSnippet || '',
-        testScript: existingLab.testScript || '',
-        solution: existingLab.solution || '',
+        instructions: env?.instructions || existingLab.instructions || DEFAULT_THEORY_TEMPLATE,
+        initialSnippet: env?.initialSnippet || existingLab.initialSnippet || '',
+        testScript: env?.testScript || existingLab.testScript || '',
+        solution: env?.solution || existingLab.solution || '',
         durationMinutes: existingLab.estimatedMinutes || labAny.durationMinutes || 20,
         isProOnly: existingLab.isProOnly || false,
         orderIndex: existingLab.order || labAny.orderIndex || 1,
         isActive: labAny.isActive !== false,
-        sqlSchema: existingLab.sqlSchema || '',
-        sampleData: existingLab.sampleData || [],
+        sqlSchema:
+          env?.sandboxType === 'sql_worker'
+            ? env.config?.schemaSql || existingLab.sqlSchema || ''
+            : existingLab.sqlSchema || '',
+        sampleData:
+          env?.sandboxType === 'sql_worker'
+            ? (env.config?.expectedQueryResult as any) || existingLab.sampleData || []
+            : existingLab.sampleData || [],
         quizQuestions:
-          existingLab.quizQuestions && existingLab.quizQuestions.length > 0
+          env?.sandboxType === 'quizlet' && env.config?.questions?.length
+            ? env.config.questions
+            : existingLab.quizQuestions && existingLab.quizQuestions.length > 0
             ? existingLab.quizQuestions
             : [
                 {
@@ -138,7 +165,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
   const parentTopic = seriesList.find((s) => s.id === selectedSeriesId);
 
   useEffect(() => {
-    if (parentTopic && !isEditing) {
+    if (parentTopic && !isEditing && !form.title) {
       const topicFormat =
         parentTopic.formatType ||
         (parentTopic.slug.includes('sql')
@@ -146,28 +173,80 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
           : parentTopic.slug.includes('quiz')
           ? 'quizlet'
           : 'js_worker');
-      setForm((prev) => ({
-        ...prev,
-        seriesId: parentTopic.id,
-        sandboxType: topicFormat,
-      }));
+      handleSandboxTypeChange(topicFormat as SandboxType);
     }
   }, [parentTopic?.id, parentTopic?.formatType, isEditing]);
 
-  // ── Auto-save Draft to localStorage ─────────────────────────────────────
-  const draftKey = `${DRAFT_STORAGE_PREFIX}${labId || 'new'}`;
+  // Derived Preview Envelope
+  const previewEnvelope = useMemo<LabContentEnvelopeV1>(() => {
+    if (form.sandboxType === 'js_worker') {
+      return {
+        version: '1.0',
+        sandboxType: 'js_worker',
+        instructions: form.instructions || '',
+        initialSnippet: form.initialSnippet || '',
+        solution: form.solution || '',
+        testScript: form.testScript || '',
+        config: {
+          version: '1.0',
+        },
+      };
+    } else if (form.sandboxType === 'quizlet') {
+      return {
+        version: '1.0',
+        sandboxType: 'quizlet',
+        instructions: form.instructions || '',
+        config: {
+          version: '1.0',
+          questions: (form.quizQuestions || []) as any,
+        },
+      };
+    } else {
+      return {
+        version: '1.0',
+        sandboxType: 'sql_worker',
+        instructions: form.instructions || '',
+        initialSnippet: form.initialSnippet || '',
+        solution: form.solution || '',
+        config: {
+          version: '1.0',
+          schemaSql: form.sqlSchema || '',
+          expectedQueryResult: (form.sampleData || []) as any,
+        },
+      };
+    }
+  }, [form]);
 
-  // Check and restore draft for new lab
+  // ── Auto-save Draft with studioDraftStorage ─────────────────────────────
+  const draftKey = getStudioDraftStorageKey(form.seriesId, labId);
+
+  // Restore draft for new lab
   useEffect(() => {
     if (!isEditing) {
       try {
-        const savedDraft = localStorage.getItem(draftKey);
-        if (savedDraft) {
-          const parsed = JSON.parse(savedDraft);
-          if (parsed && parsed.title && window.confirm('Tìm thấy bản nháp chưa xuất bản từ phiên làm việc trước. Bạn có muốn khôi phục không?')) {
-            setForm(parsed);
-            setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-          }
+        const savedDraft = loadStudioDraft(draftKey);
+        if (
+          savedDraft &&
+          savedDraft.title &&
+          window.confirm('Tìm thấy bản nháp chưa xuất bản từ phiên làm việc trước. Bạn có muốn khôi phục không?')
+        ) {
+          const parsed = parseLabMarkdown(savedDraft.markdown, savedDraft.sandboxType as SandboxType);
+          const env = parsed.envelope;
+          setForm((prev) => ({
+            ...prev,
+            title: savedDraft.title,
+            sandboxType: (savedDraft.sandboxType as SandboxType) || 'sql_worker',
+            isProOnly: savedDraft.isProOnly,
+            durationMinutes: savedDraft.durationMinutes,
+            instructions: env.instructions || prev.instructions,
+            initialSnippet: env.initialSnippet || prev.initialSnippet,
+            solution: env.solution || prev.solution,
+            testScript: env.testScript || prev.testScript,
+            sqlSchema: env.sandboxType === 'sql_worker' ? env.config.schemaSql : prev.sqlSchema,
+            sampleData: env.sandboxType === 'sql_worker' ? (env.config.expectedQueryResult as any) : prev.sampleData,
+            quizQuestions: env.sandboxType === 'quizlet' ? env.config.questions : prev.quizQuestions,
+          }));
+          setLastSavedTime(new Date(savedDraft.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
       } catch (err) {
         console.error('Lỗi đọc bản nháp:', err);
@@ -179,36 +258,177 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem(draftKey, JSON.stringify(form));
+        const md = serializeLabMarkdown(previewEnvelope);
+        saveStudioDraft(draftKey, {
+          title: form.title,
+          markdown: md,
+          sandboxType: form.sandboxType || 'sql_worker',
+          isProOnly: Boolean(form.isProOnly),
+          durationMinutes: form.durationMinutes || 20,
+          savedAt: new Date().toISOString(),
+        });
         setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      } catch (err) {
-        // quota exceeded or private mode
+      } catch (e) {
+        console.error('Lỗi tự động lưu nháp:', e);
       }
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [form, draftKey]);
+  }, [form, previewEnvelope, draftKey]);
 
   // Explicit save draft button
   const handleManualSaveDraft = () => {
     try {
-      localStorage.setItem(draftKey, JSON.stringify(form));
-      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setLastSavedTime(nowStr);
-      setToast({
-        message: `Đã lưu bản nháp vào bộ nhớ trình duyệt lúc ${nowStr}.`,
-        type: 'success',
+      const md = serializeLabMarkdown(previewEnvelope);
+      const success = saveStudioDraft(draftKey, {
+        title: form.title,
+        markdown: md,
+        sandboxType: form.sandboxType || 'sql_worker',
+        isProOnly: Boolean(form.isProOnly),
+        durationMinutes: form.durationMinutes || 20,
+        savedAt: new Date().toISOString(),
       });
-    } catch (err) {
-      setToast({ message: 'Không thể lưu bản nháp vào trình duyệt.', type: 'error' });
+      if (success) {
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setLastSavedTime(nowStr);
+        setToast({
+          message: `Đã lưu bản nháp vào bộ nhớ trình duyệt lúc ${nowStr}.`,
+          type: 'success',
+        });
+      } else {
+        setToast({ message: 'Không thể lưu bản nháp vào trình duyệt.', type: 'error' });
+      }
+    } catch (e) {
+      setToast({ message: 'Lỗi khi lưu bản nháp.', type: 'error' });
     }
+  };
+
+  // Switch Sandbox Type & init clean defaults
+  const handleSandboxTypeChange = (nextType: SandboxType) => {
+    setForm((prev) => {
+      const updated = { ...prev, sandboxType: nextType };
+      if (nextType === 'sql_worker' && (!prev.sqlSchema || prev.sqlSchema.trim().length < 10)) {
+        updated.sqlSchema = `CREATE TABLE customers (\n  id INT PRIMARY KEY,\n  full_name TEXT,\n  total_spent INT\n);\n\nINSERT INTO customers VALUES \n  (1, 'Alice', 1200), \n  (2, 'Bob', 450);`;
+        updated.initialSnippet = `SELECT * FROM customers;`;
+        updated.solution = `SELECT id, full_name FROM customers WHERE total_spent > 1000;`;
+      } else if (nextType === 'js_worker' && (!prev.initialSnippet || prev.initialSnippet.trim().length < 10)) {
+        updated.initialSnippet = `function solution(a, b) {\n  // Viết mã nguồn tại đây\n}`;
+        updated.solution = `function solution(a, b) {\n  return a + b;\n}`;
+        updated.testScript = `test('tính tổng 2 số', () => {\n  expect(solution(1, 2)).toBe(3);\n});`;
+      } else if (nextType === 'quizlet' && (!prev.quizQuestions || prev.quizQuestions.length === 0)) {
+        updated.quizQuestions = [
+          {
+            id: 'q1',
+            question: 'Câu hỏi 1: Lựa chọn nào sau đây là chính xác?',
+            options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
+            correctIndex: 0,
+            explanation: 'Giải thích vì sao lựa chọn A là chính xác.',
+          },
+        ];
+      }
+      return updated;
+    });
+    setPreflightPassed(false);
+  };
+
+  // Quick insertion into Theory textarea
+  const handleInsertTheorySnippet = (snippet: string) => {
+    const textarea = theoryTextareaRef.current;
+    if (!textarea) {
+      setForm((prev) => ({
+        ...prev,
+        instructions: `${prev.instructions}\n${snippet}`,
+      }));
+      setPreflightPassed(false);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const current = form.instructions || '';
+    const next = current.substring(0, start) + snippet + current.substring(end);
+    setForm((prev) => ({ ...prev, instructions: next }));
+    setPreflightPassed(false);
+
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = start + snippet.length;
+      textarea.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
+
+  // ── Preflight Gate Handler ───────────────────────────────────────────────
+  const handleRunPreflight = () => {
+    if (!form.title.trim() || form.title.trim().length < 5) {
+      setToast({ message: 'Preflight: Tiêu đề bài lab cần ít nhất 5 ký tự.', type: 'error' });
+      setPreflightPassed(false);
+      return;
+    }
+    if (!form.seriesId) {
+      setToast({ message: 'Preflight: Vui lòng chọn Chuyên đề (Series) cha.', type: 'error' });
+      setPreflightPassed(false);
+      return;
+    }
+    if (!form.instructions?.trim() || form.instructions.trim().length < 100) {
+      setToast({ message: 'Preflight: Nội dung Lý thuyết cần tối thiểu 100 ký tự.', type: 'error' });
+      setPreflightPassed(false);
+      return;
+    }
+
+    if (form.sandboxType === 'sql_worker') {
+      if (!form.sqlSchema?.trim()) {
+        setToast({ message: 'Preflight: Thiếu Lược đồ DDL/DML bảng cho bài SQL.', type: 'error' });
+        setPreflightPassed(false);
+        return;
+      }
+      if (!form.solution?.trim()) {
+        setToast({ message: 'Preflight: Thiếu câu truy vấn Lời giải mẫu (Solution) cho bài SQL.', type: 'error' });
+        setPreflightPassed(false);
+        return;
+      }
+    } else if (form.sandboxType === 'js_worker') {
+      if (!form.initialSnippet?.trim()) {
+        setToast({ message: 'Preflight: Thiếu Starter Code cho bài Automation.', type: 'error' });
+        setPreflightPassed(false);
+        return;
+      }
+      if (!form.testScript?.trim()) {
+        setToast({ message: 'Preflight: Thiếu Test Script kiểm thử cho bài Automation.', type: 'error' });
+        setPreflightPassed(false);
+        return;
+      }
+    } else if (form.sandboxType === 'quizlet') {
+      const questions = form.quizQuestions || [];
+      if (questions.length === 0) {
+        setToast({ message: 'Preflight: Thiếu câu hỏi trong bài Trắc nghiệm.', type: 'error' });
+        setPreflightPassed(false);
+        return;
+      }
+      const hasInvalid = questions.some(
+        (q) => !q.question?.trim() || !q.options || q.options.length < 2 || q.correctIndex < 0
+      );
+      if (hasInvalid) {
+        setToast({
+          message: 'Preflight: Có câu hỏi chưa đủ ít nhất 2 đáp án hoặc chưa chọn đáp án đúng.',
+          type: 'error',
+        });
+        setPreflightPassed(false);
+        return;
+      }
+    }
+
+    setPreflightPassed(true);
+    setToast({
+      message: 'Preflight kiểm thử thành công! Bài lab đã đủ điều kiện gửi duyệt/xuất bản.',
+      type: 'success',
+    });
   };
 
   // ── Pre-publish Validation Checklist ────────────────────────────────────
   const validationChecklist = useMemo(() => {
     const hasSeries = Boolean(form.seriesId);
     const hasTitle = form.title.trim().length >= 5;
-    const hasTheory = form.instructions.trim().length >= 100;
+    const hasTheory = (form.instructions || '').trim().length >= 100;
 
     let hasExerciseConfig = false;
     let exerciseReason = '';
@@ -243,7 +463,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
       if (questions.length === 0) exerciseReason = 'Chưa có câu hỏi trắc nghiệm';
       else if (!allValid) exerciseReason = 'Có câu hỏi chưa đủ 2 đáp án hoặc chưa chọn đáp án đúng';
     } else {
-      hasExerciseConfig = true; // article only
+      hasExerciseConfig = true; // markdown_only
     }
 
     const isAllValid = hasSeries && hasTitle && hasTheory && hasExerciseConfig;
@@ -269,7 +489,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
     onSuccess: () => {
       // Clear draft on publish
       try {
-        localStorage.removeItem(draftKey);
+        clearStudioDraft(draftKey);
       } catch (e) {}
 
       queryClient.invalidateQueries({ queryKey: ['admin-series-detail'] });
@@ -278,7 +498,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
       queryClient.invalidateQueries({ queryKey: ['contributor-labs'] });
 
       setToast({
-        message: isEditing ? 'Practice lab updated successfully!' : 'Practice lab published successfully!',
+        message: isEditing ? 'Cập nhật bài thực hành thành công!' : 'Đã gửi duyệt/xuất bản bài thực hành thành công!',
         type: 'success',
       });
       setTimeout(() => {
@@ -287,7 +507,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
     },
     onError: (err: any) => {
       setToast({
-        message: err?.response?.data?.message || 'An error occurred while saving the practice lab.',
+        message: err?.response?.data?.message || 'Có lỗi xảy ra khi lưu bài thực hành.',
         type: 'error',
       });
     },
@@ -296,44 +516,28 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
   const handlePublish = () => {
     if (!validationChecklist.isAllValid) {
       if (!validationChecklist.hasSeries) {
-        setToast({ message: 'Please select a parent curriculum series.', type: 'error' });
-        setCurrentStep(1);
+        setToast({ message: 'Vui lòng chọn Chuyên đề (Series) cha.', type: 'error' });
         return;
       }
       if (!validationChecklist.hasTitle) {
-        setToast({ message: 'Please enter a lab title (minimum 5 characters).', type: 'error' });
-        setCurrentStep(1);
+        setToast({ message: 'Vui lòng nhập Tiêu đề bài lab (tối thiểu 5 ký tự).', type: 'error' });
         return;
       }
       if (!validationChecklist.hasTheory) {
-        setToast({ message: 'Theory content requires at least 100 characters.', type: 'error' });
-        setCurrentStep(1);
+        setToast({ message: 'Nội dung Lý thuyết cần tối thiểu 100 ký tự.', type: 'error' });
         return;
       }
       if (!validationChecklist.hasExerciseConfig) {
-        setToast({ message: `Incomplete Step 2: ${validationChecklist.exerciseReason}`, type: 'error' });
-        setCurrentStep(2);
+        setToast({ message: `Cấu hình bài tập chưa đạt: ${validationChecklist.exerciseReason}`, type: 'error' });
         return;
       }
     }
+    if (!preflightPassed) {
+      setToast({ message: 'Vui lòng chạy Preflight kiểm thử thành công trước khi xuất bản.', type: 'error' });
+      return;
+    }
 
     saveMutation.mutate();
-  };
-
-  const handleProceedToStep2 = () => {
-    if (!form.title.trim()) {
-      setToast({ message: 'Vui lòng nhập Tiêu đề bài lab.', type: 'error' });
-      return;
-    }
-    if (!form.seriesId) {
-      setToast({ message: 'Vui lòng chọn Chuyên đề / Series cha.', type: 'error' });
-      return;
-    }
-    if (form.instructions.trim().length < 100) {
-      setToast({ message: 'Nội dung Lý thuyết cần tối thiểu 100 ký tự trước khi cấu hình bài tập.', type: 'error' });
-      return;
-    }
-    setCurrentStep(2);
   };
 
   const formatTypeName = {
@@ -356,55 +560,54 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
       {/* ── UNIFIED FIXED TOP HEADER ───────────────────────────────── */}
       <header className="sticky top-0 z-40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-2.5 border-b border-border bg-card/95 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-semibold px-2 text-muted-foreground hover:text-foreground">
-            <Link to={returnUrl}>
-              Back to Content Hub
-            </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="h-8 text-xs font-semibold px-2 text-muted-foreground hover:text-foreground"
+          >
+            <Link to={returnUrl}>Back to Content Hub</Link>
           </Button>
 
           <span className="text-muted-foreground/30 font-mono text-xs hidden sm:inline">|</span>
 
-          {/* Stepper Wizard Indicator */}
-          <div className="flex items-center gap-1.5 bg-muted/40 p-0.5 rounded-xl border border-border">
+          {/* 2 Primary Mode Tabs: Soạn thảo vs Xem trước học viên */}
+          <div className="flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg border border-border">
             <button
               type="button"
-              onClick={() => setCurrentStep(1)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                currentStep === 1
+              onClick={() => setActiveTab('editor')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                activeTab === 'editor'
                   ? 'bg-background text-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <span className="size-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-mono">
-                1
-              </span>
-              <span>Theory &amp; Guidelines</span>
+              Soạn thảo
             </button>
 
-            <span className="text-muted-foreground/40 font-mono text-xs">→</span>
-
             <button
               type="button"
-              onClick={handleProceedToStep2}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                currentStep === 2
+              onClick={() => setActiveTab('preview')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                activeTab === 'preview'
                   ? 'bg-background text-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <span className="size-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-mono">
-                2
-              </span>
-              <span>Exercise ({formatTypeName})</span>
+              Xem trước học viên
             </button>
           </div>
+
+          <Badge variant="outline" className="font-mono text-[11px] font-semibold text-primary border-primary/30 hidden md:inline-flex">
+            {formatTypeName}
+          </Badge>
         </div>
 
-        {/* Right Actions: Auto-save status, Save Draft, and Single Publish Button */}
-        <div className="flex items-center gap-2.5">
+        {/* Right Actions: Auto-save status, Save Draft, Preflight, Publish */}
+        <div className="flex items-center gap-2">
           {lastSavedTime && (
             <span className="text-[11px] text-muted-foreground hidden md:inline">
-              Saved {lastSavedTime}
+              Đã lưu {lastSavedTime}
             </span>
           )}
 
@@ -413,388 +616,39 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
             variant="outline"
             size="sm"
             onClick={handleManualSaveDraft}
-            className="h-8 text-xs font-medium px-3 text-muted-foreground hover:text-foreground"
+            className="h-8 text-xs font-medium px-3"
           >
-            Save Draft
+            Lưu nháp
+          </Button>
+
+          {/* Preflight Test Button */}
+          <Button
+            type="button"
+            variant={preflightPassed ? 'secondary' : 'default'}
+            size="sm"
+            onClick={handleRunPreflight}
+            className={`h-8 text-xs font-medium px-3 transition-colors ${
+              preflightPassed
+                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                : 'bg-primary text-primary-foreground'
+            }`}
+          >
+            {preflightPassed && <CheckCircle2 className="size-3.5 mr-1" />}
+            <span>{preflightPassed ? 'Preflight đạt' : 'Chạy Preflight'}</span>
           </Button>
 
           {/* Single Unified Publish / Submit Button with Pre-publish Checklist Gate */}
-          {currentStep === 1 ? (
-            <Button
-              size="sm"
-              onClick={handleProceedToStep2}
-              className="h-8 text-xs font-bold px-4 bg-primary text-primary-foreground shadow-xs"
-            >
-              Continue to Exercise
-            </Button>
-          ) : (
-            <div className="relative group">
-              <Button
-                size="sm"
-                onClick={handlePublish}
-                disabled={saveMutation.isPending || !validationChecklist.isAllValid}
-                className={`h-8 text-xs font-bold px-4 shadow-xs transition-all ${
-                  validationChecklist.isAllValid
-                    ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed border border-border'
-                }`}
-              >
-                <span>
-                  {saveMutation.isPending
-                    ? 'Saving...'
-                    : isEditing
-                    ? 'Save Changes'
-                    : isContributor
-                    ? 'Submit for Review'
-                    : 'Publish Lab'}
-                </span>
-              </Button>
-
-              {/* Tooltip explaining disabled state */}
-              {!validationChecklist.isAllValid && (
-                <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-popover text-popover-foreground border border-border rounded-xl shadow-xl text-xs z-50 hidden group-hover:block pointer-events-none animate-in fade-in-50">
-                  <div className="flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400 mb-1.5">
-                    <ShieldAlert className="size-3.5" />
-                    <span>Chưa đủ điều kiện xuất bản</span>
-                  </div>
-                  <ul className="space-y-1 text-[11px] text-muted-foreground list-disc list-inside">
-                    {!validationChecklist.hasSeries && <li>Chưa chọn Chuyên đề (Series)</li>}
-                    {!validationChecklist.hasTitle && <li>Tiêu đề cần tối thiểu 5 ký tự</li>}
-                    {!validationChecklist.hasTheory && <li>Lý thuyết cần tối thiểu 100 ký tự</li>}
-                    {!validationChecklist.hasExerciseConfig && <li>{validationChecklist.exerciseReason}</li>}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Toast Alert */}
-      {toast && (
-        <div className="fixed top-14 right-6 z-50 max-w-sm animate-in fade-in slide-in-from-top-2">
-          <Alert variant={toast.type === 'error' ? 'destructive' : 'default'} className="bg-card shadow-lg border">
-            <AlertTitle className="text-xs font-bold">
-              {toast.type === 'success' ? 'Thành công' : 'Lỗi kiểm tra'}
-            </AlertTitle>
-            <AlertDescription className="text-xs mt-0.5">
-              {toast.message}
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-
-      {/* ── STEP 1: THEORY & GUIDELINES (BỐ CỤC 2 CỘT CHIA ĐÔI) ───────────── */}
-      {currentStep === 1 && (
-        <div className="flex-1 flex flex-col lg:flex-row p-4 lg:p-6 gap-6 max-w-7xl mx-auto w-full items-start">
-          {/* Cột trái hẹp (~280px, collapsible): Thông tin chung & Checklist */}
-          <div
-            className={`transition-all duration-200 shrink-0 ${
-              isSidebarCollapsed ? 'w-full lg:w-12' : 'w-full lg:w-[280px]'
-            }`}
-          >
-            {isSidebarCollapsed ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsSidebarCollapsed(false)}
-                className="w-full h-10 p-0 text-muted-foreground hover:text-foreground"
-                title="Mở rộng cột thông tin chung"
-              >
-                <SlidersHorizontal className="size-4" />
-              </Button>
-            ) : (
-              <div className="p-4 rounded-2xl border border-border bg-card shadow-xs space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-border">
-                  <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    Thông tin Chung
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsSidebarCollapsed(true)}
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hidden lg:flex"
-                    title="Thu gọn cột"
-                  >
-                    <ChevronLeft className="size-3.5" />
-                  </Button>
-                </div>
-
-                {/* Series selector */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                    Chuyên đề (Series) *
-                  </label>
-                  <select
-                    required
-                    value={form.seriesId}
-                    onChange={(e) => {
-                      const nextTopic = seriesList.find((s) => s.id === e.target.value);
-                      const nextFormat =
-                        nextTopic?.formatType ||
-                        (nextTopic?.slug.includes('sql')
-                          ? 'sql_worker'
-                          : nextTopic?.slug.includes('quiz')
-                          ? 'quizlet'
-                          : 'js_worker');
-                      setForm({
-                        ...form,
-                        seriesId: e.target.value,
-                        sandboxType: nextFormat || form.sandboxType,
-                      });
-                    }}
-                    className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
-                  >
-                    <option value="">-- Chọn Series cha --</option>
-                    {seriesList.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.title}
-                      </option>
-                    ))}
-                  </select>
-                  {parentTopic && (
-                    <div className="pt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <span>Thuộc thẻ:</span>
-                      <Badge variant="outline" className="text-[10px] font-semibold uppercase">
-                        🏷️ {parentTopic.category || 'General'}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-
-                {/* Sandbox format */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                    Loại hình bài tập *
-                  </label>
-                  <select
-                    value={form.sandboxType}
-                    onChange={(e) => setForm({ ...form, sandboxType: e.target.value as any })}
-                    className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
-                  >
-                    <option value="sql_worker">SQL Database</option>
-                    <option value="js_worker">JavaScript Worker</option>
-                    <option value="quizlet">Trắc nghiệm Quizlet</option>
-                    <option value="markdown_only">Bài đọc Lý thuyết</option>
-                  </select>
-                </div>
-
-                {/* Lab Title */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                    Tiêu đề bài Lab *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    placeholder="vd: Lọc khách hàng VIP bằng SQL WHERE"
-                    className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
-                  />
-                </div>
-
-                {/* Duration & Pro */}
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div>
-                    <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block mb-1">
-                      Thời lượng
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={form.durationMinutes}
-                        onChange={(e) =>
-                          setForm({ ...form, durationMinutes: parseInt(e.target.value, 10) || 20 })
-                        }
-                        className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                      <span className="absolute right-2.5 top-1.5 text-[10px] text-muted-foreground">phút</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col justify-end pb-1.5">
-                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-foreground">
-                      <input
-                        type="checkbox"
-                        checked={form.isProOnly}
-                        onChange={(e) => setForm({ ...form, isProOnly: e.target.checked })}
-                        className="rounded text-primary focus:ring-primary size-3.5"
-                      />
-                      <span>Gói PRO</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* ── Live Completion Checklist ───────────────────────── */}
-                <div className="pt-3 border-t border-border space-y-2">
-                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                    Tiêu chuẩn hoàn tất (Checklist)
-                  </span>
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Series cha:</span>
-                      {validationChecklist.hasSeries ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                          ✓ Đã chọn
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-[11px]">○ Chưa chọn</span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Tiêu đề (≥ 5 ký tự):</span>
-                      {validationChecklist.hasTitle ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                          ✓ Đạt chuẩn
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-[11px]">○ {form.title.trim().length}/5</span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Lý thuyết (≥ 100 ký tự):</span>
-                      {validationChecklist.hasTheory ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                          ✓ Đạt chuẩn
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-[11px]">
-                          ○ {form.instructions.trim().length}/100
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Cột phải: Split view 50/50 Markdown Editor & Live Preview với toolbar */}
-          <div className="flex-1 min-w-0 w-full">
-            <MarkdownEditorWithPreview
-              value={form.instructions}
-              onChange={(val) => setForm({ ...form, instructions: val })}
-              sandboxType={form.sandboxType}
-              minHeight="540px"
-              placeholder="# 1. Lý thuyết cốt lõi...&#10;&#10;## 2. Cú pháp & Ví dụ...&#10;&#10;## 3. Yêu cầu bài tập..."
-            />
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 2: CONFIGURE EXERCISE BY SANDBOX TYPE ────────────────────── */}
-      {currentStep === 2 && (
-        <div className="flex-1 p-4 lg:p-6 max-w-6xl mx-auto w-full space-y-6">
-          {/* Active Type Banner */}
-          <div className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-xs">
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="font-mono text-xs font-bold">
-                BƯỚC 2 / 2
-              </Badge>
-              <div>
-                <h2 className="text-sm font-bold text-foreground">
-                  Cấu hình Bài tập: <span className="text-primary">{formatTypeName}</span>
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Đang thiết lập cho bài lab: <strong>"{form.title || 'Chưa đặt tiêu đề'}"</strong>
-                </p>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentStep(1)}
-              className="h-8 text-xs font-semibold px-3"
-            >
-              Back to Step 1 (Theory)
-            </Button>
-          </div>
-
-          {/* FORMAT A: SQL DATABASE BUILDER */}
-          {form.sandboxType === 'sql_worker' && (
-            <SqlExerciseBuilder
-              sqlSchema={form.sqlSchema || ''}
-              onSqlSchemaChange={(val) => setForm({ ...form, sqlSchema: val })}
-              initialSnippet={form.initialSnippet || ''}
-              onInitialSnippetChange={(val) => setForm({ ...form, initialSnippet: val })}
-              solution={form.solution || ''}
-              onSolutionChange={(val) => setForm({ ...form, solution: val })}
-              sampleData={form.sampleData || []}
-              onSampleDataChange={(val) => setForm({ ...form, sampleData: val })}
-            />
-          )}
-
-          {/* FORMAT B: JAVASCRIPT WORKER BUILDER */}
-          {form.sandboxType === 'js_worker' && (
-            <JsWorkerExerciseBuilder
-              initialSnippet={form.initialSnippet || ''}
-              onInitialSnippetChange={(val) => setForm({ ...form, initialSnippet: val })}
-              solution={form.solution || ''}
-              onSolutionChange={(val) => setForm({ ...form, solution: val })}
-              testScript={form.testScript || ''}
-              onTestScriptChange={(val) => setForm({ ...form, testScript: val })}
-            />
-          )}
-
-          {/* FORMAT C: QUIZLET MULTI-QUESTION BUILDER */}
-          {form.sandboxType === 'quizlet' && (
-            <QuizletExerciseBuilder
-              questions={form.quizQuestions || []}
-              onChange={(nextQuestions) => setForm({ ...form, quizQuestions: nextQuestions })}
-            />
-          )}
-
-          {/* FORMAT D: MARKDOWN ONLY (BLOG / THEORY) */}
-          {form.sandboxType === 'markdown_only' && (
-            <div className="p-8 rounded-2xl border border-border bg-card text-center space-y-2">
-              <h3 className="text-sm font-bold text-foreground">Chế độ Bài đọc Lý thuyết</h3>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Thể loại này không yêu cầu cấu hình bài tập thực hành. Học viên sẽ đọc nội dung lý thuyết ở Bước 1 và đánh dấu hoàn thành bài học.
-              </p>
-            </div>
-          )}
-
-          {/* Pre-publish Readiness Status Summary */}
-          <div className="p-5 rounded-2xl border border-border bg-card/60 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Trạng thái Kiểm duyệt Xuất bản
-                </span>
-                {validationChecklist.isAllValid ? (
-                  <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
-                    SẴN SÀNG XUẤT BẢN ✓
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="border-amber-500/40 text-amber-600 text-[10px] font-bold">
-                    CẦN BỔ SUNG THÔNG TIN ⚠
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {validationChecklist.isAllValid
-                  ? 'Tất cả tiêu chuẩn (Lý thuyết, Lời giải mẫu, Bộ test cases) đã hoàn tất và sẵn sàng phục vụ học viên.'
-                  : `Chưa thể xuất bản: ${validationChecklist.exerciseReason || 'Vui lòng hoàn tất đầy đủ các mục kiểm tra.'}`}
-              </p>
-            </div>
-
+          <div className="relative group">
             <Button
               size="sm"
               onClick={handlePublish}
-              disabled={saveMutation.isPending || !validationChecklist.isAllValid}
-              className={`h-9 text-xs font-bold px-5 gap-1.5 shadow-xs shrink-0 ${
-                validationChecklist.isAllValid
+              disabled={saveMutation.isPending || !validationChecklist.isAllValid || !preflightPassed}
+              className={`h-8 text-xs font-semibold px-4 shadow-xs transition-all ${
+                validationChecklist.isAllValid && preflightPassed
                   ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
                   : 'bg-muted text-muted-foreground cursor-not-allowed border border-border'
               }`}
             >
-              <CheckCircle2 className="size-4" />
               <span>
                 {saveMutation.isPending
                   ? 'Đang lưu...'
@@ -805,7 +659,360 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                   : 'Xuất bản bài lab'}
               </span>
             </Button>
+
+            {/* Tooltip explaining disabled state */}
+            {(!validationChecklist.isAllValid || !preflightPassed) && (
+              <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-popover text-popover-foreground border border-border rounded-xl shadow-xl text-xs z-50 hidden group-hover:block pointer-events-none animate-in fade-in-50">
+                <div className="flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400 mb-1.5">
+                  <ShieldAlert className="size-3.5" />
+                  <span>Chưa đủ điều kiện xuất bản</span>
+                </div>
+                <ul className="space-y-1 text-[11px] text-muted-foreground list-disc list-inside">
+                  {!preflightPassed && <li>Cần chạy Preflight kiểm thử thành công trước khi xuất bản</li>}
+                  {!validationChecklist.hasSeries && <li>Chưa chọn Chuyên đề (Series)</li>}
+                  {!validationChecklist.hasTitle && <li>Tiêu đề cần tối thiểu 5 ký tự</li>}
+                  {!validationChecklist.hasTheory && <li>Lý thuyết cần tối thiểu 100 ký tự</li>}
+                  {!validationChecklist.hasExerciseConfig && <li>{validationChecklist.exerciseReason}</li>}
+                </ul>
+              </div>
+            )}
           </div>
+        </div>
+      </header>
+
+      {/* Toast Alert */}
+      {toast && (
+        <div className="fixed top-14 right-6 z-50 max-w-sm animate-in fade-in slide-in-from-top-2">
+          <Alert variant={toast.type === 'error' ? 'destructive' : 'default'} className="bg-card shadow-lg border">
+            <AlertTitle className="text-xs font-bold">
+              {toast.type === 'success' ? 'Thành công' : 'Lỗi kiểm tra'}
+            </AlertTitle>
+            <AlertDescription className="text-xs mt-0.5">{toast.message}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      {/* ── TAB 1: SOẠN THẢO (LÝ THUYẾT & BÀI TẬP RIÊNG BIỆT) ───────────────────────────── */}
+      {activeTab === 'editor' && (
+        <div className="flex-1 flex flex-col lg:flex-row p-4 lg:p-6 gap-6 max-w-7xl mx-auto w-full items-start">
+          {/* CỘT TRÁI: Cấu hình chung & Checklist (~280px) */}
+          <div className="w-full lg:w-[280px] shrink-0 space-y-4">
+            <div className="p-4 rounded-2xl border border-border bg-card shadow-xs space-y-4">
+              <span className="text-xs font-bold text-foreground uppercase tracking-wider block border-b border-border pb-2">
+                Thông tin Bài Lab
+              </span>
+
+              {/* Series selector */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
+                  Chuyên đề (Series) *
+                </label>
+                <select
+                  required
+                  value={form.seriesId}
+                  onChange={(e) => {
+                    const nextTopic = seriesList.find((s) => s.id === e.target.value);
+                    const nextFormat =
+                      nextTopic?.formatType ||
+                      (nextTopic?.slug.includes('sql')
+                        ? 'sql_worker'
+                        : nextTopic?.slug.includes('quiz')
+                        ? 'quizlet'
+                        : 'js_worker');
+                    const nextType = (nextFormat || form.sandboxType) as SandboxType;
+                    setForm((prev) => ({
+                      ...prev,
+                      seriesId: e.target.value,
+                      sandboxType: nextType,
+                    }));
+                    handleSandboxTypeChange(nextType);
+                  }}
+                  className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                >
+                  <option value="">-- Chọn Series cha --</option>
+                  {seriesList.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sandbox format */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
+                  Loại hình bài tập *
+                </label>
+                <select
+                  value={form.sandboxType}
+                  onChange={(e) => handleSandboxTypeChange(e.target.value as SandboxType)}
+                  className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                >
+                  <option value="sql_worker">SQL Database</option>
+                  <option value="js_worker">JavaScript Worker</option>
+                  <option value="quizlet">Trắc nghiệm Quizlet</option>
+                  <option value="markdown_only">Bài đọc Lý thuyết</option>
+                </select>
+              </div>
+
+              {/* Lab Title */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
+                  Tiêu đề bài Lab *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.title}
+                  onChange={(e) => {
+                    setForm({ ...form, title: e.target.value });
+                    setPreflightPassed(false);
+                  }}
+                  placeholder="vd: Lọc khách hàng VIP bằng SQL WHERE"
+                  className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                />
+              </div>
+
+              {/* Duration & Pro */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block mb-1">
+                    Thời lượng
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={form.durationMinutes}
+                      onChange={(e) =>
+                        setForm({ ...form, durationMinutes: parseInt(e.target.value, 10) || 20 })
+                      }
+                      className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <span className="absolute right-2.5 top-1.5 text-[10px] text-muted-foreground">phút</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-end pb-1.5">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={form.isProOnly}
+                      onChange={(e) => setForm({ ...form, isProOnly: e.target.checked })}
+                      className="rounded text-primary focus:ring-primary size-3.5"
+                    />
+                    <span>Gói PRO</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Pre-publish Readiness Checklist */}
+              <div className="pt-3 border-t border-border space-y-2">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  Điều kiện xuất bản
+                </span>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Series cha:</span>
+                    {validationChecklist.hasSeries ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Đã chọn</span>
+                    ) : (
+                      <span className="text-muted-foreground text-[11px]">○ Chưa chọn</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Tiêu đề (≥ 5 ký tự):</span>
+                    {validationChecklist.hasTitle ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Đạt chuẩn</span>
+                    ) : (
+                      <span className="text-muted-foreground text-[11px]">○ {form.title.trim().length}/5</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Lý thuyết (≥ 100 ký tự):</span>
+                    {validationChecklist.hasTheory ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Đạt chuẩn</span>
+                    ) : (
+                      <span className="text-muted-foreground text-[11px]">
+                        ○ {(form.instructions || '').trim().length}/100
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Cấu hình bài tập:</span>
+                    {validationChecklist.hasExerciseConfig ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Đạt chuẩn</span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400 text-[11px]">⚠ Thiếu</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Preflight:</span>
+                    {preflightPassed ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Thành công</span>
+                    ) : (
+                      <span className="text-muted-foreground text-[11px]">○ Chưa chạy</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* View Preview Button shortcut */}
+              <div className="pt-2 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab('preview')}
+                  className="w-full text-xs font-semibold h-8"
+                >
+                  Mở Xem trước học viên →
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* CỘT CHÍNH: Phân chia rõ ràng Lý thuyết riêng & Bài tập riêng */}
+          <div className="flex-1 min-w-0 w-full flex flex-col space-y-6">
+            {/* ── KHU VỰC 1: LÝ THUYẾT & HƯỚNG DẪN HỌC VIÊN ── */}
+            <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+              <div className="px-5 py-3 border-b border-border bg-muted/20 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    1. Lý thuyết & Hướng dẫn học viên
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Soạn nội dung bài học bằng Markdown. Sử dụng thanh công cụ để định dạng nhanh.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-md ${
+                      (form.instructions || '').trim().length >= 100
+                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {(form.instructions || '').trim().length} / 100 ký tự
+                  </span>
+                </div>
+              </div>
+
+              {/* Enhanced Fast Markdown Toolbar */}
+              <SmartLabToolbar
+                sandboxType={(form.sandboxType as SandboxType) || 'sql_worker'}
+                onInsertSnippet={handleInsertTheorySnippet}
+              />
+
+              {/* Theory Markdown Editor */}
+              <textarea
+                ref={theoryTextareaRef}
+                value={form.instructions}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, instructions: e.target.value }));
+                  setPreflightPassed(false);
+                }}
+                placeholder="# 1. Lý thuyết cốt lõi...&#10;&#10;## 2. Cú pháp & Ví dụ...&#10;&#10;## 3. Yêu cầu bài tập..."
+                className="w-full p-4 font-mono text-xs leading-relaxed bg-transparent text-foreground resize-y focus:outline-none min-h-[260px]"
+                spellCheck={false}
+              />
+            </div>
+
+            {/* ── KHU VỰC 2: CẤU HÌNH BÀI TẬP THỰC HÀNH (RIÊNG BIỆT) ── */}
+            <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden p-5 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <div>
+                  <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    2. Cấu hình Bài tập thực hành: <span className="text-primary">{formatTypeName}</span>
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Thiết lập môi trường làm bài, mã nguồn ban đầu, lời giải mẫu và tiêu chuẩn kiểm thử.
+                  </p>
+                </div>
+                <Badge variant="outline" className="font-mono text-xs uppercase text-primary border-primary/30">
+                  {form.sandboxType}
+                </Badge>
+              </div>
+
+              {/* FORMAT A: SQL DATABASE BUILDER */}
+              {form.sandboxType === 'sql_worker' && (
+                <SqlExerciseBuilder
+                  sqlSchema={form.sqlSchema || ''}
+                  onSqlSchemaChange={(val) => {
+                    setForm((prev) => ({ ...prev, sqlSchema: val }));
+                    setPreflightPassed(false);
+                  }}
+                  initialSnippet={form.initialSnippet || ''}
+                  onInitialSnippetChange={(val) => {
+                    setForm((prev) => ({ ...prev, initialSnippet: val }));
+                    setPreflightPassed(false);
+                  }}
+                  solution={form.solution || ''}
+                  onSolutionChange={(val) => {
+                    setForm((prev) => ({ ...prev, solution: val }));
+                    setPreflightPassed(false);
+                  }}
+                  sampleData={form.sampleData || []}
+                  onSampleDataChange={(val) => {
+                    setForm((prev) => ({ ...prev, sampleData: val }));
+                    setPreflightPassed(false);
+                  }}
+                />
+              )}
+
+              {/* FORMAT B: JAVASCRIPT WORKER BUILDER */}
+              {form.sandboxType === 'js_worker' && (
+                <JsWorkerExerciseBuilder
+                  initialSnippet={form.initialSnippet || ''}
+                  onInitialSnippetChange={(val) => {
+                    setForm((prev) => ({ ...prev, initialSnippet: val }));
+                    setPreflightPassed(false);
+                  }}
+                  solution={form.solution || ''}
+                  onSolutionChange={(val) => {
+                    setForm((prev) => ({ ...prev, solution: val }));
+                    setPreflightPassed(false);
+                  }}
+                  testScript={form.testScript || ''}
+                  onTestScriptChange={(val) => {
+                    setForm((prev) => ({ ...prev, testScript: val }));
+                    setPreflightPassed(false);
+                  }}
+                />
+              )}
+
+              {/* FORMAT C: QUIZLET BUILDER */}
+              {form.sandboxType === 'quizlet' && (
+                <QuizletExerciseBuilder
+                  questions={form.quizQuestions || []}
+                  onChange={(nextQuestions) => {
+                    setForm((prev) => ({ ...prev, quizQuestions: nextQuestions }));
+                    setPreflightPassed(false);
+                  }}
+                />
+              )}
+
+              {/* FORMAT D: MARKDOWN ONLY */}
+              {form.sandboxType === 'markdown_only' && (
+                <div className="py-8 text-center space-y-2">
+                  <h3 className="text-sm font-bold text-foreground">Chế độ Bài đọc Lý thuyết</h3>
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                    Thể loại bài này không yêu cầu mã lệnh thực hành. Học viên sẽ đọc nội dung lý thuyết ở phần 1 và hoàn thành bài đọc.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 2: XEM TRƯỚC HỌC VIÊN (TOÀN MÀN HÌNH KHÔNG BỊ CHÈN ÉP) ─────────────── */}
+      {activeTab === 'preview' && (
+        <div className="flex-1 p-4 lg:p-6 max-w-7xl mx-auto w-full h-[calc(100vh-80px)]">
+          <StudioStudentPreview
+            envelope={previewEnvelope}
+            title={form.title || 'Tiêu đề bài thực hành'}
+            sandboxType={(form.sandboxType as SandboxType) || 'sql_worker'}
+          />
         </div>
       )}
     </div>

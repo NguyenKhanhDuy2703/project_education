@@ -21,6 +21,13 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { LabSeries } from '@/types/lab.types';
+import {
+  getSystemTopicTags,
+  normalizeTopicKey,
+  getTopicTitle,
+  getTopicBadgeClass,
+} from '@/services/topicTags.service';
+import { getFormatInfo, getSeriesFormat } from '@/services/formatBadge.service';
 
 export interface CatalogLabItem {
   id: string;
@@ -37,14 +44,6 @@ export interface CatalogLabItem {
   seriesTitle?: string;
 }
 
-const CATEGORY_NAMES: Record<string, string> = {
-  database: 'Database & SQL',
-  sql: 'Database & SQL',
-  testing: 'Tester & QA',
-  backend: 'Backend API',
-  devops: 'DevOps & Docker',
-  docker: 'DevOps & Docker',
-};
 
 // ─── Keyword Highlighter Helper ─────────────────────────────────────────────
 function HighlightText({ text, query }: { text: string; query: string }) {
@@ -79,6 +78,7 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
   const [activeTopic, setActiveTopic] = useState('all');
   const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'pro'>('all');
   const [levelFilter, setLevelFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
+  const [formatFilter, setFormatFilter] = useState<'all' | 'sql_worker' | 'quizlet' | 'js_worker' | 'hybrid'>('all');
   const [sortBy, setSortBy] = useState<'popular' | 'latest' | 'duration' | 'difficulty'>('popular');
 
   // Sync tab if URL changes or defaultTab provided
@@ -107,8 +107,8 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
   const allLabs = useMemo<CatalogLabItem[]>(() => {
     if (!seriesList) return [];
     return seriesList.flatMap((series) => {
-      const topicKey = series.category || series.topic || 'general';
-      const categoryName = CATEGORY_NAMES[topicKey] || series.title;
+      const topicKey = normalizeTopicKey(series.category || series.topic || 'general');
+      const categoryName = getTopicTitle(topicKey, series.title);
       return (series.labs || []).map((lab) => ({
         id: lab.id,
         slug: lab.slug,
@@ -117,27 +117,31 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
         categoryName,
         sandboxType: lab.sandboxType || 'js_worker',
         difficulty: (lab.difficulty || series.level || 'beginner') as 'beginner' | 'intermediate' | 'advanced',
-        isProOnly: Boolean(lab.isProOnly ?? series.isProOnly),
+        isProOnly: Boolean(lab.isProOnly || (series.isProOnly && !lab.isFreePreview)),
         completionCount: lab.completionCount || 500,
-        estimatedMinutes: lab.estimatedMinutes || 20,
+        estimatedMinutes: lab.durationMinutes || lab.estimatedMinutes || 20,
         seriesSlug: series.slug,
         seriesTitle: series.title,
       }));
     });
   }, [seriesList]);
 
-  // Generate dynamic topics from existing series, starting with "All Topics"
+  // Generate dynamic topics from system tags and existing series, starting with "All Topics"
   const topics = useMemo(() => {
-    if (!seriesList || seriesList.length === 0) {
-      return [{ id: 'all', label: 'All Topics' }];
-    }
     const topicMap = new Map<string, string>();
-    seriesList.forEach((s) => {
-      const cat = s.category || s.topic || 'general';
-      if (!topicMap.has(cat)) {
-        topicMap.set(cat, CATEGORY_NAMES[cat] || s.title);
-      }
+    getSystemTopicTags().forEach((t) => {
+      topicMap.set(t.key, t.title);
     });
+
+    if (seriesList) {
+      seriesList.forEach((s) => {
+        const cat = normalizeTopicKey(s.category || s.topic || 'general');
+        if (cat && !topicMap.has(cat)) {
+          topicMap.set(cat, getTopicTitle(cat, s.title));
+        }
+      });
+    }
+
     return [
       { id: 'all', label: 'All Topics' },
       ...Array.from(topicMap.entries()).map(([id, label]) => ({ id, label })),
@@ -157,7 +161,7 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
           if (!matchTitle && !matchDesc && !matchCat) return false;
         }
 
-        const topicKey = s.category || s.topic || 'general';
+        const topicKey = normalizeTopicKey(s.category || s.topic || 'general');
         if (activeTopic !== 'all' && topicKey !== activeTopic) {
           return false;
         }
@@ -167,6 +171,16 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
 
         if (levelFilter !== 'all' && s.level !== levelFilter) {
           return false;
+        }
+
+        if (formatFilter !== 'all') {
+          const seriesFmt = getSeriesFormat(s);
+          if (formatFilter === 'hybrid') {
+            if (seriesFmt !== 'hybrid') return false;
+          } else {
+            const hasLabFormat = s.labs?.some((l) => l.sandboxType === formatFilter);
+            if (seriesFmt !== formatFilter && !hasLabFormat) return false;
+          }
         }
 
         return true;
@@ -181,7 +195,7 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
         // Popular: based on lab count
         return (b.labs?.length || b.totalLabs || 0) - (a.labs?.length || a.totalLabs || 0);
       });
-  }, [seriesList, debouncedSearch, activeTopic, tierFilter, levelFilter, sortBy]);
+  }, [seriesList, debouncedSearch, activeTopic, tierFilter, levelFilter, formatFilter, sortBy]);
 
   // Filter labs for the "labs" view using debouncedSearch
   const filteredLabs = useMemo(() => {
@@ -207,6 +221,16 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
           return false;
         }
 
+        if (formatFilter !== 'all') {
+          if (formatFilter === 'hybrid') {
+            // Include labs belonging to hybrid series
+            const parentSeries = seriesList?.find((s) => s.slug === lab.seriesSlug);
+            if (!parentSeries || getSeriesFormat(parentSeries) !== 'hybrid') return false;
+          } else if (lab.sandboxType !== formatFilter) {
+            return false;
+          }
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -218,10 +242,14 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
         }
         return 0;
       });
-  }, [allLabs, debouncedSearch, activeTopic, tierFilter, levelFilter, sortBy]);
+  }, [allLabs, debouncedSearch, activeTopic, tierFilter, levelFilter, formatFilter, sortBy]);
 
   const isFiltering =
-    search.trim().length > 0 || activeTopic !== 'all' || tierFilter !== 'all' || levelFilter !== 'all';
+    search.trim().length > 0 ||
+    activeTopic !== 'all' ||
+    tierFilter !== 'all' ||
+    levelFilter !== 'all' ||
+    formatFilter !== 'all';
 
   const resetFilters = () => {
     setSearch('');
@@ -229,6 +257,7 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
     setActiveTopic('all');
     setTierFilter('all');
     setLevelFilter('all');
+    setFormatFilter('all');
     setSortBy('popular');
   };
 
@@ -316,6 +345,32 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
               Clear Filters
             </Button>
           )}
+        </div>
+
+        {/* Learning Format Filter Pills: All Formats | 🔵 SQL Query | 🟣 Quiz & Thinking | 🟢 Automation Test | 🧪 Auto Test & Quiz */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          {[
+            { id: 'all', label: 'All Formats', emoji: '' },
+            { id: 'sql_worker', label: 'SQL Query', emoji: '🔵' },
+            { id: 'quizlet', label: 'Quiz & Thinking', emoji: '🟣' },
+            { id: 'js_worker', label: 'Automation Test', emoji: '🟢' },
+            { id: 'hybrid', label: 'Auto Test & Quiz', emoji: '🧪' },
+          ].map((fmt) => (
+            <button
+              key={fmt.id}
+              type="button"
+              onClick={() => setFormatFilter(fmt.id as any)}
+              className={cn(
+                'px-3 py-1 rounded-full text-xs transition-all shrink-0 whitespace-nowrap cursor-pointer flex items-center gap-1.5 border',
+                formatFilter === fmt.id
+                  ? 'bg-foreground text-background font-bold border-foreground shadow-xs'
+                  : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+              )}
+            >
+              {fmt.emoji && <span className="text-[11px]">{fmt.emoji}</span>}
+              <span>{fmt.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Category Chips (Horizontal scrollable on mobile) */}
@@ -431,10 +486,19 @@ function DedicatedSeriesCard({
 }) {
   const labCount = series.labs?.length || series.totalLabs || 0;
   const isComingSoon = labCount === 0;
-  const estimatedTime = series.estimatedMinutes || (labCount > 0 ? labCount * 20 : 0);
+  const estimatedTime =
+    series.estimatedMinutes ||
+    (series.labs && series.labs.length > 0
+      ? series.labs.reduce((acc, l) => acc + (l.durationMinutes || l.estimatedMinutes || 20), 0)
+      : labCount > 0
+      ? labCount * 20
+      : 0);
 
-  const topicKey = series.category || series.topic || 'general';
-  const categoryName = CATEGORY_NAMES[topicKey] || series.title;
+  const topicKey = normalizeTopicKey(series.category || series.topic || 'general');
+  const categoryName = getTopicTitle(topicKey, series.title);
+  const badgeClass = getTopicBadgeClass(topicKey);
+  const seriesFormat = getSeriesFormat(series);
+  const formatInfo = getFormatInfo(seriesFormat);
 
   const levelText = {
     beginner: 'Beginner',
@@ -453,11 +517,23 @@ function DedicatedSeriesCard({
       )}
     >
       <div className="space-y-2.5">
-        {/* Top category label & PRO-only badge */}
+        {/* Top category label, format badge & PRO-only badge */}
         <div className="flex items-center justify-between text-[11px] gap-2">
-          <span className="font-semibold uppercase tracking-wider text-muted-foreground truncate">
-            {categoryName}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Badge
+              variant="outline"
+              className={cn('text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 border truncate', badgeClass)}
+            >
+              {categoryName}
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn('text-[10px] font-semibold px-2 py-0.5 border gap-1 shrink-0', formatInfo.badgeClass)}
+            >
+              <span className={cn('size-1.5 rounded-full', formatInfo.dotClass)} />
+              {formatInfo.label}
+            </Badge>
+          </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {isComingSoon && (
               <Badge
@@ -525,6 +601,7 @@ function FeaturedLabCard({
   };
 
   const typeName = typeNameMap[lab.sandboxType] || lab.sandboxType || 'Lab';
+  const formatInfo = getFormatInfo(lab.sandboxType);
 
   const difficultyText = {
     beginner: 'Beginner',
@@ -538,11 +615,23 @@ function FeaturedLabCard({
       className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-sm cursor-pointer h-full"
     >
       <div className="space-y-2">
-        {/* Top category label & PRO-only badge */}
+        {/* Top category label, format badge & PRO-only badge */}
         <div className="flex items-center justify-between text-[11px] gap-2">
-          <span className="font-semibold uppercase tracking-wider text-muted-foreground truncate">
-            {lab.categoryName}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Badge
+              variant="outline"
+              className={cn('text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 border truncate', getTopicBadgeClass(lab.topic))}
+            >
+              {lab.categoryName}
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn('text-[10px] font-semibold px-2 py-0.5 border gap-1 shrink-0', formatInfo.badgeClass)}
+            >
+              <span className={cn('size-1.5 rounded-full', formatInfo.dotClass)} />
+              {formatInfo.shortLabel}
+            </Badge>
+          </div>
           {lab.isProOnly && (
             <Badge
               variant="secondary"
