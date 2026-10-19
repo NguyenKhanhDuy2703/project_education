@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, height=720">
+  <title>study-web — Interactive Lab Workspace</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 1280px;
+      height: 720px;
+      overflow: hidden;
+      background: #090d16;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+    .mono {
+      font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    /* Top App Navigation */
+    header {
+      height: 48px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 10;
+    }
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.2px;
+    }
+    .logo-badge {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 900;
+      font-size: 14px;
+    }
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .breadcrumbs span.current {
+      color: #f8fafc;
+      font-weight: 600;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .timer-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #1e293b;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+    }
+    .timer-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 6px #10b981;
+    }
+    .badge-pro {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Workspace Main Tri-split */
+    .workspace-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr 420px;
+      height: calc(720px - 48px - 32px);
+      background: #090d16;
+    }
+
+    /* Left Sidebar: Problem Theory */
+    .theory-pane {
+      background: #0b1120;
+      border-right: 1px solid #1e293b;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+    .theory-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tag {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      background: #1e293b;
+      color: #38bdf8;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .theory-desc {
+      color: #94a3b8;
+    }
+    .schema-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .schema-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .schema-table {
+      width: 100%;
+      font-size: 11px;
+      border-collapse: collapse;
+    }
+    .schema-table td {
+      padding: 3px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .schema-table td.col-name {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    .schema-table td.col-type {
+      color: #64748b;
+      text-align: right;
+    }
+
+    /* Center Pane: Monaco Editor */
+    .editor-pane {
+      display: flex;
+      flex-direction: column;
+      background: #0a0f1d;
+      border-right: 1px solid #1e293b;
+      position: relative;
+    }
+    .editor-tabbar {
+      height: 36px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+    }
+    .tab-active {
+      background: #0a0f1d;
+      border-top: 2px solid #38bdf8;
+      border-left: 1px solid #1e293b;
+      border-right: 1px solid #1e293b;
+      border-bottom: none;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      font-size: 12px;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+    .editor-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-run {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      border: none;
+      padding: 5px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+      transition: all 0.2s ease;
+    }
+    .btn-run.running {
+      background: #475569;
+      box-shadow: none;
+    }
+    .editor-code {
+      flex: 1;
+      padding: 16px 20px;
+      font-size: 13px;
+      line-height: 22px;
+      color: #e2e8f0;
+      overflow: hidden;
+      position: relative;
+    }
+    .line-numbers {
+      position: absolute;
+      left: 10px;
+      top: 16px;
+      width: 24px;
+      color: #475569;
+      text-align: right;
+      font-size: 12px;
+      line-height: 22px;
+    }
+    .code-lines {
+      margin-left: 32px;
+    }
+    .kw { color: #38bdf8; font-weight: 600; }
+    .fn { color: #a78bfa; font-weight: 600; }
+    .str { color: #34d399; }
+    .cm { color: #64748b; font-style: italic; }
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 15px;
+      background: #38bdf8;
+      vertical-align: middle;
+      animation: blink 0.8s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Right Pane: PGlite Terminal & Results */
+    .terminal-pane {
+      background: #0b1120;
+      display: flex;
+      flex-direction: column;
+    }
+    .terminal-tabbar {
+      height: 36px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+    }
+    .tab-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .badge-wasm {
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #334155;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .badge-status {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #1e293b;
+      color: #94a3b8;
+      transition: all 0.3s;
+    }
+    .badge-status.pass {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+    }
+    .terminal-content {
+      flex: 1;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 11.5px;
+      overflow: hidden;
+    }
+    .log-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #94a3b8;
+    }
+    .log-line.success {
+      color: #34d399;
+    }
+    .result-grid {
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #070b13;
+    }
+    .result-grid table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .result-grid th {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid #1e293b;
+      font-weight: 600;
+    }
+    .result-grid td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #131c31;
+      color: #e2e8f0;
+    }
+    .diff-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .diff-title {
+      color: #34d399;
+      font-weight: 600;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Bottom Status Bar */
+    footer {
+      height: 32px;
+      background: #070a12;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .footer-left {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .footer-stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .footer-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+    }
+
+    /* Floating Celebration Modal */
+    .celebration-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      opacity: 0;
+      pointer-events: none;
+      width: 440px;
+      background: #0f172a;
+      border: 1px solid #6366f1;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(99, 102, 241, 0.35);
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+    }
+    .celebration-modal.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+    .modal-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+      font-size: 26px;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+    }
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 6px;
+    }
+    .modal-sub {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+    }
+    .xp-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      padding: 6px 16px;
+      border-radius: 20px;
+      color: #c084fc;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+    .modal-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top App Navigation -->
+  <header>
+    <div class="logo-area">
+      <div class="logo-badge">S</div>
+      <span>study-web</span>
+      <div class="breadcrumbs">
+        <span>/</span>
+        <span>Labs</span>
+        <span>/</span>
+        <span>PostgreSQL Masterclass</span>
+        <span>/</span>
+        <span class="current">Lab #04: MoM Revenue Growth Rate</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="timer-badge mono">
+        <div class="timer-dot"></div>
+        <span id="timerText">18:42</span>
+      </div>
+      <div class="badge-pro">PRO SUBSCRIBER</div>
+    </div>
+  </header>
+
+  <!-- Main Three-Pane Workspace -->
+  <div class="workspace-body">
+
+    <!-- Left Pane: Problem Description & Schema -->
+    <aside class="theory-pane">
+      <div class="theory-title">
+        <span>Task 4.1: Window Aggregation</span>
+        <span class="tag">SQL CTE</span>
+      </div>
+      <p class="theory-desc">
+        Calculate the Month-over-Month (MoM) revenue growth percentage across all completed transactions.
+      </p>
+
+      <div class="schema-card">
+        <div class="schema-header">
+          <span>Table: lab_orders</span>
+          <span class="mono" style="color:#64748b;">(4,820 rows)</span>
+        </div>
+        <table class="schema-table mono">
+          <tr>
+            <td class="col-name">id</td>
+            <td class="col-type">UUID PRIMARY KEY</td>
+          </tr>
+          <tr>
+            <td class="col-name">amount_cents</td>
+            <td class="col-type">BIGINT NOT NULL</td>
+          </tr>
+          <tr>
+            <td class="col-name">status</td>
+            <td class="col-type">VARCHAR(20)</td>
+          </tr>
+          <tr>
+            <td class="col-name">created_at</td>
+            <td class="col-type">TIMESTAMPTZ</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="font-size: 11.5px; color: #94a3b8; line-height: 1.5;">
+        <b style="color: #cbd5e1;">Requirements:</b><br/>
+        1. Truncate <code class="mono" style="color:#38bdf8;">created_at</code> to month.<br/>
+        2. Use <code class="mono" style="color:#a78bfa;">lag() OVER (ORDER BY month)</code>.<br/>
+        3. Round growth rate to 2 decimal places.
+      </div>
+    </aside>
+
+    <!-- Center Pane: Monaco Code Editor -->
+    <main class="editor-pane">
+      <div class="editor-tabbar">
+        <div class="tab-active mono">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          solution.sql
+        </div>
+        <div class="editor-actions">
+          <button id="runBtn" class="btn-run mono">
+            <svg id="playIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span id="runBtnLabel">Execute Query (PGlite WASM)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-code mono">
+        <div class="line-numbers">
+          1<br/>2<br/>3<br/>4<br/>5<br/>6<br/>7<br/>8<br/>9<br/>10<br/>11<br/>12
+        </div>
+        <div class="code-lines" id="codeContent">
+          <!-- Populated dynamically with typing effect -->
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Pane: Terminal, Diff Checker & PGlite WASM Results -->
+    <aside class="terminal-pane">
+      <div class="terminal-tabbar">
+        <div class="tab-status">
+          <span class="badge-wasm mono">PGlite WASM 0.5.10</span>
+          <span>Diff Grader</span>
+        </div>
+        <div id="statusBadge" class="badge-status mono">READY</div>
+      </div>
+
+      <div class="terminal-content mono">
+        <div id="terminalLogs">
+          <div class="log-line">
+            <span style="color:#64748b;">$</span>
+            <span>Web Worker sandbox initialized (in-browser)</span>
+          </div>
+          <div class="log-line">
+            <span style="color:#10b981;">✔</span>
+            <span>PostgreSQL 16 engine ready (0 cloud latency)</span>
+          </div>
+        </div>
+
+        <div id="resultTableArea" style="display: none; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 11px;">
+            <span>Execution time: <b style="color: #34d399;">7.8ms</b></span>
+            <span>Status: <b style="color: #38bdf8;">100% Match</b></span>
+          </div>
+
+          <div class="result-grid">
+            <table>
+              <thead>
+                <tr>
+                  <th>month</th>
+                  <th>total_gross</th>
+                  <th>prev_month</th>
+                  <th>mom_growth</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>2026-08-01</td>
+                  <td>$48,200.00</td>
+                  <td style="color:#64748b;">NULL</td>
+                  <td style="color:#64748b;">NULL</td>
+                </tr>
+                <tr>
+                  <td>2026-09-01</td>
+                  <td>$62,450.00</td>
+                  <td>$48,200.00</td>
+                  <td style="color:#34d399; font-weight:600;">+29.56%</td>
+                </tr>
+                <tr>
+                  <td>2026-10-01</td>
+                  <td>$84,100.00</td>
+                  <td>$62,450.00</td>
+                  <td style="color:#34d399; font-weight:600;">+34.67%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="diff-box">
+            <div class="diff-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Automated Multiset Parity Passed</span>
+            </div>
+            <div style="font-size: 11px; color: #cbd5e1;">
+              Student query result matches authoritative solution schema and data rows perfectly.
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Bottom Global Status Bar -->
+  <footer>
+    <div class="footer-left">
+      <div class="footer-stat">
+        <div class="footer-dot"></div>
+        <span>PGlite Web Worker Active</span>
+      </div>
+      <div>AST sqlGuard: Strict Read-Only</div>
+      <div>Latency: 0ms (In-Browser Execution)</div>
+    </div>
+    <div>study-web v1.2.0 • Clean Modular Monolith</div>
+  </footer>
+
+  <!-- Celebratory Award Modal (Pops up at 4.2s) -->
+  <div id="celebrationModal" class="celebration-modal">
+    <div class="modal-icon">🏆</div>
+    <div class="modal-title">Lab Challenge Solved!</div>
+    <div class="modal-sub">Authoritative solution parity confirmed by PGlite WASM engine.</div>
+    <div class="xp-pill mono">
+      <span>★</span>
+      <span>+50 XP EARNED</span>
+    </div>
+    <button class="modal-btn">Advance to Next Lab ➔</button>
+  </div>
+
+  <!-- Timed Animation Script (5.0s sequence) -->
+  <script>
+    const codeLines = [
+      '<span class="kw">WITH</span> monthly_rev <span class="kw">AS</span> (',
+      '  <span class="kw">SELECT</span> <span class="fn">date_trunc</span>(<span class="str">\'month\'</span>, created_at) <span class="kw">AS</span> month,',
+      '         <span class="fn">sum</span>(amount_cents) <span class="kw">AS</span> total_gross',
+      '  <span class="kw">FROM</span> lab_orders',
+      '  <span class="kw">WHERE</span> status = <span class="str">\'COMPLETED\'</span>',
+      '  <span class="kw">GROUP BY</span> 1',
+      ')',
+      '<span class="kw">SELECT</span> month, total_gross,',
+      '  <span class="fn">lag</span>(total_gross) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> month) <span class="kw">AS</span> prev_month,',
+      '  <span class="fn">round</span>(((total_gross - <span class="fn">lag</span>(total_gross) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> month))',
+      '        / <span class="fn">lag</span>(total_gross) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> month)::numeric) * 100, 2) <span class="kw">AS</span> mom_growth',
+      '<span class="kw">FROM</span> monthly_rev;'
+    ];
+
+    const codeContainer = document.getElementById('codeContent');
+    const runBtn = document.getElementById('runBtn');
+    const runBtnLabel = document.getElementById('runBtnLabel');
+    const statusBadge = document.getElementById('statusBadge');
+    const terminalLogs = document.getElementById('terminalLogs');
+    const resultTableArea = document.getElementById('resultTableArea');
+    const celebrationModal = document.getElementById('celebrationModal');
+
+    // 0.0s - 1.2s: Typing lines progressively
+    let lineIdx = 0;
+    function renderLines() {
+      if (lineIdx < codeLines.length) {
+        const div = document.createElement('div');
+        div.innerHTML = codeLines[lineIdx];
+        codeContainer.appendChild(div);
+        lineIdx++;
+        setTimeout(renderLines, 85);
+      } else {
+        const cursor = document.createElement('span');
+        cursor.className = 'cursor';
+        codeContainer.appendChild(cursor);
+      }
+    }
+    renderLines();
+
+    // 1.8s: User triggers Execute Query
+    setTimeout(() => {
+      runBtn.classList.add('running');
+      runBtnLabel.textContent = 'Running in WASM...';
+      statusBadge.textContent = 'EXECUTING';
+      statusBadge.style.color = '#38bdf8';
+
+      const log = document.createElement('div');
+      log.className = 'log-line';
+      log.innerHTML = '<span style="color:#38bdf8;">&gt;</span><span>Running AST sqlGuard validation...</span>';
+      terminalLogs.appendChild(log);
+    }, 1600);
+
+    // 2.3s: Query finished, AST passed
+    setTimeout(() => {
+      const log1 = document.createElement('div');
+      log1.className = 'log-line success';
+      log1.innerHTML = '<span>✔</span><span>AST Guard: 0 violations, read-only verified</span>';
+      terminalLogs.appendChild(log1);
+
+      const log2 = document.createElement('div');
+      log2.className = 'log-line success';
+      log2.innerHTML = '<span>✔</span><span>PGlite execution finished in 7.8ms</span>';
+      terminalLogs.appendChild(log2);
+
+      runBtn.classList.remove('running');
+      runBtnLabel.textContent = 'Execute Query (PGlite WASM)';
+      statusBadge.textContent = 'PASSED';
+      statusBadge.className = 'badge-status pass mono';
+
+      // Show results table
+      resultTableArea.style.display = 'flex';
+    }, 2400);
+
+    // 3.8s: Trigger celebration modal
+    setTimeout(() => {
+      celebrationModal.classList.add('show');
+    }, 3600);
+  </script>
+</body>
+</html>

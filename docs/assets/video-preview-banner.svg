@@ -132,7 +132,7 @@
         <text y="96"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">FROM</tspan><tspan fill="#f8fafc"> lab_orders</tspan></text>
         <text y="120"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">WHERE</tspan><tspan fill="#f8fafc"> status = </tspan><tspan fill="#34d399">'COMPLETED'</tspan></text>
         <text y="144"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">GROUP BY</tspan><tspan fill="#f8fafc"> 1</tspan></text>
-        <text y="168"><tspan fill="#f8fafc">)</text>
+        <text y="168"><tspan fill="#f8fafc">)</tspan></text>
         <text y="192"><tspan fill="#38bdf8">SELECT</tspan><tspan fill="#f8fafc"> month, total_gross,</tspan></text>
         <text y="216"><tspan fill="#f8fafc">       lag(total_gross) </tspan><tspan fill="#38bdf8">OVER</tspan><tspan fill="#f8fafc"> (</tspan><tspan fill="#38bdf8">ORDER BY</tspan><tspan fill="#f8fafc"> month) </tspan><tspan fill="#38bdf8">AS</tspan><tspan fill="#f8fafc"> prev_month,</tspan></text>
         <text y="240"><tspan fill="#f8fafc">       round(((total_gross - lag(total_gross) </tspan><tspan fill="#38bdf8">OVER</tspan><tspan fill="#f8fafc"> (</tspan><tspan fill="#38bdf8">ORDER BY</tspan><tspan fill="#f8fafc"> month))</tspan></text>

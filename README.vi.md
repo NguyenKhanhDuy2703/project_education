@@ -1,11 +1,12 @@
 <div align="center">
 
-[🌐 English](./README.md) | **🇻🇳 Tiếng Việt**
+[English](./README.md) | **Tiếng Việt**
 
 ---
 
-# 🎓 study-web (project_education)
-### Enterprise Hands-on IT Lab Platform & Educational Engineering Ecosystem
+# study-web
+
+### Nền tảng Thực hành Lab IT Doanh nghiệp & Hệ sinh thái Kỹ thuật Đào tạo
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![NestJS](https://img.shields.io/badge/NestJS-12.0+-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
@@ -19,111 +20,90 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 <p align="center">
-  <b>Nền tảng thực hành Lab IT qua dự án mẫu thực tế</b> — Giải quyết bài toán "học đi đôi với hành" bằng các chuỗi bài lab thực chiến tinh gọn (15–30 phút), tích hợp hệ thống phân quyền động doanh nghiệp (Dynamic IAM & Entitlements) và kiến trúc Full-Stack Production-Ready.
+  <b>Nền tảng thực hành Lab IT qua dự án mẫu thực tế</b> — Giải quyết triệt để bài toán học thụ động bằng các chuỗi bài thực hành ngắn hạn (15–30 phút), tích hợp động cơ thực thi sandbox phía trình duyệt (<b>PGlite WebAssembly PostgreSQL</b>), cơ chế phân quyền động doanh nghiệp (<b>Dynamic IAM &amp; Feature Overrides</b>) và quy trình biên tập nội dung đa tầng.
 </p>
 
-[Khám phá Video Demo](#video-showcase--demo-trực-quan) • [Tổng quan](#tổng-quan-dự-án-project-overview) • [Kiến trúc](#kiến-trúc-hệ-thống-system-architecture) • [Điểm nhấn](#điểm-nhấn-kỹ-thuật-key-engineering-highlights) • [Công nghệ](#công-nghệ-sử-dụng-technology-stack) • [Khởi chạy Nhanh](#khởi-chạy-nhanh-quick-start) • [Kiểm thử](#kiểm-thử--nghiệm-thu-chất-lượng-testing--quality-verification) • [Tài liệu](#mục-lục-tài-liệu-kiến-trúc-documentation-index)
+[Tổng quan](#tổng-quan-dự-án) • [Trực quan Sản phẩm](#trực-quan-sản-phẩm) • [Kiến trúc Hệ thống](#kiến-trúc-hệ-thống) • [Không gian Làm việc](#không-gian-làm-việc) • [Điểm nhấn Kỹ thuật](#điểm-nhấn-kỹ-thuật) • [Công nghệ](#công-nghệ-sử-dụng) • [Khởi chạy Nhanh](#khởi-chạy-nhanh) • [Kiểm thử Tự động](#kiểm-thử-tự-động--nghiệm-thu-chất-lượng) • [Mục lục Tài liệu](#mục-lục-tài-liệu-kiến-trúc)
 
 ---
 
 </div>
 
-## 🎬 Video Showcase & Demo Trực quan
+## Trực quan Sản phẩm
 
-Khám phá trải nghiệm thực tế của nền tảng qua video ngắn 60s, video giới thiệu toàn cảnh kiến trúc 5 phút và hình ảnh mô phỏng không gian thực hành:
+Đoạn ghi hình sau mô phỏng toàn bộ chu kỳ thực thi của không gian thực hành **study-web** trên trình duyệt:
 
 <div align="center">
 
-<table>
-<tr>
-<th width="65%" align="center">🖥️ Video Toàn cảnh Hệ thống (16:9 Walkthrough)</th>
-<th width="35%" align="center">📱 Video Ngắn (9:16 Shorts / Reel)</th>
-</tr>
-<tr>
-<td align="center" valign="top">
-  <a href="https://github.com/NguyenKhanhDuy2703/study-web/releases">
-    <img src="./docs/assets/video-preview-banner.svg" alt="study-web Video Tour & Interactive Lab Preview" width="100%"/>
-  </a>
-  <br/>
-  <b>Video Chi tiết 5 Phút:</b> Trải nghiệm kiến trúc, PGlite WASM, Studio soạn bài và Cổng Admin IAM.<br/>
-  <a href="https://github.com/NguyenKhanhDuy2703/study-web/releases">▶ <b>Xem Video Chi Tiết</b></a>
-</td>
-<td align="center" valign="top">
-  <a href="https://github.com/NguyenKhanhDuy2703/study-web/releases">
-    <img src="./docs/assets/video-short-preview.svg" alt="study-web 60-Second Video Short Preview" width="100%"/>
-  </a>
-  <br/>
-  <b>Video Ngắn 60s:</b> Chạy truy vấn SQL trực tiếp in-browser và tự động chấm điểm tức thì.<br/>
-  <a href="https://github.com/NguyenKhanhDuy2703/study-web/releases">▶ <b>Xem Video Ngắn (Shorts)</b></a>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/demo-5s.gif" alt="study-web Demo Thực thi Truy vấn SQL trên Trình duyệt với PGlite WASM" width="100%" />
+
+<p align="center">
+  <sub><b>Hình 1:</b> Quy trình thực thi thực tế trong Learner Workspace — Soạn thảo Monaco SQL, kiểm tra an toàn cú pháp qua AST guard, thực thi cơ sở dữ liệu WebAssembly (PGlite) dưới 10ms, chấm điểm tự động đối soát diff và mở khóa điểm tích lũy.</sub>
+</p>
+
+<p align="center">
+  <a href="./docs/assets/demo-5s.mp4"><b>Tải xuống Video MP4 (H.264)</b></a> &bull;
+  <a href="./docs/assets/demo-5s.webm"><b>Tải xuống WebM</b></a> &bull;
+  <a href="./docs/assets/demo-poster.png"><b>Xem Ảnh Poster Độ Phân Giải Cao</b></a>
+</p>
 
 </div>
 
 <details>
-<summary><b>⏱️ Mục lục Mốc thời gian Video (Timestamp Chapters)</b> <i>(Nhấp để mở rộng)</i></summary>
+<summary><b>Trình tự Thực thi Kỹ thuật (0:00 – 0:05)</b> <i>(Nhấp để xem chi tiết)</i></summary>
 
-#### 📱 Video Ngắn 60 Giây (Fast Lab Sprint)
-- `0:00` — Khởi tạo môi trường WebAssembly tức thì không cần cấu hình
-- `0:15` — Monaco SQL Editor & thực thi PostgreSQL 16 trong Web Worker (PGlite)
-- `0:30` — Bộ lọc an ninh AST `sqlGuard` và đối soát diff kết quả theo tập hợp
-- `0:45` — Chấm điểm xác thực phía Backend trên instance tạm thời và trao điểm (+50 XP)
-
-#### 🖥️ Video Toàn cảnh Kỹ thuật 5 Phút (End-to-End Tour)
-- `0:00` — Tầm nhìn sản phẩm & Triết lý chuỗi bài thực hành ngắn hạn
-- `1:00` — Không gian Học viên: Sandbox PGlite WASM Web Worker chuyên sâu
-- `2:15` — Contributor Studio: Chuẩn ngữ pháp Markdown (SPEC-01) & Xem trước trực tiếp
-- `3:30` — Bảng điều khiển Quản trị: Hàng đợi duyệt bài State Machine & IAM Động (DOC-07)
-- `4:30` — Cơ chế chấm điểm Backend cách ly & Quét bảo mật container (ADR-001, ADR-002)
+- **0.0s – 1.6s**: Học viên viết truy vấn CTE và hàm cửa sổ (Window Function) trực tiếp trong Monaco Editor với tính năng highlight cú pháp và gợi ý mã lệnh.
+- **1.6s – 2.4s**: Khi nhấn nút thực thi, bộ lọc AST phía client (`sqlGuard.ts`) phân tích cây cú pháp trừu tượng, xác thực tính hợp lệ và ngăn chặn các thao tác ghi phá hủy dữ liệu.
+- **2.4s – 3.8s**: Công cụ **PGlite 0.5.10** (PostgreSQL 16 biên dịch sang WebAssembly) chạy truy vấn trong Web Worker độc lập với độ trễ chỉ **7.8ms**, hoàn toàn loại bỏ độ trễ khởi động container trên máy chủ.
+- **3.8s – 5.0s**: Bộ so khớp diff tự động so sánh tập kết quả với đáp án chuẩn, xác nhận độ tương thích 100% và kích hoạt cấp điểm thưởng (+50 XP).
 
 </details>
 
-> [!TIP]
-> **Tùy biến liên kết Video & Phát Video Cục bộ**: Để liên kết đến nền tảng ngoài (YouTube Shorts, Loom) hoặc phát trực tiếp video MP4 cục bộ:
-> ```html
-> <video src="./docs/assets/demo-short.mp4" controls width="100%" poster="./docs/assets/video-preview-banner.svg"></video>
-> ```
+---
+
+## Tổng quan Dự án
+
+Mô hình đào tạo IT trực tuyến truyền thống thường rơi vào tình trạng thụ động ("video tutorial hell") và tách rời thực tế công nghiệp. **`study-web`** khắc phục rào cản này bằng các **chuỗi bài lab thực chiến ngắn hạn (15–30 phút)** lồng ghép chặt chẽ vào các dự án phần mềm hoàn chỉnh.
+
+### Trụ cột Thiết kế Cốt lõi
+
+- **Thực hành Tích cực Thay vì Học Thụ động**: Học viên trực tiếp mở codebase mẫu, viết truy vấn cơ sở dữ liệu, sửa lỗi hồi quy, viết kiểm thử đơn vị và kiểm chứng kết quả ngay trên trình duyệt.
+- **Phản hồi Tức thì Dưới 10ms**: Nhờ động cơ WebAssembly (**PGlite PostgreSQL**), các câu truy vấn được xử lý ngay trong Web Worker phía trình duyệt, loại bỏ chi phí duy trì hạ tầng container trên đám mây.
+- **Cơ chế Chấm điểm Hai Tầng Chống Gian lận**: Phản hồi chẩn đoán chạy tức thì trên client, nhưng kết quả nộp bài chính thức được thẩm định độc lập phía backend thông qua worker tạm thời chạy đối chiếu bộ test case ẩn.
+- **Quản trị Phân quyền Chuẩn Doanh nghiệp**: Thiết kế theo tiêu chuẩn SaaS doanh nghiệp với phân quyền đa cấp, cơ chế ghi đè quyền hạn theo từng người dùng (User Feature Overrides), quy trình duyệt nội dung qua State Machine và cơ chế xoay vòng phiên đăng nhập an toàn.
 
 ---
 
-## 📌 Tổng quan Dự án (Project Overview)
+## Kiến trúc Hệ thống
 
-`study-web` được xây dựng để thay thế mô hình học lý thuyết dài dòng bằng **Chuỗi bài Lab thực hành ngắn hạn (Hands-on Lab Series)** xoay quanh các dự án mẫu thực tế.
-
-- **Learn by Doing**: Người học tiếp cận bài lab, mở codebase dự án mẫu, trực tiếp viết mã / bắt bug / viết test / cấu hình Docker CI/CD và đối chiếu kết quả ngay lập tức.
-- **Enterprise Governance**: Tích hợp quy trình biên tập nội dung nhiều vòng (**Content Lifecycle Studio**) dành cho Contributor và Admin với phân quyền đa tầng linh hoạt (**Dynamic Entitlements & Feature Overrides**).
-- **Production-Grade Reliability**: Kiến trúc phân tầng tách biệt Frontend (Vite React) và Backend (NestJS Monolith), bảo vệ Swagger tài liệu API qua HTTP Basic Auth và quét bảo mật container tự động với Trivy.
-
----
-
-## 🏛 Kiến trúc Hệ thống (System Architecture)
-
-Hệ thống được thiết kế theo mô hình Clean Modular Monolith kết hợp kiến trúc phân quyền động (Dynamic Entitlements Engine):
+Hệ thống tuân thủ mô hình **Clean Modular Monolith** phân tách rõ rệt giữa lớp giao diện, gateway điều hướng, nghiệp vụ phân quyền và các môi trường thực thi sandbox độc lập:
 
 ```mermaid
 graph TD
-    Client["Client Browser (React 19 + Vite + Monaco Editor + PGlite WASM)"]
-    Nginx["Nginx Reverse Proxy / Web Server"]
-    NestGateway["NestJS API Gateway & Middleware (Cookie Parser, CORS, Helmet)"]
+    Client["Client Browser (React 19 + Monaco Editor + PGlite WASM Web Worker)"]
+    Nginx["Nginx Reverse Proxy / Ingress Gateway"]
+    NestGateway["NestJS API Gateway (Helmet, CookieParser, CORS, RateLimiting)"]
     
-    subgraph Security_Layer["Security & IAM Core"]
+    subgraph Security_Layer["Lớp Bảo mật & Quản trị IAM"]
         AuthGuard["JWT HttpOnly Cookie Auth Guard"]
-        EntitlementsGuard["Dynamic Entitlements & RBAC Guard"]
-        SwaggerAuth["Swagger Basic Auth Guard (Production)"]
+        TokenRotation["Refresh Token Rotation Service (ADR-001)"]
+        EntitlementsGuard["Dynamic Entitlements & Feature Override Guard (DOC-07)"]
+        SwaggerAuth["Swagger Basic Auth Guard (Môi trường Production)"]
     end
 
-    subgraph Service_Modules["NestJS Application Modules"]
-        AuthModule["Auth & IAM Module (Token Rotation ADR-001)"]
-        UserModule["User & Subscription Management"]
-        LabModule["Lab Series & Studio Module"]
-        AuditModule["Audit Logging Module"]
+    subgraph Service_Modules["Các Module Nghiệp vụ NestJS"]
+        AuthModule["Auth & Session Management"]
+        UserModule["User & Plan Tier Management"]
+        LabModule["Lab Series & Curriculum Service"]
+        ReviewModule["Contributor Review Queue & State Machine"]
+        GroupsModule["Group-Based Enterprise IAM"]
+        AuditModule["Security Audit Logging Service"]
     end
 
-    subgraph Data_Layer["Data & Persistence"]
+    subgraph Data_Layer["Lớp Lưu trữ Dữ liệu & Sandbox"]
         Prisma["Prisma ORM v6"]
-        Postgres[(PostgreSQL Database)]
-        PGliteBackend["Ephemeral PGlite Sandbox (Backend Grader)"]
+        Postgres[(Cơ sở dữ liệu Hệ thống PostgreSQL)]
+        PGliteBackend["Ephemeral PGlite Sandbox (Động cơ Thẩm định Backend)"]
     end
 
     Client -->|HTTPS / REST API| Nginx
@@ -137,59 +117,124 @@ graph TD
 
 ---
 
-## ✨ Điểm nhấn Kỹ thuật (Key Engineering Highlights)
+## Không gian Làm việc
 
-### 1. Phân quyền Động Đa cấp (Dynamic IAM & Feature Overrides)
-- Hệ thống hỗ trợ 4 vai trò chính: `Admin`, `Contributor`, `UserPro`, và `User`.
-- Cung cấp cơ chế **User Feature Override** cho phép can thiệp bật/tắt quyền truy cập tính năng (Entitlement) đến từng người dùng mà không cần thay đổi Role toàn cục.
-- Audit Logging tự động ghi nhận mọi hành vi thay đổi quyền hạn và trạng thái nội dung để phục vụ đối soát an ninh.
+Hệ thống thiết kế 3 không gian làm việc chuyên biệt theo từng vai trò kỹ thuật:
 
-### 2. Quy trình Biên tập Nội dung Toàn diện (Content Lifecycle Studio)
-- Hỗ trợ workflow chuẩn State Machine cho các Series bài Lab:  
-  `Draft` ➔ `Submitted` ➔ `In Review` ➔ `Changes Requested` ➔ `Approved` ➔ `Published` ➔ `Archived`.
-- Phân định rõ ràng giữa người tạo đề (Contributor) và người phê duyệt xuất bản (Admin).
+| Không gian | Đối tượng | Năng lực Kỹ thuật | Công nghệ Chủ đạo |
+|:---|:---|:---|:---|
+| **Learner Lab Workspace** | Học viên & Lập trình viên | Monaco code editor, cơ sở dữ liệu PGlite WASM xử lý <10ms, kiểm soát an toàn AST, đối soát diff tập kết quả tự động. | React 19, Monaco Editor, PGlite WASM, TanStack Query |
+| **Contributor Studio** | Tác giả Nội dung | Soạn thảo giáo trình theo chuẩn ngữ pháp Markdown (SPEC-01), chế độ xem trước trực tiếp phía học viên, kiểm tra cú pháp schema tự động. | React 19, Tailwind CSS v4, Marked AST parser |
+| **Admin Control Plane** | Quản trị viên & Phê duyệt | Hàng đợi xét duyệt bài lab theo State Machine, phân quyền động người dùng và nhóm, thanh tra nhật ký kiểm toán (Audit Logs). | React 19, Radix UI, Lucide, Recharts |
 
-### 3. Bảo mật Cấp Doanh nghiệp (Enterprise-Grade Security)
-- **Token Security**: Lưu trữ Refresh Token qua `HttpOnly`, `SameSite` Cookies để phòng chống tấn công XSS và trộm cắp token.
-- **Tài liệu API được bảo vệ**: Swagger Documentation (`/api/docs`) tự động kích hoạt HTTP Basic Auth ở môi trường Production.
-- **Container Hardening**: Dockerfile tối ưu kích thước qua Multi-Stage Build, quét lỗ hổng thư viện và OS qua Trivy Security Scanner.
-
-### 4. Trải nghiệm Học tập Trực quan (Interactive Lab Workspace)
-- Tích hợp **Monaco Editor** và **PGlite WebAssembly PostgreSQL** trực tiếp trên trình duyệt, cho phép chạy thử nghiệm cơ sở dữ liệu thật với độ trễ siêu thấp và đối soát chấm điểm tự động.
-
----
-
-## 🛠 Công nghệ Sử dụng (Technology Stack)
-
-| Lớp (Layer) | Công nghệ | Mục đích sử dụng |
-|:---|:---|:---|
-| **Frontend Web** | React 19, TypeScript, Vite 8 | Single Page Application tốc độ cao, type-safety tuyệt đối |
-| **Admin Portal** | React 19, TypeScript, Vite 8 | Cổng quản trị hệ thống, duyệt bài lab, IAM & Audit logs |
-| **Giao diện & UI** | Tailwind CSS v4, Radix UI, Shadcn | UI Component tinh gọn, chuẩn Accessibility (A11y) |
-| **Code Editor** | `@monaco-editor/react` | Môi trường viết mã code in-browser cho các bài lab |
-| **In-Browser DB** | `@electric-sql/pglite` | Engine PostgreSQL WASM chạy ngầm trong Web Worker |
-| **State & Data** | TanStack React Query v5, Redux Toolkit | Server state cache, synchronization, client state |
-| **Backend API** | NestJS 12, Express, TypeScript | Modular Monolith kiến trúc sạch, Dependency Injection |
-| **ORM & Database** | Prisma ORM 6, PostgreSQL | Type-safe database queries, schema migrations, relations |
-| **Bảo mật & Auth** | Passport.js, JWT, Bcrypt, Basic Auth | Xác thực bảo vệ endpoint và tài liệu Swagger |
-| **DevOps & CI/CD** | Docker, Docker Compose, GitHub Actions, Trivy | Đóng gói container, kiểm thử tự động, quét bảo mật CVE |
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                CÁC KHÔNG GIAN STUDY-WEB                                │
+├───────────────────────────────┬───────────────────────────────┬────────────────────────┤
+│ 1. Learner Lab Workspace      │ 2. Contributor Studio         │ 3. Admin Control Plane │
+├───────────────────────────────┼───────────────────────────────┼────────────────────────┤
+│ • In-Browser PGlite WASM DB   │ • Ngữ pháp Markdown (SPEC-01) │ • Duyệt bài Đa tầng    │
+│ • Trình soạn thảo Monaco      │ • Xem trước trực tiếp Split   │ • Động cơ Phân quyền   │
+│ • Kiểm soát An toàn AST       │ • Tiền kiểm Cú pháp Schema    │ • Ghi đè Quyền hạn     │
+│ • Không độ trễ Container Cloud│ • Bộ dữ liệu Mẫu & Đáp án     │ • Nhật ký Đối soát     │
+└───────────────────────────────┴───────────────────────────────┴────────────────────────┘
+```
 
 ---
 
-## 🚀 Khởi chạy Nhanh (Quick Start)
+## Cấu trúc Thư mục Monorepo
 
-### Yêu cầu Tiên quyết (Prerequisites)
-- [Node.js](https://nodejs.org/) (khuyến nghị phiên bản v20 trở lên)
+```
+study-web/
+├── MODULE_BE/               # Backend API NestJS 12 & Lớp Lưu trữ Dữ liệu
+│   ├── src/
+│   │   ├── modules/         # Auth, Labs, Series, Entitlements, Review, Groups, Audit
+│   │   ├── common/          # Guards, Filters, Interceptors, Decorators
+│   │   └── prisma/          # Dịch vụ Prisma Client & Database Migrations
+│   ├── prisma/schema.prisma # Mô hình Dữ liệu PostgreSQL
+│   └── test/                # Bộ Kiểm thử Tích hợp & Đơn vị (tsx --test)
+│
+├── MODULE_FE/               # Ứng dụng Web Học viên React 19
+│   ├── src/
+│   │   ├── pages/lab/       # Không gian Lab, Danh mục Series, Lộ trình
+│   │   ├── features/        # Worker chạy lab, tích hợp Monaco, PGlite WASM
+│   │   └── stores/          # Quản lý State Redux Toolkit & Cache TanStack Query
+│   └── public/              # Tài nguyên Vector, Biểu tượng tĩnh
+│
+├── MODULE_ADMIN/            # Cổng Quản trị & Biên soạn Studio React 19
+│   ├── src/
+│   │   ├── pages/admin/     # Hàng đợi Duyệt bài, Quản lý User, Nhóm, Audit Logs
+│   │   └── features/        # Trình soạn thảo AST Markdown, State Machine duyệt bài
+│   └── src/components/ui/   # Giao diện Radix UI + Tailwind CSS v4 chuẩn A11y
+│
+├── docs/                    # Trung tâm Tài liệu Kiến trúc Docs-as-Code
+│   ├── adr/                 # Quyết định Kiến trúc (ADR-001, ADR-002)
+│   ├── specs/               # Hợp đồng Dữ liệu Lab JSON Schema & Ngữ pháp Markdown
+│   ├── reports/             # Báo cáo Nghiệm thu, An ninh & Đánh giá Hiệu năng
+│   └── workflows/           # 13 Sơ đồ Tuần tự Chi tiết
+└── docker-compose.yml       # Cấu hình Khởi chạy Docker Toàn hệ thống
+```
+
+---
+
+## Điểm nhấn Kỹ thuật
+
+### 1. Cơ sở dữ liệu WebAssembly trên Trình duyệt ([ADR-002](./docs/adr/002-pglite-sql-sandbox.md))
+- **Môi trường Cơ sở dữ liệu Cô lập**: Mỗi bài lab khởi tạo một phiên bản **PGlite 0.5.10** chạy PostgreSQL biên dịch sang WebAssembly trong Web Worker riêng.
+- **Tiết kiệm Hạ tầng Máy chủ**: Câu lệnh chạy trong **dưới 10ms** ngay trên máy học viên với đầy đủ cú pháp PostgreSQL (CTEs, Window Functions, JSONB, Subqueries).
+- **Thẩm định Độc lập Phía Máy chủ**: Truy vấn của học viên không chạm vào database sản xuất. Khi nộp bài, backend khởi chạy PGlite worker tạm thời để đối chiếu với bộ test case ẩn.
+- **Kiểm soát An toàn AST**: Bộ phân tích cú pháp ngăn chặn các câu lệnh nguy hại (`DROP`, `ALTER`, `TRUNCATE`) và bắt buộc định dạng đơn câu lệnh.
+
+### 2. Phân quyền Động Doanh nghiệp ([DOC-07](./docs/07-dynamic-authorization-and-entitlements.md))
+- **Phân tầng Vai trò (RBAC)**: Hỗ trợ 4 nhóm vai trò: `Admin`, `Contributor`, `UserPro`, và `User`.
+- **Ghi đè Quyền hạn Từng Tài khoản (User Feature Overrides)**: Cho phép bật/tắt từng tính năng độc lập (như `can_access_beta_labs` hay `can_publish_unreviewed`) cho từng cá nhân mà không cần đổi vai trò toàn cục.
+- **Nhật ký Kiểm toán Bất biến**: Mọi thay đổi quyền hạn và trạng thái tài khoản đều được ghi nhận với mã người dùng, mã người thực hiện, thời điểm và địa chỉ IP.
+
+### 3. Bảo mật Xác thực & Vòng đời Phiên làm việc ([ADR-001](./docs/adr/ADR-001-auth-refresh-rotation.md))
+- **Xoay vòng Refresh Token (Token Rotation)**: Mỗi lần cấp mới token sẽ hủy token cũ và phát hành cặp mã định danh mới.
+- **Băm SHA-256 Lưu trữ**: Token chỉ được lưu dưới dạng băm một chiều SHA-256 trong cơ sở dữ liệu.
+- **Cửa sổ Trễ Đồng thời 30 Giây**: Bảo vệ khỏi lỗi mất phiên do độ trễ mạng hoặc tải trang đồng thời trên nhiều tab trình duyệt.
+- **Phòng chống Tấn công XSS & CSRF**: Token xác thực được lưu hoàn toàn trong cookie `HttpOnly`, `SameSite=Lax`, và `Secure`.
+
+### 4. Quy trình Biên tập Nội dung Đa vòng
+- **Hệ thống State Machine Chuẩn hóa**:
+  $$\text{Draft} \longrightarrow \text{Submitted} \longrightarrow \text{In Review} \genfrac{}{}{0pt}{}{\nearrow \text{Approved} \longrightarrow \text{Published}}{\searrow \text{Changes Requested} \longrightarrow \text{Draft}}$$
+- **Ngữ pháp Giáo trình Markdown ([SPEC-01](./docs/specs/lab-markdown-v1.md))**: Định dạng chuẩn hóa tích hợp khai báo schema, mã khởi tạo và kiểm thử tự động.
+- **Tách bạch Trách nhiệm**: Tác giả soạn bài trong Studio; chỉ Quản trị viên mới có thẩm quyền xuất bản ra môi trường chung.
+
+---
+
+## Công nghệ Sử dụng
+
+| Lớp Hệ thống | Công nghệ | Phiên bản | Vai trò Kiến trúc |
+|:---|:---|:---:|:---|
+| **Learner Frontend** | React, TypeScript, Vite | 19.2 / 8.3 | Ứng dụng SPA hiệu năng cao, điều hướng mượt mà, hỗ trợ HMR |
+| **Admin Portal** | React, TypeScript, Vite | 19.2 / 8.3 | Cổng chuyên biệt dành cho tác giả nội dung và ban quản trị |
+| **Giao diện & UI** | Tailwind CSS v4, Radix UI, Lucide | 4.3 | UI responsive hiện đại, tuân thủ tiêu chuẩn tiếp cận WCAG 2.1 AA |
+| **Trình soạn thảo Mã** | Monaco Editor | 4.7 | Trải nghiệm soạn thảo chuẩn Visual Studio Code trên trình duyệt |
+| **Động cơ In-Browser** | PGlite (ElectricSQL WASM) | 0.5.10 | Cơ sở dữ liệu PostgreSQL thực thụ chạy trong Web Worker client |
+| **Quản lý Dữ liệu Client** | TanStack React Query, Redux Toolkit | 5.104 / 2.12 | Quản lý bộ nhớ đệm máy chủ, đồng bộ đa tab, xử lý optimistic UI |
+| **Backend API Gateway** | NestJS, Express, TypeScript | 12.0 / 5.0 | Modular Monolith kiến trúc sạch, Dependency Injection, DTO validation |
+| **Lưu trữ & ORM** | Prisma ORM, PostgreSQL | 6.19 / 16+ | Truy vấn type-safe, declarative migration, quan hệ thực thể chặt chẽ |
+| **Bảo mật & Auth** | Passport.js, JWT, Bcrypt, Helmet | Mới nhất | Xác thực cookie HttpOnly, xoay vòng mã định danh SHA-256 |
+| **DevOps & Kiểm toán** | Docker, Compose, Trivy | Mới nhất | Đóng gói container đa tầng, quét lỗ hổng bảo mật thư viện tự động |
+
+---
+
+## Khởi chạy Nhanh
+
+### Yêu cầu Tiên quyết
+- [Node.js](https://nodejs.org/) (phiên bản khuyến nghị v20.x trở lên)
 - [Docker](https://www.docker.com/) & Docker Compose
 - [Git](https://git-scm.com/)
 
-### 1. Khởi tạo Cơ sở dữ liệu
+### 1. Clone Mã nguồn & Khởi động Cơ sở Dữ liệu
 ```bash
 # Clone repository
 git clone https://github.com/NguyenKhanhDuy2703/study-web.git
 cd study-web
 
-# (Tùy chọn) Khởi chạy PostgreSQL container cục bộ
+# Khởi chạy container PostgreSQL cục bộ
 docker run --name studyweb-postgres \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
@@ -201,125 +246,132 @@ docker run --name studyweb-postgres \
 ```bash
 cd MODULE_BE
 
-# Cài đặt dependencies
+# Cài đặt thư viện
 npm install
 
 # Cấu hình biến môi trường
 cp .env.example .env
 # Đảm bảo DATABASE_URL="postgresql://postgres:postgres@localhost:5432/studyweb_db"
 
-# Đồng bộ Prisma schema & nạp dữ liệu mẫu (Seed Data)
+# Đồng bộ Prisma Schema & Nạp Dữ liệu Mẫu
 npx prisma db push
-npm run prisma:seed # (hoặc npx tsx prisma/seed.ts)
+npm run prisma:seed
 
-# Khởi chạy server ở chế độ dev
+# Khởi chạy NestJS ở chế độ phát triển
 npm run start:dev
 ```
 > **Backend Gateway**: `http://localhost:3000`  
-> **Swagger API Docs**: `http://localhost:3000/api/docs` *(Bảo vệ bởi Basic Auth trên production)*
+> **Swagger API Docs**: `http://localhost:3000/api/docs` *(Yêu cầu Basic Auth ở môi trường Production)*
 
-### 3. Khởi động Frontend Learner Web (`MODULE_FE`)
+### 3. Khởi động Giao diện Học viên (`MODULE_FE`)
 ```bash
-# Mở một terminal mới
-cd MODULE_FE
+cd ../MODULE_FE
 
-# Cài đặt dependencies
+# Cài đặt thư viện
 npm install
 
 # Khởi chạy Vite Dev Server
 npm run dev
 ```
-> **Learner Web Application**: `http://localhost:5173`
+> **Cổng Học viên**: `http://localhost:5173`
 
-### 4. Khởi động Admin & Contributor Portal (`MODULE_ADMIN`)
+### 4. Khởi động Cổng Quản trị & Studio (`MODULE_ADMIN`)
 ```bash
-# Mở terminal mới
-cd MODULE_ADMIN
+cd ../MODULE_ADMIN
 
-# Cài đặt dependencies
+# Cài đặt thư viện
 npm install
 
 # Khởi chạy Vite Dev Server
 npm run dev
 ```
-> **Admin & Studio Portal**: `http://localhost:5174` (hoặc cổng được Vite phân bổ)
+> **Cổng Quản trị & Soạn bài**: `http://localhost:5174`
 
 ---
 
-### Bảng Điều hướng Cổng Dịch vụ (Service Port Map)
+### Bảng Cổng Dịch vụ (Service Port Map)
 
-| Ứng dụng / Dịch vụ | Địa chỉ URL mặc định | Mô tả chức năng |
+| Ứng dụng / Dịch vụ | URL Mặc định | Mô tả |
 |:---|:---|:---|
-| **Backend REST API** | `http://localhost:3000` | NestJS Gateway, Module phân quyền & xác thực |
-| **Interactive API Docs** | `http://localhost:3000/api/docs` | Swagger UI documentation & OpenAPI Schema |
-| **Learner Web Portal** | `http://localhost:5173` | Không gian thực hành bài lab, tra cứu Series |
-| **Admin & Studio Portal**| `http://localhost:5174` | Hàng đợi duyệt bài, Studio soạn Markdown, IAM |
-| **PostgreSQL Database** | `localhost:5432` | Lưu trữ định danh, tiến độ bài lab và phân quyền |
+| **Backend REST API** | `http://localhost:3000` | NestJS Gateway, Xác thực, Phân quyền Entitlements |
+| **Tài liệu API Tương tác** | `http://localhost:3000/api/docs` | Swagger UI documentation & OpenAPI Schema |
+| **Cổng Học viên** | `http://localhost:5173` | Không gian Làm việc Lab, Danh mục Series, Lộ trình học |
+| **Cổng Quản trị & Studio**| `http://localhost:5174` | Hàng đợi Duyệt bài, Soạn thảo Markdown, Quản trị IAM, Audit Logs |
+| **Cơ sở Dữ liệu PostgreSQL** | `localhost:5432` | Nơi lưu trữ dữ liệu bền vững người dùng và chương trình học |
 
 ---
 
-## 🧪 Kiểm thử & Nghiệm thu Chất lượng (Testing & Quality Verification)
+## Kiểm thử Tự động & Nghiệm thu Chất lượng
 
-Toàn bộ hệ thống được bảo vệ bởi bộ kiểm thử tự động đa tầng:
+Hệ thống duy trì quy trình kiểm thử tự động toàn diện trên cả 3 phân hệ:
 
 ```bash
-# Backend Test Suite (TSX Node Test Runner - 13 Tests / 6 Suites)
+# Kiểm thử Backend (TSX Node Test Runner - 13 Tests trên 6 Suites)
 cd MODULE_BE
 npm run test
 npm run build
 
-# Frontend Learner Test Suite (Vitest + Happy-DOM - 182 Tests / 37 Suites)
+# Kiểm thử Giao diện Học viên (Vitest + Happy-DOM - 182 Tests trên 37 Suites)
 cd MODULE_FE
 npm run test
 npm run build
 
-# Admin Portal Test Suite & Production Build (Vitest - 40 Tests / 5 Suites)
+# Kiểm thử Cổng Quản trị (Vitest - 40 Tests trên 5 Suites)
 cd MODULE_ADMIN
 npm run test
 npm run build
 
-# Quét bảo mật lỗ hổng container & dependencies
+# Quét lỗ hổng bảo mật với Trivy
 trivy fs --severity HIGH,CRITICAL .
 ```
 
-### Bảng Điểm Kiểm thử (Verified Test Scorecard)
-- **Backend (`MODULE_BE`)**: **13 / 13** kiểm thử thành công qua 6 test suites (Auth session hashing, ADR-001 grace rotation window, DTO envelope mapping, PGlite grading authority).
-- **Frontend (`MODULE_FE`)**: **182 / 182** kiểm thử thành công qua 37 test suites (PGlite WASM Web Worker lifecycle, AST sqlGuard policy, Monaco editor, quiz submission codec).
-- **Admin Portal (`MODULE_ADMIN`)**: **40 / 40** kiểm thử thành công qua 5 test suites (Admin review queue state machine, contributor application flow, hierarchical IAM permissions).
-- **Tổng số bài kiểm thử**: **235 / 235** kiểm thử vượt qua 100% không phát sinh lỗi.
-- **Tốc độ Build**: `MODULE_FE` build trong **<1.0s**, `MODULE_ADMIN` trong **<0.6s**, `MODULE_BE` build NestJS sạch không lỗi kiểu dữ liệu.
+### Bảng Điểm Kiểm thử Hệ thống
+- **Backend (`MODULE_BE`)**: **13 / 13** kiểm thử tích hợp & đơn vị vượt qua trên 6 bộ kiểm thử (Băm phiên xác thực, cửa sổ trễ xoay vòng token ADR-001, ánh xạ envelope DTO, quyền thẩm định PGlite).
+- **Frontend (`MODULE_FE`)**: **182 / 182** kiểm thử vượt qua trên 37 bộ kiểm thử (Vòng đời PGlite Web Worker, chính sách bảo vệ AST sqlGuard, Monaco editor, giải mã quiz).
+- **Admin Portal (`MODULE_ADMIN`)**: **40 / 40** kiểm thử vượt qua trên 5 bộ kiểm thử (State machine hàng đợi duyệt bài, quy trình đăng ký contributor, phân quyền IAM đa cấp).
+- **Tổng số Kiểm thử Tự động**: **235 / 235** kiểm thử vượt qua toàn monorepo (Tỷ lệ đạt 100%).
+- **Tốc độ Build**: `MODULE_FE` build trong **<1.0s**, `MODULE_ADMIN` trong **<0.6s**, và `MODULE_BE` biên dịch sản xuất hoàn toàn sạch sẽ.
 
 ---
 
-## 📚 Mục lục Tài liệu Kiến trúc (Documentation Index)
+## Mục lục Tài liệu Kiến trúc
 
-Toàn bộ tài liệu phân tích, kiến trúc và lộ trình phát triển được lưu trữ có phiên bản dưới dạng **Docs-as-Code** trong thư mục [`docs/`](./docs):
+Toàn bộ tài liệu thiết kế kiến trúc, đặc tả kỹ thuật và lộ trình được quản lý phiên bản theo mô hình Docs-as-Code tại thư mục [`docs/`](./docs):
 
-- 📄 [`docs/01-proposal.md`](./docs/01-proposal.md): Đề xuất dự án, tầm nhìn sản phẩm và triết lý Series bài Lab IT ngắn hạn.
-- 📋 [`docs/03-product-backlog.md`](./docs/03-product-backlog.md): Danh mục Product Backlog, phân rã User Stories và tiêu chí chấp nhận.
-- 🗄 [`docs/05-database.md`](./docs/05-database.md): Thiết kế thực thể dữ liệu (ERD), quan hệ bảng và vòng đời bản ghi.
-- 🔐 [`docs/07-dynamic-authorization-and-entitlements.md`](./docs/07-dynamic-authorization-and-entitlements.md): Đặc tả phân quyền động, cơ chế Guard và Override quyền hạn.
-- 🛡 [`docs/SYSTEM_VERIFICATION_AND_ERROR_REPORT.md`](./docs/SYSTEM_VERIFICATION_AND_ERROR_REPORT.md): Báo cáo nghiệm thu hệ thống, kiểm thử và xử lý rủi ro bảo mật.
-- ⚡ [`docs/adr/002-pglite-sql-sandbox.md`](./docs/adr/002-pglite-sql-sandbox.md): Architecture Decision Record cho PGlite In-Browser SQL Sandbox.
-- 🔑 [`docs/adr/ADR-001-auth-refresh-rotation.md`](./docs/adr/ADR-001-auth-refresh-rotation.md): Architecture Decision Record cho Auth Refresh Token Rotation.
+| Mã Tài liệu | Tên Tài liệu | Phiên bản | Đường dẫn |
+|:---|:---|:---:|:---|
+| **DOC-01** | Đề xuất Dự án & Tầm nhìn Giáo dục | 1.1 | [`docs/01-proposal.md`](./docs/01-proposal.md) |
+| **DOC-03** | Danh mục Backlog Sản phẩm & Tiêu chí Chấp nhận | 1.1 | [`docs/03-product-backlog.md`](./docs/03-product-backlog.md) |
+| **DOC-05** | Thiết kế Cơ sở Dữ liệu & Sơ đồ ERD | 1.1 | [`docs/05-database.md`](./docs/05-database.md) |
+| **DOC-06** | Trung tâm Quy trình & 13 Sơ đồ Tuần tự | 1.2 | [`docs/workflows/README.md`](./docs/workflows/README.md) |
+| **DOC-07** | Đặc tả Kỹ thuật Phân quyền Động & Entitlements | 1.0 | [`docs/07-dynamic-authorization-and-entitlements.md`](./docs/07-dynamic-authorization-and-entitlements.md) |
+| **DOC-08** | Lộ trình Quản lý Contributor, Admin Review & IAM | 1.1 | [`docs/08-contributor-admin-iam-sprint-roadmap.md`](./docs/08-contributor-admin-iam-sprint-roadmap.md) |
+| **DOC-11** | Tách biệt Vai trò Admin vs Contributor & Quản lý User | 1.2 | [`docs/11-admin-contributor-separation-and-user-crud.md`](./docs/11-admin-contributor-separation-and-user-crud.md) |
+| **ADR-001** | Quyết định Kiến trúc: Xoay vòng Refresh Token | 1.0 | [`docs/adr/ADR-001-auth-refresh-rotation.md`](./docs/adr/ADR-001-auth-refresh-rotation.md) |
+| **ADR-002** | Quyết định Kiến trúc: Sandbox PGlite trên Trình duyệt | 1.0 | [`docs/adr/002-pglite-sql-sandbox.md`](./docs/adr/002-pglite-sql-sandbox.md) |
+| **SPEC-01** | Đặc tả Ngữ pháp Khối Markdown Giáo trình V1 | 1.0 | [`docs/specs/lab-markdown-v1.md`](./docs/specs/lab-markdown-v1.md) |
+| **SPEC-02** | JSON Schema Hợp đồng Dữ liệu Lab V1 | 1.0 | [`docs/specs/lab-content-contract-v1.json`](./docs/specs/lab-content-contract-v1.json) |
+| **REP-01** | Báo cáo Đánh giá Hiệu năng & Độ trễ Web Worker | 1.0 | [`docs/reports/lab-upgrade-performance.md`](./docs/reports/lab-upgrade-performance.md) |
+| **REP-02** | Báo cáo Kiểm toán An ninh & Gia cố Container | 1.0 | [`docs/reports/lab-upgrade-security.md`](./docs/reports/lab-upgrade-security.md) |
+| **REP-03** | Báo cáo Đánh giá Mức độ Sẵn sàng Phát hành | 1.0 | [`docs/reports/release-readiness-audit.md`](./docs/reports/release-readiness-audit.md) |
+
+---
+
+## Tác giả & Kỹ sư Thiết kế
+
+**Nguyễn Khánh Duy** — *Fullstack Lead & Kiến trúc sư Phần mềm*  
+Chủ trì thiết kế kiến trúc toàn hệ thống, NestJS backend cốt lõi, PGlite WebAssembly sandbox và động cơ phân quyền động.
+
+- **GitHub**: [@NguyenKhanhDuy2703](https://github.com/NguyenKhanhDuy2703)  
+- **LinkedIn**: [Nguyễn Khánh Duy](https://www.linkedin.com/in/nguy%E1%BB%85n-kh%C3%A1nh-duy-4477a2355/)  
+- **Email**: [nguyenkhanhduy270304@gmail.com](mailto:nguyenkhanhduy270304@gmail.com)
 
 ---
 
-## 👨‍💻 Tác giả & Kiến trúc sư (Lead Architect)
+## Giấy phép Sử dụng
 
-- **Nguyễn Khánh Duy** — *Fullstack Lead & Software Architect*
-- GitHub: [@NguyenKhanhDuy2703](https://github.com/NguyenKhanhDuy2703)
-- LinkedIn: [Nguyễn Khánh Duy](https://www.linkedin.com/in/nguy%E1%BB%85n-kh%C3%A1nh-duy-4477a2355/)
-- Email: [nguyenkhanhduy270304@gmail.com](mailto:nguyenkhanhduy270304@gmail.com)
-
----
-
-## 📄 Bản quyền (License)
-
-Dự án này được cấp phép theo các điều khoản của [Giấy phép MIT (MIT License)](LICENSE) — xem tệp tin LICENSE để biết thêm chi tiết.
-
----
+Dự án được phân phối dưới giấy phép [MIT License](LICENSE) — xem tệp tin [LICENSE](LICENSE) để biết thêm chi tiết.
 
 <div align="center">
-  <sub>Được phát triển với tư duy kỹ thuật hệ thống chuẩn mực và tinh thần liên tục cải tiến.</sub>
+  <sub>Được phát triển với tư duy kỹ thuật chuẩn mực, vòng phản hồi độ trễ tối thiểu và tinh thần giáo dục thực nghiệm.</sub>
 </div>
