@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LabContentContractV1",
+  "description": "Standardized polymorphic lab content contract envelope across Backend and Frontend for Study-Web Lab Platform",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "sandboxType": {
+      "type": "string",
+      "enum": ["js_worker", "sql_worker", "quizlet", "ui_mock", "api_mock", "markdown_only"]
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Markdown instructions and theoretical foundation rendered in LabTheoryPane"
+    },
+    "initialSnippet": {
+      "type": "string",
+      "description": "Starter code/query prefilled in the code editor"
+    },
+    "testScript": {
+      "type": "string",
+      "description": "Hidden test script or assertion code evaluated in the execution sandbox"
+    },
+    "solution": {
+      "type": "string",
+      "description": "Reference solution visible only to authorized PRO users or authors/admins"
+    },
+    "config": {
+      "type": "object",
+      "description": "Type-specific configuration envelope"
+    }
+  },
+  "required": ["version", "sandboxType", "instructions"],
+  "definitions": {
+    "AutomationTestConfig": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "string", "enum": ["1.0"] },
+        "targetFunction": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "matcher": { "type": "string", "enum": ["toBe", "toEqual", "toBeDefined", "toContain"] },
+              "expected": {},
+              "hint": { "type": "string" }
+            },
+            "required": ["id", "name", "matcher"]
+          }
+        },
+        "cheatSheetVisible": { "type": "boolean", "default": true }
+      },
+      "required": ["version"]
+    },
+    "SqlLabConfig": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "string", "enum": ["1.0"] },
+        "schemaSql": { "type": "string" },
+        "seedSql": { "type": "string" },
+        "expectedQueryResult": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "expectedColumns": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "orderSensitive": { "type": "boolean", "default": false },
+        "sampleRowsVisible": { "type": "boolean", "default": true }
+      },
+      "required": ["version", "schemaSql"]
+    },
+    "QuizLabConfig": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "string", "enum": ["1.0"] },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "question": { "type": "string" },
+              "options": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "correctIndex": { "type": "integer" },
+              "explanation": { "type": "string" },
+              "hint": { "type": "string" }
+            },
+            "required": ["id", "question", "options", "correctIndex"]
+          }
+        },
+        "allowReviewBeforeSubmit": { "type": "boolean", "default": true },
+        "passPercentage": { "type": "number", "default": 80 }
+      },
+      "required": ["version", "questions"]
+    }
+  }
+}

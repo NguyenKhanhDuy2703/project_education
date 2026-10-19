@@ -46,14 +46,8 @@ export const authSlice = createSlice({
       };
       state.user = normalizedUser;
       state.accessToken = action.payload.accessToken;
-      if (action.payload.refreshToken !== undefined) {
-        state.refreshToken = action.payload.refreshToken;
-        if (action.payload.refreshToken) {
-          localStorage.setItem('refresh_token', action.payload.refreshToken);
-        } else {
-          localStorage.removeItem('refresh_token');
-        }
-      }
+      state.refreshToken = null;
+      localStorage.removeItem('refresh_token');
       state.isAuthenticated = true;
       localStorage.setItem('access_token', action.payload.accessToken);
       localStorage.setItem('user', JSON.stringify(normalizedUser));
@@ -63,29 +57,19 @@ export const authSlice = createSlice({
       action: PayloadAction<{ accessToken: string; refreshToken?: string | null }>
     ) => {
       state.accessToken = action.payload.accessToken;
+      state.refreshToken = null;
       state.isAuthenticated = true;
       localStorage.setItem('access_token', action.payload.accessToken);
-      if (action.payload.refreshToken !== undefined) {
-        state.refreshToken = action.payload.refreshToken;
-        if (action.payload.refreshToken) {
-          localStorage.setItem('refresh_token', action.payload.refreshToken);
-        } else {
-          localStorage.removeItem('refresh_token');
-        }
-      }
+      localStorage.removeItem('refresh_token');
     },
     setToken: (state, action: PayloadAction<string>) => {
       state.accessToken = action.payload;
       state.isAuthenticated = true;
       localStorage.setItem('access_token', action.payload);
     },
-    setRefreshToken: (state, action: PayloadAction<string | null>) => {
-      state.refreshToken = action.payload;
-      if (action.payload) {
-        localStorage.setItem('refresh_token', action.payload);
-      } else {
-        localStorage.removeItem('refresh_token');
-      }
+    setRefreshToken: (state) => {
+      state.refreshToken = null;
+      localStorage.removeItem('refresh_token');
     },
     setUser: (state, action: PayloadAction<User>) => {
       const normalizedUser = {

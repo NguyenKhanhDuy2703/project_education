@@ -71,4 +71,25 @@ export class CreateLabDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Schema DDL cho bài thực hành SQL' })
+  @IsString()
+  @IsOptional()
+  sqlSchema?: string;
+
+  @ApiPropertyOptional({ description: 'Mock sample rows hoặc seed cho bài thực hành SQL' })
+  @IsOptional()
+  sampleData?: any[];
+
+  @ApiPropertyOptional({ description: 'Kết quả kỳ vọng cho bài thực hành SQL' })
+  @IsOptional()
+  expectedQueryResult?: any[];
+
+  @ApiPropertyOptional({ description: 'Danh sách câu hỏi trắc nghiệm Quiz' })
+  @IsOptional()
+  quizQuestions?: any[];
+
+  @ApiPropertyOptional({ description: 'Cấu hình linh hoạt dạng JSON/Envelope' })
+  @IsOptional()
+  config?: Record<string, any>;
 }

@@ -8,7 +8,7 @@
  * - Header cố định duy nhất 1 nút Publish / Gửi duyệt với Cổng kiểm duyệt Pre-publish Checklist Gate.
  */
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { seriesApi } from '@/features/lab/api/series.api';
 import { labApi } from '@/features/lab/api/lab.api';
@@ -38,18 +38,17 @@ export function AdminLabStudioPage() {
   const [searchParams] = useSearchParams();
   const seriesIdFromQuery = searchParams.get('seriesId') || '';
   const navigate = useNavigate();
-  const location = useLocation();
   const queryClient = useQueryClient();
 
   const isEditing = !!labId && labId !== 'new';
-  const isContributor = location.pathname.startsWith('/contributor');
-  const returnUrl = isContributor ? '/contributor/content' : '/admin/content';
+  const returnUrl = '/admin/content';
 
   // ── Stepper: Step 1 (Theory & Guidelines) vs Step 2 (Exercise Configuration) ──
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [sqlPreflightPassed, setSqlPreflightPassed] = useState(false);
 
   // Form State
   const [form, setForm] = useState<CreateLabInput>({
@@ -57,17 +56,17 @@ export function AdminLabStudioPage() {
     title: '',
     sandboxType: 'sql_worker',
     objective: '',
-    instructions: `# 1. Lý thuyết Cốt lõi
+    instructions: `# 1. Core Theory
 
-Giải thích ngắn gọn và trực quan các khái niệm cần nắm vững trước khi thực hành.
+Explain key concepts and prerequisites briefly and visually before starting the exercise.
 
-## 2. Cú pháp & Ví dụ Mẫu
+## 2. Syntax & Examples
 \`\`\`sql
 SELECT id, full_name FROM customers WHERE total_spent > 1000;
 \`\`\`
 
-## 3. Yêu cầu Bài Thực hành
-Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu chí trong phần bài tập.`,
+## 3. Practice Requirements
+Write queries or test assertions fulfilling the objectives in the exercise builder below.`,
     initialSnippet: '',
     testScript: '',
     solution: '',
@@ -76,14 +75,22 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
     orderIndex: 1,
     isActive: true,
     sqlSchema: '',
-    sampleData: [],
+    expectedQueryResult: [],
+    config: {
+      version: '2.0',
+      schemaSql: '',
+      statementPolicy: 'read_only',
+      timeoutMs: 3000,
+      maxResultRows: 500,
+      maxResultColumns: 50,
+    },
     quizQuestions: [
       {
         id: 'q1',
-        question: 'Câu hỏi 1: Nhập nội dung câu hỏi trắc nghiệm (hỗ trợ `Markdown`)...',
-        options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
+        question: 'Question 1: Enter multiple-choice question content (supports Markdown)...',
+        options: ['Option A', 'Option B', 'Option C', 'Option D'],
         correctIndex: 0,
-        explanation: 'Giải thích vì sao lựa chọn A là chính xác.',
+        explanation: 'Explanation for why Option A is correct.',
       },
     ],
   });
@@ -119,15 +126,24 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
         orderIndex: existingLab.order || labAny.orderIndex || 1,
         isActive: labAny.isActive !== false,
         sqlSchema: existingLab.sqlSchema || '',
-        sampleData: existingLab.sampleData || [],
+        expectedQueryResult: existingLab.expectedQueryResult || [],
+        config: {
+          version: '2.0',
+          schemaSql: existingLab.sqlSchema || '',
+          statementPolicy: 'read_only',
+          timeoutMs: 3000,
+          maxResultRows: 500,
+          maxResultColumns: 50,
+          ...(existingLab.config || {}),
+        },
         quizQuestions:
           existingLab.quizQuestions && existingLab.quizQuestions.length > 0
             ? existingLab.quizQuestions
             : [
                 {
                   id: 'q1',
-                  question: 'Câu hỏi 1: Nhập nội dung câu hỏi...',
-                  options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
+                  question: 'Question 1: Enter question prompt...',
+                  options: ['Option A', 'Option B', 'Option C', 'Option D'],
                   correctIndex: 0,
                   explanation: '',
                 },
@@ -169,13 +185,13 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
         const savedDraft = localStorage.getItem(draftKey);
         if (savedDraft) {
           const parsed = JSON.parse(savedDraft);
-          if (parsed && parsed.title && window.confirm('Tìm thấy bản nháp chưa xuất bản từ phiên làm việc trước. Bạn có muốn khôi phục không?')) {
+          if (parsed && parsed.title && window.confirm('Found an unpublished draft from a previous session. Would you like to restore it?')) {
             setForm(parsed);
             setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
           }
         }
       } catch (err) {
-        console.error('Lỗi đọc bản nháp:', err);
+        console.error('Failed to read draft:', err);
       }
     }
   }, [isEditing, draftKey]);
@@ -201,11 +217,11 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
       const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setLastSavedTime(nowStr);
       setToast({
-        message: `Đã lưu bản nháp vào bộ nhớ trình duyệt lúc ${nowStr}.`,
+        message: `Draft saved to browser storage at ${nowStr}.`,
         type: 'success',
       });
     } catch (err) {
-      setToast({ message: 'Không thể lưu bản nháp vào trình duyệt.', type: 'error' });
+      setToast({ message: 'Unable to save draft to browser storage.', type: 'error' });
     }
   };
 
@@ -221,17 +237,21 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
     if (form.sandboxType === 'sql_worker') {
       const hasSchema = (form.sqlSchema || '').trim().length >= 20;
       const hasSolution = (form.solution || '').trim().length >= 10;
-      hasExerciseConfig = hasSchema && hasSolution;
-      if (!hasSchema) exerciseReason = 'Thiếu Lược đồ DDL/DML bảng';
-      else if (!hasSolution) exerciseReason = 'Thiếu câu truy vấn Solution mẫu';
+      const needsVerification = form.config?.statementPolicy === 'mutable';
+      const hasVerification = !needsVerification || Boolean(form.config?.verificationSql?.trim());
+      hasExerciseConfig = hasSchema && hasSolution && hasVerification && sqlPreflightPassed;
+      if (!hasSchema) exerciseReason = 'Missing SQL Schema DDL/DML definition';
+      else if (!hasSolution) exerciseReason = 'Missing model SQL solution query';
+      else if (!hasVerification) exerciseReason = 'Mutable labs require a hidden verification query';
+      else if (!sqlPreflightPassed) exerciseReason = 'Run and pass the PGlite solution preflight';
     } else if (form.sandboxType === 'js_worker') {
       const hasStarter = (form.initialSnippet || '').trim().length >= 10;
       const hasSolution = (form.solution || '').trim().length >= 10;
       const hasTestScript = (form.testScript || '').trim().length >= 10;
       hasExerciseConfig = hasStarter && hasSolution && hasTestScript;
-      if (!hasStarter) exerciseReason = 'Thiếu Starter Code cho học viên';
-      else if (!hasSolution) exerciseReason = 'Thiếu Reference Solution';
-      else if (!hasTestScript) exerciseReason = 'Thiếu Test cases kiểm thử';
+      if (!hasStarter) exerciseReason = 'Missing starter code snippet';
+      else if (!hasSolution) exerciseReason = 'Missing reference solution';
+      else if (!hasTestScript) exerciseReason = 'Missing evaluation test assertions';
     } else if (form.sandboxType === 'quizlet') {
       const questions = form.quizQuestions || [];
       const allValid =
@@ -245,8 +265,8 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
             q.correctIndex < q.options.length
         );
       hasExerciseConfig = allValid;
-      if (questions.length === 0) exerciseReason = 'Chưa có câu hỏi trắc nghiệm';
-      else if (!allValid) exerciseReason = 'Có câu hỏi chưa đủ 2 đáp án hoặc chưa chọn đáp án đúng';
+      if (questions.length === 0) exerciseReason = 'No quiz questions defined';
+      else if (!allValid) exerciseReason = 'Every question must have at least 2 options and a selected correct answer';
     } else {
       hasExerciseConfig = true; // article only
     }
@@ -261,7 +281,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
       exerciseReason,
       isAllValid,
     };
-  }, [form]);
+  }, [form, sqlPreflightPassed]);
 
   // Mutations
   const saveMutation = useMutation({
@@ -283,7 +303,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
       queryClient.invalidateQueries({ queryKey: ['contributor-labs'] });
 
       setToast({
-        message: isEditing ? 'Cập nhật bài thực hành thành công!' : 'Xuất bản bài thực hành thành công!',
+        message: isEditing ? 'Practice lab updated successfully!' : 'Practice lab published successfully!',
         type: 'success',
       });
       setTimeout(() => {
@@ -292,7 +312,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
     },
     onError: (err: any) => {
       setToast({
-        message: err?.response?.data?.message || 'Đã có lỗi xảy ra khi lưu bài thực hành.',
+        message: err?.response?.data?.message || 'An error occurred while saving the practice lab.',
         type: 'error',
       });
     },
@@ -301,22 +321,22 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
   const handlePublish = () => {
     if (!validationChecklist.isAllValid) {
       if (!validationChecklist.hasSeries) {
-        setToast({ message: 'Vui lòng chọn Chuyên đề / Series cha.', type: 'error' });
+        setToast({ message: 'Please select a parent Course Series.', type: 'error' });
         setCurrentStep(1);
         return;
       }
       if (!validationChecklist.hasTitle) {
-        setToast({ message: 'Vui lòng nhập Tiêu đề bài lab (tối thiểu 5 ký tự).', type: 'error' });
+        setToast({ message: 'Please enter a lab title (minimum 5 characters).', type: 'error' });
         setCurrentStep(1);
         return;
       }
       if (!validationChecklist.hasTheory) {
-        setToast({ message: 'Nội dung Lý thuyết cần tối thiểu 100 ký tự.', type: 'error' });
+        setToast({ message: 'Theory guidelines require a minimum of 100 characters.', type: 'error' });
         setCurrentStep(1);
         return;
       }
       if (!validationChecklist.hasExerciseConfig) {
-        setToast({ message: `Chưa hoàn tất Bước 2: ${validationChecklist.exerciseReason}`, type: 'error' });
+        setToast({ message: `Step 2 incomplete: ${validationChecklist.exerciseReason}`, type: 'error' });
         setCurrentStep(2);
         return;
       }
@@ -327,15 +347,15 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
 
   const handleProceedToStep2 = () => {
     if (!form.title.trim()) {
-      setToast({ message: 'Vui lòng nhập Tiêu đề bài lab.', type: 'error' });
+      setToast({ message: 'Please enter a lab title.', type: 'error' });
       return;
     }
     if (!form.seriesId) {
-      setToast({ message: 'Vui lòng chọn Chuyên đề / Series cha.', type: 'error' });
+      setToast({ message: 'Please select a parent Course Series.', type: 'error' });
       return;
     }
     if (form.instructions.trim().length < 100) {
-      setToast({ message: 'Nội dung Lý thuyết cần tối thiểu 100 ký tự trước khi cấu hình bài tập.', type: 'error' });
+      setToast({ message: 'Theory guidelines require a minimum of 100 characters before configuring exercises.', type: 'error' });
       return;
     }
     setCurrentStep(2);
@@ -343,15 +363,15 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
 
   const formatTypeName = {
     sql_worker: 'SQL Database',
-    quizlet: 'Trắc nghiệm Quizlet',
+    quizlet: 'Quizlet Multiple Choice',
     js_worker: 'JavaScript Worker',
-    markdown_only: 'Bài đọc Lý thuyết',
+    markdown_only: 'Theory Article',
   }[form.sandboxType || 'sql_worker'];
 
   if (isEditing && isLoadingLab) {
     return (
       <div className="container mx-auto p-12 text-center text-sm text-muted-foreground">
-        Đang tải thông tin bài thực hành...
+        Loading practice lab details...
       </div>
     );
   }
@@ -364,7 +384,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
           <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-semibold px-2 gap-1">
             <Link to={returnUrl}>
               <ArrowLeft className="size-3.5" />
-              <span>{isContributor ? 'Về Quản lý Nội dung' : 'Về Content Studio'}</span>
+              <span>Back to Content</span>
             </Link>
           </Button>
 
@@ -384,7 +404,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               <span className="size-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-mono">
                 1
               </span>
-              <span>Lý thuyết &amp; Hướng dẫn</span>
+              <span>Theory &amp; Guidelines</span>
             </button>
 
             <span className="text-muted-foreground/40 font-mono text-xs">→</span>
@@ -401,7 +421,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               <span className="size-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-mono">
                 2
               </span>
-              <span>Bài tập ({formatTypeName})</span>
+              <span>Exercise Builder ({formatTypeName})</span>
             </button>
           </div>
         </div>
@@ -411,7 +431,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
           {lastSavedTime && (
             <span className="text-[11px] text-muted-foreground hidden md:inline flex items-center gap-1">
               <Clock className="size-3 text-emerald-600 dark:text-emerald-400" />
-              <span>Đã lưu {lastSavedTime}</span>
+              <span>Saved at {lastSavedTime}</span>
             </span>
           )}
 
@@ -423,7 +443,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
             className="h-8 text-xs font-medium gap-1 text-muted-foreground hover:text-foreground"
           >
             <Save className="size-3.5" />
-            <span>Lưu nháp</span>
+            <span>Save Draft</span>
           </Button>
 
           {/* Single Unified Publish / Submit Button with Pre-publish Checklist Gate */}
@@ -433,7 +453,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               onClick={handleProceedToStep2}
               className="h-8 text-xs font-bold px-4 gap-1.5 bg-primary text-primary-foreground shadow-xs"
             >
-              <span>Tiếp tục: Cấu hình bài tập</span>
+              <span>Continue to Exercise Builder</span>
               <ChevronRight className="size-3.5" />
             </Button>
           ) : (
@@ -451,12 +471,10 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                 <CheckCircle2 className="size-3.5" />
                 <span>
                   {saveMutation.isPending
-                    ? 'Đang lưu...'
+                    ? 'Saving...'
                     : isEditing
-                    ? 'Lưu thay đổi'
-                    : isContributor
-                    ? 'Gửi duyệt bài lab'
-                    : 'Xuất bản bài lab'}
+                    ? 'Save Changes'
+                    : 'Publish Lab'}
                 </span>
               </Button>
 
@@ -465,12 +483,12 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                 <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-popover text-popover-foreground border border-border rounded-xl shadow-xl text-xs z-50 hidden group-hover:block pointer-events-none animate-in fade-in-50">
                   <div className="flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400 mb-1.5">
                     <ShieldAlert className="size-3.5" />
-                    <span>Chưa đủ điều kiện xuất bản</span>
+                    <span>Pre-publish Criteria Not Met</span>
                   </div>
                   <ul className="space-y-1 text-[11px] text-muted-foreground list-disc list-inside">
-                    {!validationChecklist.hasSeries && <li>Chưa chọn Chuyên đề (Series)</li>}
-                    {!validationChecklist.hasTitle && <li>Tiêu đề cần tối thiểu 5 ký tự</li>}
-                    {!validationChecklist.hasTheory && <li>Lý thuyết cần tối thiểu 100 ký tự</li>}
+                    {!validationChecklist.hasSeries && <li>Parent Course Series not selected</li>}
+                    {!validationChecklist.hasTitle && <li>Title requires at least 5 characters</li>}
+                    {!validationChecklist.hasTheory && <li>Theory requires at least 100 characters</li>}
                     {!validationChecklist.hasExerciseConfig && <li>{validationChecklist.exerciseReason}</li>}
                   </ul>
                 </div>
@@ -485,7 +503,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
         <div className="fixed top-14 right-6 z-50 max-w-sm animate-in fade-in slide-in-from-top-2">
           <Alert variant={toast.type === 'error' ? 'destructive' : 'default'} className="bg-card shadow-lg border">
             <AlertTitle className="text-xs font-bold">
-              {toast.type === 'success' ? 'Thành công' : 'Lỗi kiểm tra'}
+              {toast.type === 'success' ? 'Success' : 'Validation Error'}
             </AlertTitle>
             <AlertDescription className="text-xs mt-0.5">
               {toast.message}
@@ -510,7 +528,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                 size="sm"
                 onClick={() => setIsSidebarCollapsed(false)}
                 className="w-full h-10 p-0 text-muted-foreground hover:text-foreground"
-                title="Mở rộng cột thông tin chung"
+                title="Expand general settings"
               >
                 <SlidersHorizontal className="size-4" />
               </Button>
@@ -518,7 +536,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               <div className="p-4 rounded-2xl border border-border bg-card shadow-xs space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-border">
                   <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    Thông tin Chung
+                    General Information
                   </span>
                   <Button
                     type="button"
@@ -526,7 +544,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                     size="sm"
                     onClick={() => setIsSidebarCollapsed(true)}
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hidden lg:flex"
-                    title="Thu gọn cột"
+                    title="Collapse sidebar"
                   >
                     <ChevronLeft className="size-3.5" />
                   </Button>
@@ -535,7 +553,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                 {/* Series selector */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                    Chuyên đề (Series) *
+                    Parent Series *
                   </label>
                   <select
                     required
@@ -557,7 +575,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                     }}
                     className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   >
-                    <option value="">-- Chọn Series cha --</option>
+                    <option value="">-- Select Parent Series --</option>
                     {seriesList.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.title}
@@ -566,9 +584,9 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                   </select>
                   {parentTopic && (
                     <div className="pt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <span>Thuộc thẻ:</span>
+                      <span>Topic Tag:</span>
                       <Badge variant="outline" className="text-[10px] font-semibold uppercase">
-                        🏷️ {parentTopic.category || 'General'}
+                        {parentTopic.category || 'General'}
                       </Badge>
                     </div>
                   )}
@@ -577,7 +595,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                 {/* Sandbox format */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                    Loại hình bài tập *
+                    Exercise Type *
                   </label>
                   <select
                     value={form.sandboxType}
@@ -586,22 +604,22 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                   >
                     <option value="sql_worker">SQL Database</option>
                     <option value="js_worker">JavaScript Worker</option>
-                    <option value="quizlet">Trắc nghiệm Quizlet</option>
-                    <option value="markdown_only">Bài đọc Lý thuyết</option>
+                    <option value="quizlet">Quizlet Multiple Choice</option>
+                    <option value="markdown_only">Theory Article</option>
                   </select>
                 </div>
 
                 {/* Lab Title */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                    Tiêu đề bài Lab *
+                    Lab Title *
                   </label>
                   <input
                     type="text"
                     required
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    placeholder="vd: Lọc khách hàng VIP bằng SQL WHERE"
+                    placeholder="e.g. Filter VIP Customers with SQL WHERE"
                     className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   />
                 </div>
@@ -610,7 +628,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div>
                     <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block mb-1">
-                      Thời lượng
+                      Duration
                     </label>
                     <div className="relative">
                       <input
@@ -621,7 +639,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                         }
                         className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
                       />
-                      <span className="absolute right-2.5 top-1.5 text-[10px] text-muted-foreground">phút</span>
+                      <span className="absolute right-2.5 top-1.5 text-[10px] text-muted-foreground">mins</span>
                     </div>
                   </div>
 
@@ -633,7 +651,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                         onChange={(e) => setForm({ ...form, isProOnly: e.target.checked })}
                         className="rounded text-primary focus:ring-primary size-3.5"
                       />
-                      <span>Gói PRO</span>
+                      <span>PRO Only</span>
                     </label>
                   </div>
                 </div>
@@ -641,25 +659,25 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                 {/* ── Live Completion Checklist ───────────────────────── */}
                 <div className="pt-3 border-t border-border space-y-2">
                   <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                    Tiêu chuẩn hoàn tất (Checklist)
+                    Readiness Checklist
                   </span>
                   <div className="space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Series cha:</span>
+                      <span className="text-muted-foreground">Parent Series:</span>
                       {validationChecklist.hasSeries ? (
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                          ✓ Đã chọn
+                          ✓ Selected
                         </span>
                       ) : (
-                        <span className="text-muted-foreground text-[11px]">○ Chưa chọn</span>
+                        <span className="text-muted-foreground text-[11px]">○ Required</span>
                       )}
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Tiêu đề (≥ 5 ký tự):</span>
+                      <span className="text-muted-foreground">Title (≥ 5 chars):</span>
                       {validationChecklist.hasTitle ? (
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                          ✓ Đạt chuẩn
+                          ✓ Valid
                         </span>
                       ) : (
                         <span className="text-muted-foreground text-[11px]">○ {form.title.trim().length}/5</span>
@@ -667,10 +685,10 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Lý thuyết (≥ 100 ký tự):</span>
+                      <span className="text-muted-foreground">Theory (≥ 100 chars):</span>
                       {validationChecklist.hasTheory ? (
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                          ✓ Đạt chuẩn
+                          ✓ Valid
                         </span>
                       ) : (
                         <span className="text-muted-foreground text-[11px]">
@@ -691,7 +709,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               onChange={(val) => setForm({ ...form, instructions: val })}
               sandboxType={form.sandboxType}
               minHeight="540px"
-              placeholder="# 1. Lý thuyết cốt lõi...&#10;&#10;## 2. Cú pháp & Ví dụ...&#10;&#10;## 3. Yêu cầu bài tập..."
+              placeholder="# 1. Core Theory...&#10;&#10;## 2. Syntax & Examples...&#10;&#10;## 3. Practice Requirements..."
             />
           </div>
         </div>
@@ -704,14 +722,14 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
           <div className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="font-mono text-xs font-bold">
-                BƯỚC 2 / 2
+                STEP 2 / 2
               </Badge>
               <div>
                 <h2 className="text-sm font-bold text-foreground">
-                  Cấu hình Bài tập: <span className="text-primary">{formatTypeName}</span>
+                  Exercise Configuration: <span className="text-primary">{formatTypeName}</span>
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Đang thiết lập cho bài lab: <strong>"{form.title || 'Chưa đặt tiêu đề'}"</strong>
+                  Configuring for lab: <strong>"{form.title || 'Untitled Lab'}"</strong>
                 </p>
               </div>
             </div>
@@ -723,7 +741,7 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               className="h-8 text-xs font-semibold gap-1"
             >
               <ArrowLeft className="size-3.5" />
-              <span>Quay lại Bước 1 (Lý thuyết)</span>
+              <span>Back to Step 1 (Theory)</span>
             </Button>
           </div>
 
@@ -731,13 +749,24 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
           {form.sandboxType === 'sql_worker' && (
             <SqlExerciseBuilder
               sqlSchema={form.sqlSchema || ''}
-              onSqlSchemaChange={(val) => setForm({ ...form, sqlSchema: val })}
+              onSqlSchemaChange={(val) => setForm({
+                ...form,
+                sqlSchema: val,
+                config: { ...form.config, version: '2.0', schemaSql: val },
+              })}
               initialSnippet={form.initialSnippet || ''}
               onInitialSnippetChange={(val) => setForm({ ...form, initialSnippet: val })}
               solution={form.solution || ''}
               onSolutionChange={(val) => setForm({ ...form, solution: val })}
-              sampleData={form.sampleData || []}
-              onSampleDataChange={(val) => setForm({ ...form, sampleData: val })}
+              sampleData={form.expectedQueryResult || []}
+              onSampleDataChange={(val) => setForm({ ...form, expectedQueryResult: val })}
+              sqlConfig={form.config}
+              onSqlConfigChange={(config) => setForm({ ...form, config: {
+                ...config,
+                version: '2.0',
+                schemaSql: form.sqlSchema || '',
+              } })}
+              onValidationChange={(_isValid, hasRunPassed) => setSqlPreflightPassed(hasRunPassed)}
             />
           )}
 
@@ -764,9 +793,9 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
           {/* FORMAT D: MARKDOWN ONLY (BLOG / THEORY) */}
           {form.sandboxType === 'markdown_only' && (
             <div className="p-8 rounded-2xl border border-border bg-card text-center space-y-2">
-              <h3 className="text-sm font-bold text-foreground">Chế độ Bài đọc Lý thuyết</h3>
+              <h3 className="text-sm font-bold text-foreground">Theory Reading Mode</h3>
               <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Thể loại này không yêu cầu cấu hình bài tập thực hành. Học viên sẽ đọc nội dung lý thuyết ở Bước 1 và đánh dấu hoàn thành bài học.
+                This mode does not require interactive sandbox execution. Learners complete the lesson by reviewing the theory and guidance in Step 1.
               </p>
             </div>
           )}
@@ -776,22 +805,22 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Trạng thái Kiểm duyệt Xuất bản
+                  Publication Readiness Status
                 </span>
                 {validationChecklist.isAllValid ? (
                   <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
-                    SẴN SÀNG XUẤT BẢN ✓
+                    READY TO PUBLISH ✓
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="border-amber-500/40 text-amber-600 text-[10px] font-bold">
-                    CẦN BỔ SUNG THÔNG TIN ⚠
+                    INCOMPLETE ⚠
                   </Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
                 {validationChecklist.isAllValid
-                  ? 'Tất cả tiêu chuẩn (Lý thuyết, Lời giải mẫu, Bộ test cases) đã hoàn tất và sẵn sàng phục vụ học viên.'
-                  : `Chưa thể xuất bản: ${validationChecklist.exerciseReason || 'Vui lòng hoàn tất đầy đủ các mục kiểm tra.'}`}
+                  ? 'All criteria (Theory, Model Solution, and Test Validation) are satisfied and ready for learners.'
+                  : `Cannot publish yet: ${validationChecklist.exerciseReason || 'Please complete all required checklist items.'}`}
               </p>
             </div>
 
@@ -808,12 +837,10 @@ Viết câu truy vấn hoặc mã lệnh đáp ứng đầy đủ các tiêu ch�
               <CheckCircle2 className="size-4" />
               <span>
                 {saveMutation.isPending
-                  ? 'Đang lưu...'
+                  ? 'Saving...'
                   : isEditing
-                  ? 'Lưu thay đổi'
-                  : isContributor
-                  ? 'Gửi duyệt bài lab'
-                  : 'Xuất bản bài lab'}
+                  ? 'Save Changes'
+                  : 'Publish Lab'}
               </span>
             </Button>
           </div>

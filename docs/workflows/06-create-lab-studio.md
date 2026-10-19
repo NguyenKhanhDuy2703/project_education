@@ -141,6 +141,9 @@ sequenceDiagram
 - **Frontend Codebase**:
   - Contributor Lab Studio: [LabStudioPage.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/lab/LabStudioPage.tsx)
   - Admin Lab Studio (Review & Oversight): [AdminLabStudioPage.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/AdminLabStudioPage.tsx)
+  - Smart Lab Toolbar: [SmartLabToolbar.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/components/SmartLabToolbar.tsx)
+  - Live Student Preview: [StudioStudentPreview.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/lab/_components/StudioStudentPreview.tsx)
+  - Markdown Parser & Serializer: [lab-markdown-parser.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/utils/lab-markdown-parser.ts)
   - Markdown Editor with Preview: [MarkdownEditorWithPreview.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/lab/_components/MarkdownEditorWithPreview.tsx)
   - JS Worker Builder: [JsWorkerExerciseBuilder.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/lab/_components/JsWorkerExerciseBuilder.tsx)
   - Sql Worker Builder: [SqlExerciseBuilder.tsx](file:///d:/Projects/study-web/MODULE_FE/src/pages/lab/_components/SqlExerciseBuilder.tsx)
