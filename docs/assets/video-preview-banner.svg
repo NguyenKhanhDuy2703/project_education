@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0d14"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </linearGradient>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="playBtnGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9"/>
+    </linearGradient>
+    <radialGradient id="glowPulse" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.45"/>
+      <stop offset="60%" stop-color="#3b82f6" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0a0d14" stop-opacity="0"/>
+    </radialGradient>
+    
+    <!-- Filters -->
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="24" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="btnGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="16" flood-color="#8b5cf6" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+
+  <style>
+    .mono { font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, Courier, monospace; }
+    .sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  </style>
+
+  <!-- Background Canvas -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+  <rect width="1200" height="630" fill="url(#glowPulse)"/>
+
+  <!-- Subtle Blueprint Grid Lines -->
+  <g stroke="#334155" stroke-opacity="0.25" stroke-width="1">
+    <line x1="100" y1="0" x2="100" y2="630"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="500" y1="0" x2="500" y2="630"/>
+    <line x1="700" y1="0" x2="700" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="1100" y1="0" x2="1100" y2="630"/>
+    <line x1="0" y1="100" x2="1200" y2="100"/>
+    <line x1="0" y1="200" x2="1200" y2="200"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="450" x2="1200" y2="450"/>
+    <line x1="0" y1="550" x2="1200" y2="550"/>
+  </g>
+
+  <!-- Top Badges / Metadata Header inside Preview -->
+  <g transform="translate(60, 40)">
+    <rect width="180" height="32" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <circle cx="18" cy="16" r="5" fill="#ef4444"/>
+    <text x="32" y="21" fill="#f8fafc" font-size="12" font-weight="600" class="sans" letter-spacing="0.5">VIDEO PREVIEW &amp; SHORT</text>
+
+    <rect x="195" y="0" width="130" height="32" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="210" y="21" fill="#38bdf8" font-size="12" font-weight="600" class="sans">⚡ PGlite WASM</text>
+
+    <rect x="340" y="0" width="135" height="32" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="355" y="21" fill="#a855f7" font-size="12" font-weight="600" class="sans">🛡 Dynamic IAM</text>
+  </g>
+
+  <g transform="translate(1010, 40)">
+    <rect width="130" height="32" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+    <text x="22" y="21" fill="#94a3b8" font-size="12" font-weight="600" class="mono">1080p • 60 FPS</text>
+  </g>
+
+  <!-- Main Workspace Window Frame -->
+  <g transform="translate(60, 90)" filter="url(#dropShadow)">
+    <!-- Window Border & Outer Shell -->
+    <rect width="1080" height="490" rx="16" fill="#0b1120" stroke="#334155" stroke-width="1.5"/>
+    
+    <!-- Window Titlebar -->
+    <rect width="1080" height="44" rx="16" fill="#131c31"/>
+    <rect y="28" width="1080" height="16" fill="#131c31"/>
+    <line x1="0" y1="44" x2="1080" y2="44" stroke="#1e293b" stroke-width="1"/>
+
+    <!-- Traffic Lights -->
+    <circle cx="24" cy="22" r="6" fill="#ef4444"/>
+    <circle cx="44" cy="22" r="6" fill="#f59e0b"/>
+    <circle cx="64" cy="22" r="6" fill="#10b981"/>
+
+    <!-- Tab / Window Title -->
+    <rect x="100" y="8" width="460" height="28" rx="6" fill="#1e293b"/>
+    <text x="120" y="26" fill="#cbd5e1" font-size="12" font-weight="500" class="mono">study-web :: LabWorkspacePage.tsx (PGlite PostgreSQL WASM)</text>
+
+    <!-- Right Window Controls -->
+    <circle cx="1040" cy="22" r="4" fill="#64748b"/>
+    <circle cx="1025" cy="22" r="4" fill="#64748b"/>
+    <circle cx="1010" cy="22" r="4" fill="#64748b"/>
+
+    <!-- Split Pane: Left Editor Pane -->
+    <rect x="0" y="45" width="620" height="444" fill="#0a0f1d"/>
+    <line x1="620" y1="45" x2="620" y2="489" stroke="#1e293b" stroke-width="1"/>
+
+    <!-- Editor Line Numbers & Code Content -->
+    <g transform="translate(20, 70)" font-size="13" class="mono" xml:space="preserve">
+      <!-- Line Numbers -->
+      <g fill="#475569">
+        <text x="0" y="0">01</text>
+        <text x="0" y="24">02</text>
+        <text x="0" y="48">03</text>
+        <text x="0" y="72">04</text>
+        <text x="0" y="96">05</text>
+        <text x="0" y="120">06</text>
+        <text x="0" y="144">07</text>
+        <text x="0" y="168">08</text>
+        <text x="0" y="192">09</text>
+        <text x="0" y="216">10</text>
+        <text x="0" y="240">11</text>
+        <text x="0" y="264">12</text>
+        <text x="0" y="288">13</text>
+      </g>
+
+      <!-- Code Syntax Highlighted Lines -->
+      <g transform="translate(36, 0)">
+        <text y="0"><tspan fill="#64748b">-- Lab #04: Complex CTE &amp; Window Function Aggregation</tspan></text>
+        <text y="24"><tspan fill="#38bdf8">WITH</tspan><tspan fill="#f8fafc"> monthly_revenue </tspan><tspan fill="#38bdf8">AS</tspan><tspan fill="#f8fafc"> (</tspan></text>
+        <text y="48"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">SELECT</tspan><tspan fill="#f8fafc"> date_trunc(</tspan><tspan fill="#34d399">'month'</tspan><tspan fill="#f8fafc">, created_at) </tspan><tspan fill="#38bdf8">AS</tspan><tspan fill="#f8fafc"> month,</tspan></text>
+        <text y="72"><tspan fill="#f8fafc">         sum(amount_cents) </tspan><tspan fill="#38bdf8">AS</tspan><tspan fill="#f8fafc"> total_gross</tspan></text>
+        <text y="96"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">FROM</tspan><tspan fill="#f8fafc"> lab_orders</tspan></text>
+        <text y="120"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">WHERE</tspan><tspan fill="#f8fafc"> status = </tspan><tspan fill="#34d399">'COMPLETED'</tspan></text>
+        <text y="144"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">GROUP BY</tspan><tspan fill="#f8fafc"> 1</tspan></text>
+        <text y="168"><tspan fill="#f8fafc">)</tspan></text>
+        <text y="192"><tspan fill="#38bdf8">SELECT</tspan><tspan fill="#f8fafc"> month, total_gross,</tspan></text>
+        <text y="216"><tspan fill="#f8fafc">       lag(total_gross) </tspan><tspan fill="#38bdf8">OVER</tspan><tspan fill="#f8fafc"> (</tspan><tspan fill="#38bdf8">ORDER BY</tspan><tspan fill="#f8fafc"> month) </tspan><tspan fill="#38bdf8">AS</tspan><tspan fill="#f8fafc"> prev_month,</tspan></text>
+        <text y="240"><tspan fill="#f8fafc">       round(((total_gross - lag(total_gross) </tspan><tspan fill="#38bdf8">OVER</tspan><tspan fill="#f8fafc"> (</tspan><tspan fill="#38bdf8">ORDER BY</tspan><tspan fill="#f8fafc"> month))</tspan></text>
+        <text y="264"><tspan fill="#f8fafc">             / lag(total_gross) </tspan><tspan fill="#38bdf8">OVER</tspan><tspan fill="#f8fafc"> (</tspan><tspan fill="#38bdf8">ORDER BY</tspan><tspan fill="#f8fafc"> month)::numeric) * 100, 2) </tspan><tspan fill="#38bdf8">AS</tspan><tspan fill="#f8fafc"> mom_growth</tspan></text>
+        <text y="288"><tspan fill="#38bdf8">FROM</tspan><tspan fill="#f8fafc"> monthly_revenue;</tspan></text>
+      </g>
+    </g>
+
+    <!-- Split Pane: Right Output & Verification Panel -->
+    <rect x="621" y="45" width="459" height="444" fill="#0f172a"/>
+    <rect x="621" y="45" width="459" height="36" fill="#1e293b"/>
+    <text x="640" y="68" fill="#38bdf8" font-size="12" font-weight="600" class="sans">PGlite Execution Terminal &amp; Diff Grader</text>
+    <rect x="980" y="52" width="80" height="22" rx="4" fill="#10b981" fill-opacity="0.2"/>
+    <text x="990" y="67" fill="#34d399" font-size="11" font-weight="600" class="mono">PASSED</text>
+
+    <!-- Terminal Content Output -->
+    <g transform="translate(640, 100)" font-size="12" class="mono">
+      <text y="0" fill="#94a3b8">&gt; Initializing ephemeral Web Worker PGlite instance...</text>
+      <text y="22" fill="#34d399">✔ Seed tables applied: 4 tables, 1,250 records (6.2ms)</text>
+      <text y="44" fill="#94a3b8">&gt; Executing query with AST sqlGuard filter...</text>
+      <text y="66" fill="#34d399">✔ AST Policy: READ_ONLY query verified (0 AST violations)</text>
+      <text y="88" fill="#e2e8f0">&gt; Query execution completed in 8.4ms (WASM)</text>
+
+      <!-- Mini Table of Output -->
+      <g transform="translate(0, 110)">
+        <rect width="420" height="120" rx="6" fill="#090d16" stroke="#334155" stroke-width="1"/>
+        <line x1="0" y1="28" x2="420" y2="28" stroke="#334155"/>
+        <text x="12" y="19" fill="#94a3b8" font-weight="bold">month</text>
+        <text x="130" y="19" fill="#94a3b8" font-weight="bold">total_gross</text>
+        <text x="240" y="19" fill="#94a3b8" font-weight="bold">prev_month</text>
+        <text x="340" y="19" fill="#94a3b8" font-weight="bold">mom_growth</text>
+
+        <text x="12" y="48" fill="#cbd5e1">2026-08-01</text>
+        <text x="130" y="48" fill="#cbd5e1">$48,200.00</text>
+        <text x="240" y="48" fill="#64748b">NULL</text>
+        <text x="340" y="48" fill="#64748b">NULL</text>
+
+        <text x="12" y="74" fill="#cbd5e1">2026-09-01</text>
+        <text x="130" y="74" fill="#cbd5e1">$62,450.00</text>
+        <text x="240" y="74" fill="#cbd5e1">$48,200.00</text>
+        <text x="340" y="74" fill="#34d399">+29.56%</text>
+
+        <text x="12" y="100" fill="#cbd5e1">2026-10-01</text>
+        <text x="130" y="100" fill="#cbd5e1">$84,100.00</text>
+        <text x="240" y="100" fill="#cbd5e1">$62,450.00</text>
+        <text x="340" y="100" fill="#34d399">+34.67%</text>
+      </g>
+
+      <text y="260" fill="#38bdf8">✔ Diff Checker: Result matches hidden solution 100%</text>
+      <text y="282" fill="#a855f7">★ Subscribed score awarded: +50 XP (Rank Pro #12)</text>
+    </g>
+
+    <!-- Centered Glassmorphic Play Button & Video Showcase Overlay -->
+    <g transform="translate(540, 260)">
+      <!-- Frosted Backdrop Behind Play Button -->
+      <circle r="60" fill="#0f172a" fill-opacity="0.85" stroke="#6366f1" stroke-width="2.5" filter="url(#btnGlow)"/>
+      <circle r="48" fill="url(#playBtnGrad)"/>
+      <!-- Play Triangle Icon -->
+      <polygon points="-10,-18 20,0 -10,18" fill="#ffffff"/>
+      <!-- Hover / Call to action Label under Play Button -->
+      <rect x="-160" y="72" width="320" height="38" rx="19" fill="#0f172a" fill-opacity="0.95" stroke="#8b5cf6" stroke-width="1.5" filter="url(#dropShadow)"/>
+      <text x="0" y="96" fill="#f8fafc" font-size="14" font-weight="700" class="sans" text-anchor="middle" letter-spacing="0.4">▶ CLICK TO WATCH VIDEO TOUR</text>
+    </g>
+  </g>
+
+  <!-- Bottom Showcase Feature Bar -->
+  <g transform="translate(60, 595)" font-size="12" class="sans" fill="#94a3b8">
+    <text x="0" y="14"><tspan fill="#f1f5f9" font-weight="600">study-web Architecture</tspan> : Modular NestJS 12 • React 19 Frontend • Admin Studio &amp; Review Queue • WebAssembly PGlite</text>
+    <text x="1080" y="14" text-anchor="end" fill="#38bdf8" font-weight="600">github.com/NguyenKhanhDuy2703/study-web</text>
+  </g>
+</svg>

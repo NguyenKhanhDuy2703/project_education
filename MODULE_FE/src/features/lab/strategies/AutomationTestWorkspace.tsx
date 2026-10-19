@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from '@/components/ui/resizable';
+import {
   Play,
   CloudUpload,
   RotateCcw,
@@ -275,41 +280,53 @@ export function AutomationTestWorkspace({
               : ''}
       </div>
 
-      {/* ── Editor (Smart Cloze or Monaco) ─────────────────────────────────── */}
-      <div className="flex-1 min-h-[220px] relative flex flex-col">
-        {isSmartCloze && smartClozeConfig ? (
-          <SmartClozeEditor
-            template={smartClozeConfig.publicTemplate}
-            blanks={smartClozeConfig.blanks}
-            answers={answers}
-            onAnswerChange={handleAnswerChange}
-            validationErrors={validationErrors}
-            activeBlankId={activeBlankId}
-            onSelectBlank={setActiveBlankId}
-            onResetBlank={handleResetSingleBlank}
-            disabled={isRunning}
-          />
-        ) : (
-          <Editor
-            height="100%"
-            language="javascript"
-            theme="vs-dark"
-            value={code}
-            onChange={(val) => handleMonacoCodeChange(val || '')}
-            options={{
-              fontSize: 13,
-              lineNumbers: 'on',
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              tabSize: 2,
-            }}
-          />
-        )}
-      </div>
+      {/* ── Editor & Bottom Panel Split (Resizable) ────────────────────────── */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <ResizablePanelGroup
+          direction="vertical"
+          autoSaveId="study-web-automation-vertical-split"
+          className="flex-1 min-h-0 w-full"
+        >
+          {/* Top Panel: Editor */}
+          <ResizablePanel defaultSize="58%" minSize="25%" className="flex flex-col min-h-0">
+            <div className="flex-1 min-h-0 relative flex flex-col h-full overflow-auto">
+              {isSmartCloze && smartClozeConfig ? (
+                <SmartClozeEditor
+                  template={smartClozeConfig.publicTemplate}
+                  blanks={smartClozeConfig.blanks}
+                  answers={answers}
+                  onAnswerChange={handleAnswerChange}
+                  validationErrors={validationErrors}
+                  activeBlankId={activeBlankId}
+                  onSelectBlank={setActiveBlankId}
+                  onResetBlank={handleResetSingleBlank}
+                  disabled={isRunning}
+                />
+              ) : (
+                <Editor
+                  height="100%"
+                  language="javascript"
+                  theme="vs-dark"
+                  value={code}
+                  onChange={(val) => handleMonacoCodeChange(val || '')}
+                  options={{
+                    fontSize: 13,
+                    lineNumbers: 'on',
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    tabSize: 2,
+                  }}
+                />
+              )}
+            </div>
+          </ResizablePanel>
 
-      {/* ── Bottom Guided Verification Panel ───────────────────────────────── */}
-      <div className="h-64 border-t border-border flex flex-col bg-card shrink-0">
+          <ResizableHandle withHandle />
+
+          {/* Bottom Panel: Guided Verification Panel */}
+          <ResizablePanel defaultSize="42%" minSize="18%" className="flex flex-col min-h-0">
+            <div className="h-full border-t-0 flex flex-col bg-card flex-1 overflow-hidden">
         <Tabs
           value={bottomTab}
           onValueChange={(v) => setBottomTab(v as 'results' | 'cheatsheet' | 'logs')}
@@ -476,6 +493,9 @@ export function AutomationTestWorkspace({
             )}
           </TabsContent>
         </Tabs>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );

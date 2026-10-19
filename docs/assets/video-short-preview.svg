@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 640" width="360" height="640">
+  <defs>
+    <!-- Background & Glass Gradients -->
+    <linearGradient id="phoneBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0f1d"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </linearGradient>
+    <linearGradient id="shortPlayGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95"/>
+    </linearGradient>
+    <radialGradient id="shortGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0a0f1d" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Filters -->
+    <filter id="phoneShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.7"/>
+    </filter>
+    <filter id="playGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="14" flood-color="#ec4899" flood-opacity="0.7"/>
+    </filter>
+  </defs>
+
+  <style>
+    .mono { font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, Courier, monospace; }
+    .sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  </style>
+
+  <!-- Phone Shell Background -->
+  <rect width="360" height="640" rx="36" fill="url(#phoneBg)" filter="url(#phoneShadow)" stroke="#334155" stroke-width="2"/>
+  <rect width="360" height="640" rx="36" fill="url(#shortGlow)"/>
+
+  <!-- Phone Bezel & Screen Boundary -->
+  <rect x="10" y="10" width="340" height="620" rx="28" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- Dynamic Island / Speaker Notch -->
+  <rect x="130" y="18" width="100" height="24" rx="12" fill="#020617"/>
+  <circle cx="212" cy="30" r="4.5" fill="#1e293b"/>
+
+  <!-- Status Bar (Time, Signals) -->
+  <text x="36" y="34" fill="#94a3b8" font-size="11" font-weight="600" class="sans">9:41</text>
+  <g transform="translate(294, 25)" fill="#94a3b8">
+    <rect x="0" y="5" width="3" height="4" rx="0.5"/>
+    <rect x="5" y="3" width="3" height="6" rx="0.5"/>
+    <rect x="10" y="1" width="3" height="8" rx="0.5"/>
+    <rect x="15" y="0" width="3" height="9" rx="0.5"/>
+    <rect x="22" y="1" width="14" height="8" rx="2" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <rect x="24" y="3" width="9" height="4" rx="1" fill="#10b981"/>
+  </g>
+
+  <!-- Top Header / Shorts Badge -->
+  <g transform="translate(24, 60)">
+    <rect width="138" height="26" rx="13" fill="#1e293b" stroke="#ef4444" stroke-width="1"/>
+    <circle cx="14" cy="13" r="4" fill="#ef4444"/>
+    <text x="26" y="17" fill="#f8fafc" font-size="11" font-weight="700" class="sans" letter-spacing="0.5">60s VIDEO SHORT</text>
+
+    <rect x="146" y="0" width="100" height="26" rx="13" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="156" y="17" fill="#38bdf8" font-size="11" font-weight="600" class="sans">&lt; 10ms WASM</text>
+  </g>
+
+  <!-- Code Snippet Card (Monaco Mobile View) -->
+  <g transform="translate(24, 102)">
+    <rect width="312" height="190" rx="12" fill="#0b1120" stroke="#334155" stroke-width="1"/>
+    
+    <!-- Header of mini-window -->
+    <rect width="312" height="28" rx="12" fill="#131c31"/>
+    <rect y="16" width="312" height="12" fill="#131c31"/>
+    <circle cx="16" cy="14" r="4" fill="#ef4444"/>
+    <circle cx="28" cy="14" r="4" fill="#f59e0b"/>
+    <circle cx="40" cy="14" r="4" fill="#10b981"/>
+    <text x="56" y="18" fill="#94a3b8" font-size="10" class="mono">Lab4_revenue_growth.sql</text>
+
+    <!-- Code Lines -->
+    <g transform="translate(14, 46)" font-size="10.5" class="mono">
+      <text y="0"><tspan fill="#64748b">-- PostgreSQL 16 In-Browser</tspan></text>
+      <text y="18"><tspan fill="#38bdf8">WITH</tspan><tspan fill="#f8fafc"> rev </tspan><tspan fill="#38bdf8">AS</tspan><tspan fill="#f8fafc"> (</tspan></text>
+      <text y="36"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">SELECT</tspan><tspan fill="#f8fafc"> date_trunc(</tspan><tspan fill="#34d399">'month'</tspan><tspan fill="#f8fafc">, dt),</tspan></text>
+      <text y="54"><tspan fill="#f8fafc">         sum(amount) </tspan><tspan fill="#38bdf8">AS</tspan><tspan fill="#f8fafc"> gross</tspan></text>
+      <text y="72"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">FROM</tspan><tspan fill="#f8fafc"> orders </tspan><tspan fill="#38bdf8">GROUP BY</tspan><tspan fill="#f8fafc"> 1)</tspan></text>
+      <text y="90"><tspan fill="#38bdf8">SELECT</tspan><tspan fill="#f8fafc"> month, gross,</tspan></text>
+      <text y="108"><tspan fill="#f8fafc">  lag(gross) </tspan><tspan fill="#38bdf8">OVER</tspan><tspan fill="#f8fafc"> (</tspan><tspan fill="#38bdf8">ORDER BY</tspan><tspan fill="#f8fafc"> month)</tspan></text>
+      <text y="126"><tspan fill="#38bdf8">FROM</tspan><tspan fill="#f8fafc"> rev;</tspan></text>
+    </g>
+  </g>
+
+  <!-- Interactive Terminal & Grader Output -->
+  <g transform="translate(24, 306)">
+    <rect width="312" height="120" rx="12" fill="url(#cardBg)" stroke="#334155" stroke-width="1"/>
+    
+    <g transform="translate(14, 22)" font-size="11" class="mono">
+      <text y="0" fill="#94a3b8">&gt; PGlite WASM Execution:</text>
+      <text y="20" fill="#34d399">✔ AST Guard: 0 violations</text>
+      <text y="40" fill="#38bdf8">✔ Diff Checker: Match 100%</text>
+      <text y="60" fill="#a855f7">Grade: PASSED (+50 XP)</text>
+    </g>
+
+    <!-- Passed Pill Badge -->
+    <rect x="228" y="14" width="70" height="24" rx="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1"/>
+    <text x="238" y="30" fill="#34d399" font-size="11" font-weight="700" class="mono">PASSED</text>
+  </g>
+
+  <!-- Right Floating Action Icons (Reels / Shorts Style) -->
+  <g transform="translate(306, 440)">
+    <!-- Like -->
+    <circle cx="16" cy="16" r="16" fill="#1e293b" fill-opacity="0.9"/>
+    <path d="M16 23s-6-4.5-6-8a3.5 3.5 0 0 1 6-2 3.5 3.5 0 0 1 6 2c0 3.5-6 8-6 8z" fill="#ec4899"/>
+    <text x="16" y="44" fill="#cbd5e1" font-size="9" font-weight="600" class="sans" text-anchor="middle">1.4k</text>
+
+    <!-- Share -->
+    <circle cx="16" cy="68" r="16" fill="#1e293b" fill-opacity="0.9"/>
+    <path d="M12 68l8-5v10z" fill="#38bdf8"/>
+    <text x="16" y="96" fill="#cbd5e1" font-size="9" font-weight="600" class="sans" text-anchor="middle">Share</text>
+  </g>
+
+  <!-- Centered Play Button Overlay -->
+  <g transform="translate(180, 480)">
+    <circle r="46" fill="#0f172a" fill-opacity="0.85" stroke="#ec4899" stroke-width="2" filter="url(#playGlow)"/>
+    <circle r="36" fill="url(#shortPlayGrad)"/>
+    <polygon points="-8,-14 16,0 -8,14" fill="#ffffff"/>
+  </g>
+
+  <!-- Bottom Caption & Call to Action -->
+  <g transform="translate(24, 550)">
+    <text x="0" y="0" fill="#f8fafc" font-size="13" font-weight="700" class="sans">study-web: In-Browser IT Lab Sprint</text>
+    <text x="0" y="18" fill="#94a3b8" font-size="11" class="sans">Watch 60s reel: PGlite WASM + Live Diffing</text>
+    
+    <rect y="28" width="268" height="34" rx="17" fill="url(#shortPlayGrad)"/>
+    <text x="134" y="50" fill="#ffffff" font-size="12" font-weight="700" class="sans" text-anchor="middle" letter-spacing="0.5">▶ WATCH 60s SHORT REEL</text>
+  </g>
+</svg>

@@ -140,7 +140,7 @@ export class SqlWorkerAdapter implements SqlEngineAdapter {
           schemaSql: this.currentSchemaSql,
           seedSql: this.currentSeedSql,
         },
-        10000,
+        30000,
       );
       this.status = 'ready';
     } catch (error) {
@@ -178,11 +178,14 @@ export class SqlWorkerAdapter implements SqlEngineAdapter {
 
     this.initWorker();
     try {
-      await this.sendRequest({
-        type: 'init',
-        schemaSql: this.currentSchemaSql,
-        seedSql: this.currentSeedSql,
-      });
+      await this.sendRequest(
+        {
+          type: 'init',
+          schemaSql: this.currentSchemaSql,
+          seedSql: this.currentSeedSql,
+        },
+        30000,
+      );
       this.status = 'ready';
     } catch (err) {
       this.status = 'error';

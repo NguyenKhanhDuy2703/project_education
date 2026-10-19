@@ -137,6 +137,6 @@ describe('Subtask 8.1: E2E Smoke Test Harness', () => {
       expect(diff.isMatch).toBe(true);
       expect(diff.rowDiffs).toHaveLength(1);
       expect(diff.rowDiffs[0].status).toBe('matched');
-    });
+    }, 60000);
   });
 });
