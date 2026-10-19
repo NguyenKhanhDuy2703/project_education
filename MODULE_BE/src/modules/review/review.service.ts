@@ -2,10 +2,12 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { ContentLifecycleStatus } from '@prisma/client';
+import { LabsService } from '../labs/labs.service';
 
 export type ContentType = 'series' | 'lab';
 
@@ -14,6 +16,7 @@ export class ReviewService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogsService: AuditLogsService,
+    @Optional() private readonly labsService?: LabsService,
   ) {}
 
   /**
@@ -111,24 +114,70 @@ export class ReviewService {
         version: s.version,
         reviewFeedback: s.reviewFeedback,
         author: s.author,
+        authorName: s.author?.name,
+        authorId: s.author?.id,
+        description: s.description,
         parentTitle: null,
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
       })),
-      ...labItems.map((l) => ({
-        id: l.id,
-        type: 'lab' as const,
-        title: l.title,
-        slug: l.slug,
-        category: l.series?.title || 'lab',
-        status: l.status,
-        version: l.version,
-        reviewFeedback: l.reviewFeedback,
-        author: l.author,
-        parentTitle: l.series?.title || null,
-        createdAt: l.createdAt,
-        updatedAt: l.updatedAt,
-      })),
+      ...labItems.map((l) => {
+        let sampleData: any = undefined;
+        let expectedQueryResult: any = undefined;
+        let quizQuestions: any = undefined;
+        let sqlSchema: any = undefined;
+        let extractedConfig: any = undefined;
+
+        if (l.objective) {
+          try {
+            const parsed = JSON.parse(l.objective);
+            if (parsed && typeof parsed === 'object') {
+              if (Array.isArray(parsed)) {
+                quizQuestions = parsed;
+              } else {
+                const config =
+                  parsed.config && typeof parsed.config === 'object'
+                    ? { ...parsed, ...parsed.config }
+                    : parsed;
+
+                if (config.sqlSchema) sqlSchema = config.sqlSchema;
+                if (config.sampleData) sampleData = config.sampleData;
+                if (config.expectedQueryResult) expectedQueryResult = config.expectedQueryResult;
+                if (config.quizList) quizQuestions = config.quizList;
+                if (config.quizQuestions) quizQuestions = config.quizQuestions;
+                extractedConfig = config;
+              }
+            }
+          } catch {}
+        }
+
+        return {
+          id: l.id,
+          type: 'lab' as const,
+          title: l.title,
+          slug: l.slug,
+          category: l.series?.title || 'lab',
+          status: l.status,
+          version: l.version,
+          reviewFeedback: l.reviewFeedback,
+          author: l.author,
+          authorName: l.author?.name,
+          authorId: l.author?.id,
+          parentTitle: l.series?.title || null,
+          sandboxType: l.sandboxType,
+          instructions: l.instructions,
+          initialSnippet: l.initialSnippet,
+          solution: l.solution,
+          testScript: l.testScript,
+          config: extractedConfig,
+          sqlSchema,
+          sampleData,
+          expectedQueryResult,
+          quizQuestions,
+          createdAt: l.createdAt,
+          updatedAt: l.updatedAt,
+        };
+      }),
     ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
     return {
@@ -238,7 +287,14 @@ export class ReviewService {
    * Action: Independent Publish (Separated from Approval).
    */
   async publish(type: ContentType, id: string, adminId: string) {
-    await this.verifyExists(type, id);
+    const existing = await this.verifyExists(type, id);
+    if (type === 'lab' && this.labsService) {
+      await this.labsService.validateSqlLabForRelease(existing as {
+        sandboxType: string;
+        objective: string | null;
+        solution: string | null;
+      });
+    }
 
     let updated: any;
     if (type === 'series') {

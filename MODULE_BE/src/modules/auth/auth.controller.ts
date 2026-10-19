@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -70,7 +70,6 @@ export class AuthController {
     res.cookie('refreshToken', result.refreshToken, this.refreshCookieOptions);
     return {
       accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
       user: result.user,
     };
   }
@@ -83,11 +82,21 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const token = refreshTokenDto?.refreshToken || (req as any).cookies?.refreshToken;
+    const token =
+      (req as any).cookies?.refreshToken ||
+      (req as any).cookies?.study_refresh_token ||
+      refreshTokenDto?.refreshToken;
+
+    if (!token) {
+      throw new UnauthorizedException('Refresh token không tồn tại');
+    }
+
     const result = await this.authService.refreshToken(token);
     res.cookie('accessToken', result.accessToken, this.cookieOptions);
     res.cookie('refreshToken', result.refreshToken, this.refreshCookieOptions);
-    return result;
+    return {
+      accessToken: result.accessToken,
+    };
   }
 
   @Post('refresh-token')
@@ -108,10 +117,14 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const token = refreshTokenDto?.refreshToken || (req as any).cookies?.refreshToken;
+    const token =
+      (req as any).cookies?.refreshToken ||
+      (req as any).cookies?.study_refresh_token ||
+      refreshTokenDto?.refreshToken;
+
     const result = await this.authService.logout(token);
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
+    res.clearCookie('accessToken', { ...this.cookieOptions, maxAge: 0 });
+    res.clearCookie('refreshToken', { ...this.refreshCookieOptions, maxAge: 0 });
     return result;
   }
 

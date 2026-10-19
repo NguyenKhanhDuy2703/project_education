@@ -7,6 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { BcryptService } from '../../utils/bcrypt.util';
+import { AuthSessionService } from './auth-session.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto, RegisterDto, ChangePasswordDto } from './auth.dto';
 import { User } from '@prisma/client';
 
@@ -17,6 +19,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly bcryptService: BcryptService,
     private readonly configService: ConfigService,
+    private readonly authSessionService: AuthSessionService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -114,7 +118,7 @@ export class AuthService {
     return { accessToken };
   }
 
-  async generateTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+  private async signTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = {
       userId: user.id,
       email: user.email,
@@ -133,9 +137,13 @@ export class AuthService {
       { expiresIn: refreshTokenExpiresIn as any },
     );
 
-    await this.usersService.updateRefreshToken(user.id, refreshToken);
-
     return { accessToken, refreshToken };
+  }
+
+  async generateTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+    const tokens = await this.signTokens(user);
+    await this.authSessionService.createSessionWithLegacyToken(user.id, tokens.refreshToken);
+    return tokens;
   }
 
   async refreshToken(token: string) {
@@ -151,19 +159,56 @@ export class AuthService {
         throw new UnauthorizedException('User not found');
       }
 
-      const userWithToken = await this.usersService.findByRefreshToken(token);
-      if (!userWithToken || userWithToken.id !== user.id) {
-        throw new UnauthorizedException('Invalid refresh token');
+      if (!user.isActive) {
+        throw new UnauthorizedException('Account is deactivated');
       }
 
-      return this.generateTokens(user);
-    } catch {
+      const newTokens = await this.signTokens(user);
+
+      // Attempt atomic rotation via AuthSession with 30-second Grace Window
+      try {
+        const rotation = await this.authSessionService.validateAndRotate(token, newTokens.refreshToken);
+        if (rotation.isGraceWindow) {
+          // Idempotent recovery for concurrent requests: return fresh access token with presented refresh token
+          return {
+            accessToken: newTokens.accessToken,
+            refreshToken: token,
+          };
+        }
+        return newTokens;
+      } catch (sessionError) {
+        // Fallback to legacy single-field check
+        const userWithToken = await this.usersService.findByRefreshToken(token);
+        if (!userWithToken || userWithToken.id !== user.id) {
+          throw new UnauthorizedException('Invalid refresh token');
+        }
+        await this.authSessionService.createSessionWithLegacyToken(
+          user.id,
+          newTokens.refreshToken,
+        );
+        return newTokens;
+      }
+    } catch (err: any) {
+      if (err instanceof UnauthorizedException) {
+        throw err;
+      }
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
 
   async logout(token?: string | null): Promise<{ message: string }> {
     if (token) {
+      try {
+        const hash = this.authSessionService.hashToken(token);
+        const session = await this.prisma.authSession.findFirst({
+          where: {
+            OR: [{ refreshTokenHash: hash }, { previousTokenHash: hash }],
+          },
+        });
+        if (session) {
+          await this.authSessionService.revokeSession(session.id);
+        }
+      } catch {}
       const user = await this.usersService.findByRefreshToken(token);
       if (user) {
         await this.usersService.updateRefreshToken(user.id, null);
@@ -194,6 +239,8 @@ export class AuthService {
     await this.usersService.update(userId, {
       password: hashedNewPassword,
     });
+
+    await this.authSessionService.revokeAllUserSessions(userId);
 
     return { message: 'Đổi mật khẩu thành công' };
   }
