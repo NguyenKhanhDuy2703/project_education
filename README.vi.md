@@ -1,9 +1,5 @@
 <div align="center">
 
-[English](./README.md) | **Tiếng Việt**
-
----
-
 # study-web
 
 ### Nền tảng Thực hành Lab IT Doanh nghiệp & Hệ sinh thái Kỹ thuật Đào tạo
@@ -41,23 +37,7 @@
   <sub><b>Hình 1:</b> Quy trình thực thi thực tế trong Learner Workspace — Soạn thảo Monaco SQL, kiểm tra an toàn cú pháp qua AST guard, thực thi cơ sở dữ liệu WebAssembly (PGlite) dưới 10ms, chấm điểm tự động đối soát diff và mở khóa điểm tích lũy.</sub>
 </p>
 
-<p align="center">
-  <a href="./docs/assets/demo-5s.mp4"><b>Tải xuống Video MP4 (H.264)</b></a> &bull;
-  <a href="./docs/assets/demo-5s.webm"><b>Tải xuống WebM</b></a> &bull;
-  <a href="./docs/assets/demo-poster.png"><b>Xem Ảnh Poster Độ Phân Giải Cao</b></a>
-</p>
-
 </div>
-
-<details>
-<summary><b>Trình tự Thực thi Kỹ thuật (0:00 – 0:05)</b> <i>(Nhấp để xem chi tiết)</i></summary>
-
-- **0.0s – 1.2s**: Học viên hoàn thiện truy vấn trực tiếp trong Monaco Editor với tính năng tô sáng cú pháp và gợi ý mã lệnh tự động.
-- **1.2s – 1.8s**: Khi nhấn nút thực thi, bộ lọc AST phía client (`sqlGuard.ts`) phân tích cây cú pháp trừu tượng, xác thực tính an toàn và ngăn chặn các thao tác ghi phá hủy dữ liệu.
-- **1.8s – 2.9s**: Công cụ **PGlite 0.5.10** (PostgreSQL 16 biên dịch sang WebAssembly) chạy truy vấn trong Web Worker độc lập với độ trễ chỉ **7.8ms**, bộ so khớp diff xác nhận độ tương thích 100% với đáp án chuẩn.
-- **2.9s – 5.0s**: Hộp thoại hoàn thành chuẩn doanh nghiệp hiển thị kết quả kiểm chứng thành công và kích hoạt mở khóa điểm thưởng (+50 XP).
-
-</details>
 
 ---
 

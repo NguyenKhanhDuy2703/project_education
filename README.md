@@ -1,9 +1,5 @@
 <div align="center">
 
-**English** | [Tiếng Việt](./README.vi.md)
-
----
-
 # study-web
 
 ### Enterprise Hands-on IT Lab Platform & Educational Engineering Ecosystem
@@ -41,23 +37,7 @@ The following recording demonstrates the real-time execution lifecycle of the **
   <sub><b>Figure 1:</b> Live execution sequence inside the Learner Workspace — Monaco SQL editing, AST syntax guard policy verification, sub-10ms PGlite WebAssembly database execution, automated multiset diff grading, and authoritative score unlock.</sub>
 </p>
 
-<p align="center">
-  <a href="./docs/assets/demo-5s.mp4"><b>Direct MP4 Download (H.264)</b></a> &bull;
-  <a href="./docs/assets/demo-5s.webm"><b>Direct WebM Download</b></a> &bull;
-  <a href="./docs/assets/demo-poster.png"><b>High-Resolution Poster Frame</b></a>
-</p>
-
 </div>
-
-<details>
-<summary><b>Technical Execution Sequence (0:00 – 0:05)</b> <i>(Click to expand)</i></summary>
-
-- **0.0s – 1.2s**: Student constructs query in embedded Monaco Editor with SQL syntax highlighting and auto-completion.
-- **1.2s – 1.8s**: On execution trigger, the client-side Abstract Syntax Tree (AST) guard (`sqlGuard.ts`) verifies statement safety and ensures read-only isolation.
-- **1.8s – 2.9s**: In-browser **PGlite 0.5.10** (PostgreSQL 16 compiled to WebAssembly) executes the query against local seed tables within a dedicated Web Worker in **7.8ms**, and the diff grader confirms 100% multiset parity against the solution.
-- **2.9s – 5.0s**: The enterprise completion modal confirms test pass verification and awards authenticated XP allocation (+50 XP).
-
-</details>
 
 ---
 
