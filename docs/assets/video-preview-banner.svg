@@ -132,7 +132,7 @@
         <text y="96"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">FROM</tspan><tspan fill="#f8fafc"> lab_orders</tspan></text>
         <text y="120"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">WHERE</tspan><tspan fill="#f8fafc"> status = </tspan><tspan fill="#34d399">'COMPLETED'</tspan></text>
         <text y="144"><tspan fill="#f8fafc">  </tspan><tspan fill="#38bdf8">GROUP BY</tspan><tspan fill="#f8fafc"> 1</tspan></text>
-        <text y="168"><tspan fill="#f8fafc">)</text>
+        <text y="168"><tspan fill="#f8fafc">)</tspan></text>
         <text y="192"><tspan fill="#38bdf8">SELECT</tspan><tspan fill="#f8fafc"> month, total_gross,</tspan></text>
         <text y="216"><tspan fill="#f8fafc">       lag(total_gross) </tspan><tspan fill="#38bdf8">OVER</tspan><tspan fill="#f8fafc"> (</tspan><tspan fill="#38bdf8">ORDER BY</tspan><tspan fill="#f8fafc"> month) </tspan><tspan fill="#38bdf8">AS</tspan><tspan fill="#f8fafc"> prev_month,</tspan></text>
         <text y="240"><tspan fill="#f8fafc">       round(((total_gross - lag(total_gross) </tspan><tspan fill="#38bdf8">OVER</tspan><tspan fill="#f8fafc"> (</tspan><tspan fill="#38bdf8">ORDER BY</tspan><tspan fill="#f8fafc"> month))</tspan></text>
@@ -200,7 +200,7 @@
 
   <!-- Bottom Showcase Feature Bar -->
   <g transform="translate(60, 595)" font-size="12" class="sans" fill="#94a3b8">
-    <text x="0" y="14">🎓 <tspan fill="#f1f5f9" font-weight="600">study-web Architecture</tspan> : Modular NestJS 12 • React 19 Frontend • Admin Studio &amp; Review Queue • WebAssembly PGlite</text>
+    <text x="0" y="14"><tspan fill="#f1f5f9" font-weight="600">study-web Architecture</tspan> : Modular NestJS 12 • React 19 Frontend • Admin Studio &amp; Review Queue • WebAssembly PGlite</text>
     <text x="1080" y="14" text-anchor="end" fill="#38bdf8" font-weight="600">github.com/NguyenKhanhDuy2703/study-web</text>
   </g>
 </svg>

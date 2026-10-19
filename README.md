@@ -1,10 +1,11 @@
 <div align="center">
 
-**🌐 English** | [🇻🇳 Tiếng Việt](./README.vi.md)
+**English** | [Tiếng Việt](./README.vi.md)
 
 ---
 
-# 🎓 study-web (project_education)
+# study-web
+
 ### Enterprise Hands-on IT Lab Platform & Educational Engineering Ecosystem
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -19,117 +20,69 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 <p align="center">
-  <b>Production-grade hands-on IT learning platform</b> engineered around real-world software projects. Combines client-side sandboxed execution (<b>PGlite WebAssembly PostgreSQL</b>), an enterprise dynamic authorization engine (<b>Dynamic IAM &amp; Feature Overrides</b>), and a multi-stage content lifecycle studio.
+  <b>Production-grade hands-on IT learning platform</b> engineered around real-world software engineering projects. Integrates client-side sandboxed execution (<b>PGlite WebAssembly PostgreSQL</b>), an enterprise dynamic authorization engine (<b>Dynamic IAM &amp; Feature Overrides</b>), and a multi-stage content lifecycle studio.
 </p>
 
-[🎬 Video Showcase &amp; Previews](#video-showcase--interactive-preview) • [📌 Project Overview](#project-overview) • [🏛 System Architecture](#system-architecture) • [✨ Key Innovations](#key-engineering-highlights) • [🛠 Tech Stack](#technology-stack) • [🚀 Quick Start](#monorepo-quick-start) • [🧪 Testing](#testing--quality-verification) • [📚 Docs-as-Code Hub](#docs-as-code-architecture-index) • [👨‍💻 Team](#team--lead-architect)
+[Overview](#overview) • [Product Demonstration](#product-demonstration) • [System Architecture](#system-architecture) • [Interactive Workspaces](#interactive-workspaces) • [Key Technical Highlights](#key-technical-highlights) • [Technology Stack](#technology-stack) • [Quick Start](#quick-start) • [Verification](#automated-testing--quality-assurance) • [Docs-as-Code](#documentation-index)
 
 ---
 
 </div>
 
-## 🎬 Video Showcase & Interactive Preview
+## Product Demonstration
 
-Experience the platform in action through our high-energy 60-second video short reel, complete 5-minute technical walkthrough, and interactive workspace snapshots:
+The following recording demonstrates the real-time execution lifecycle of the **study-web** in-browser lab workspace:
 
 <div align="center">
 
-<table>
-<tr>
-<th width="65%" align="center">🖥️ Full Platform Walkthrough (16:9 Video Tour)</th>
-<th width="35%" align="center">📱 60-Second Video Short (9:16 Mobile Reel)</th>
-</tr>
-<tr>
-<td align="center" valign="top">
-  <a href="https://github.com/NguyenKhanhDuy2703/study-web/releases">
-    <img src="./docs/assets/video-preview-banner.svg" alt="study-web 5-Minute Technical Walkthrough Preview" width="100%"/>
-  </a>
-  <br/>
-  <b>Full 5-Minute Technical Tour:</b> Architecture, PGlite WASM, Contributor Studio &amp; Admin IAM.<br/>
-  <a href="https://github.com/NguyenKhanhDuy2703/study-web/releases">▶ <b>Watch Full Walkthrough</b></a>
-</td>
-<td align="center" valign="top">
-  <a href="https://github.com/NguyenKhanhDuy2703/study-web/releases">
-    <img src="./docs/assets/video-short-preview.svg" alt="study-web 60-Second Video Short Preview" width="100%"/>
-  </a>
-  <br/>
-  <b>60s Quick Sprint:</b> In-browser SQL execution &amp; instant automated diff grading.<br/>
-  <a href="https://github.com/NguyenKhanhDuy2703/study-web/releases">▶ <b>Watch 60s Demo Short</b></a>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/demo-5s.gif" alt="study-web Real-time In-Browser SQL Lab & PGlite WASM Execution Demo" width="100%" />
+
+<p align="center">
+  <sub><b>Figure 1:</b> Live execution sequence inside the Learner Workspace — Monaco SQL editing, AST syntax guard policy verification, sub-10ms PGlite WebAssembly database execution, automated multiset diff grading, and authoritative score unlock.</sub>
+</p>
+
+<p align="center">
+  <a href="./docs/assets/demo-5s.mp4"><b>Direct MP4 Download (H.264)</b></a> &bull;
+  <a href="./docs/assets/demo-5s.webm"><b>Direct WebM Download</b></a> &bull;
+  <a href="./docs/assets/demo-poster.png"><b>High-Resolution Poster Frame</b></a>
+</p>
 
 </div>
 
 <details>
-<summary><b>⏱️ Video Chapters &amp; Timestamp Index</b> <i>(Click to expand)</i></summary>
+<summary><b>Technical Execution Sequence (0:00 – 0:05)</b> <i>(Click to expand)</i></summary>
 
-#### 📱 60-Second Video Short (Fast Lab Sprint)
-- `0:00` — Zero-setup monorepo architecture &amp; instant WebAssembly initialization
-- `0:15` — Monaco SQL editor and in-browser PostgreSQL 16 execution (PGlite)
-- `0:30` — Client-side AST `sqlGuard` policy validation and real-time multiset diffing
-- `0:45` — Ephemeral backend re-grading against hidden tests and score award (+50 XP)
-
-#### 🖥️ 5-Minute Technical Walkthrough (End-to-End Tour)
-- `0:00` — Project Mission &amp; Pedagogical Framework (Short hands-on IT labs)
-- `1:00` — Learner Lab Workspace: In-depth PGlite WASM Web Worker sandbox
-- `2:15` — Contributor Studio: Markdown Grammar (SPEC-01) &amp; split live preview
-- `3:30` — Admin Control Plane: Multi-stage review queue &amp; dynamic IAM overrides (DOC-07)
-- `4:30` — Ephemeral Backend Grading &amp; Security Hardening (ADR-001, ADR-002)
+- **0.0s – 1.2s**: Student constructs query in embedded Monaco Editor with SQL syntax highlighting and auto-completion.
+- **1.2s – 1.8s**: On execution trigger, the client-side Abstract Syntax Tree (AST) guard (`sqlGuard.ts`) verifies statement safety and ensures read-only isolation.
+- **1.8s – 2.9s**: In-browser **PGlite 0.5.10** (PostgreSQL 16 compiled to WebAssembly) executes the query against local seed tables within a dedicated Web Worker in **7.8ms**, and the diff grader confirms 100% multiset parity against the solution.
+- **2.9s – 5.0s**: The enterprise completion modal confirms test pass verification and awards authenticated XP allocation (+50 XP).
 
 </details>
 
-> [!TIP]
-> **Customizing Video Links & Native Playback**: To link to an external video (e.g. YouTube Shorts, Loom, Vimeo) or embed a local recording:
-> ```html
-> <!-- Standard HTML5 Video Player -->
-> <video src="./docs/assets/demo-short.mp4" controls width="100%" poster="./docs/assets/video-preview-banner.svg"></video>
-> ```
-> *Note: For GitHub README rendering, upload your demo MP4 file to GitHub Releases or Issue attachments and insert the asset URL above.*
+---
+
+## Overview
+
+Traditional online IT education is often hindered by passive video consumption and disconnected theoretical exercises. **`study-web`** addresses this friction through **focused 15–30 minute hands-on lab sprints** contextualized within functional software architectures.
+
+### Core Architectural Principles
+
+- **Active Practice Over Passive Consumption**: Learners interact with authentic codebases, solve schema migration challenges, write queries, fix regression bugs, and verify test suites directly in the browser.
+- **Sub-10ms Client-Side Feedback**: Utilizing WebAssembly engines (**PGlite PostgreSQL**), queries execute inside isolated browser Web Workers with near-zero latency, circumventing cloud server provisioning costs and cold starts.
+- **Dual-Tier Tamper-Proof Evaluation**: Diagnostic feedback runs instantly on the client, while final grading is authoritatively validated against hidden test suites by an isolated backend execution worker before credit is awarded.
+- **Enterprise Governance & IAM**: Engineered to SaaS production standards, featuring fine-grained role-based access control, per-user feature overrides, multi-stage content review workflows, and session-bound token rotation.
 
 ---
 
-### 🖥️ Interactive Workspace Triad
+## System Architecture
 
-The platform provides three specialized interactive workspaces tailored for modern software engineering workflows:
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 STUDY-WEB WORKSPACES                                   │
-├───────────────────────────────┬───────────────────────────────┬────────────────────────┤
-│ 1. Learner Lab Workspace      │ 2. Contributor Studio         │ 3. Admin Control Plane │
-├───────────────────────────────┼───────────────────────────────┼────────────────────────┤
-│ • In-Browser PGlite WASM DB   │ • Markdown Grammar (SPEC-01)  │ • Multi-Stage Reviews  │
-│ • Monaco Code Editor          │ • Live Student Preview Split  │ • Dynamic IAM Engine   │
-│ • AST Security Guard & Diff   │ • Preflight Syntax Validator  │ • Feature Overrides    │
-│ • Zero Cloud Spin-Up Latency  │ • Test Seed & Solution Matrix │ • Security Audit Logs  │
-└───────────────────────────────┴───────────────────────────────┴────────────────────────┘
-```
-
----
-
-## 📌 Project Overview
-
-Traditional online IT learning platforms suffer from passive consumption ("video tutorial hell") and detached theory. **`study-web`** bridges the gap between conceptual understanding and production reality through **focused 15–30 minute hands-on lab sprints** embedded directly within sample software projects.
-
-### Core Pedagogical Pillars
-
-- **Active Practice Over Passive Watching**: Learners write real queries, implement microservices, catch production bugs, and write unit/integration tests directly in their browser.
-- **Client-Side Zero-Latency Feedback**: With WebAssembly-powered engines (**PGlite PostgreSQL**), queries run locally inside dedicated Web Workers in under **10ms**, eliminating container spinning cold starts.
-- **Dual-Tier Tamper-Proof Grading**: While the client receives instant diagnostic feedback, completion credit is awarded only after the backend spins up an isolated, ephemeral instance to evaluate against hidden test suites and edge cases.
-- **Enterprise-Grade Governance**: Built with the operational standards of enterprise SaaS—featuring dynamic role overrides, multi-stage content state machines, and session-bound token rotation.
-
----
-
-## 🏛 System Architecture
-
-`study-web` follows a **Clean Modular Monolith** architecture with distinct client-tier separation and isolated execution engines:
+`study-web` is built as a **Clean Modular Monolith** with clear separation between client workspaces, ingress routing, domain business logic, and isolated sandboxed execution tiers:
 
 ```mermaid
 graph TD
-    Client["Client Browser (React 19 + Monaco Editor + In-Browser PGlite WASM Worker)"]
-    Nginx["Nginx Reverse Proxy / API Gateway Ingress"]
-    NestGateway["NestJS API Gateway (Helmet, CookieParser, CORS, RateLimiter)"]
+    Client["Client Browser (React 19 + Monaco Editor + PGlite WASM Web Worker)"]
+    Nginx["Nginx Reverse Proxy / Ingress Gateway"]
+    NestGateway["NestJS API Gateway (Helmet, CookieParser, CORS, RateLimiting)"]
     
     subgraph Security_Layer["Security & IAM Core"]
         AuthGuard["JWT HttpOnly Cookie Auth Guard"]
@@ -141,7 +94,7 @@ graph TD
     subgraph Service_Modules["NestJS Business Domain Modules"]
         AuthModule["Auth & Session Management"]
         UserModule["User & Plan Tier Management"]
-        LabModule["Lab Series & Execution Service"]
+        LabModule["Lab Series & Curriculum Service"]
         ReviewModule["Contributor Review Queue & State Machine"]
         GroupsModule["Group-Based Enterprise IAM"]
         AuditModule["Security Audit Logging Service"]
@@ -164,11 +117,36 @@ graph TD
 
 ---
 
-## 📂 Monorepo Structure
+## Interactive Workspaces
+
+The platform provides three purpose-built interactive workspaces tailored for specific engineering personas:
+
+| Workspace | Persona | Capabilities | Primary Technologies |
+|:---|:---|:---|:---|
+| **Learner Lab Workspace** | Students & Engineers | Interactive Monaco code editor, sub-10ms in-browser PGlite WASM database, live AST syntax policy checking, instant multiset diff grading. | React 19, Monaco Editor, PGlite WASM, TanStack Query |
+| **Contributor Studio** | Content Authors | Curriculum authoring with formal Markdown Grammar (SPEC-01), split-screen student view preview, seed and test schema validator. | React 19, Tailwind CSS v4, Marked AST parser |
+| **Admin Control Plane** | System Admins & Leads | Multi-stage review queue state machine, dynamic user and group IAM overrides, audit log inspection, and plan tier administration. | React 19, Radix UI primitives, Lucide, Recharts |
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 STUDY-WEB WORKSPACES                                   │
+├───────────────────────────────┬───────────────────────────────┬────────────────────────┤
+│ 1. Learner Lab Workspace      │ 2. Contributor Studio         │ 3. Admin Control Plane │
+├───────────────────────────────┼───────────────────────────────┼────────────────────────┤
+│ • In-Browser PGlite WASM DB   │ • Markdown Grammar (SPEC-01)  │ • Multi-Stage Reviews  │
+│ • Monaco Code Editor          │ • Live Student Preview Split  │ • Dynamic IAM Engine   │
+│ • AST Security Guard & Diff   │ • Preflight Syntax Validator  │ • Feature Overrides    │
+│ • Zero Cloud Spin-Up Latency  │ • Test Seed & Solution Matrix │ • Security Audit Logs  │
+└───────────────────────────────┴───────────────────────────────┴────────────────────────┘
+```
+
+---
+
+## Monorepo Layout
 
 ```
 study-web/
-├── MODULE_BE/               # NestJS 12 Backend API & Persistence
+├── MODULE_BE/               # NestJS 12 Backend API & Persistence Layer
 │   ├── src/
 │   │   ├── modules/         # Auth, Labs, Series, Entitlements, Review, Groups, Audit
 │   │   ├── common/          # Guards, Filters, Interceptors, Decorators
@@ -199,34 +177,34 @@ study-web/
 
 ---
 
-## ✨ Key Engineering Highlights
+## Key Technical Highlights
 
 ### 1. In-Browser WASM Database & Ephemeral Grading ([ADR-002](./docs/adr/002-pglite-sql-sandbox.md))
-- **Zero-Latency In-Memory Database**: Each SQL lab spins up an isolated **PGlite 0.5.10** instance running PostgreSQL compiled to WebAssembly inside a dedicated Web Worker.
-- **Zero Cloud Spin-Up Cost**: Queries execute in **<10ms** locally in the browser with full PostgreSQL syntax support (CTEs, Window Functions, JSONB, Subqueries).
-- **Tamper-Proof Evaluation**: Learner SQL is never executed against the platform PostgreSQL database. For official submissions, the backend initializes an ephemeral PGlite worker, applies the hidden schema and test cases, performs authoritative diffing, and tears down the instance.
-- **AST SQL Guard**: Prevents malicious statements and restricts mutations using a single-statement AST validator.
+- **Isolated In-Memory Database**: Each SQL lab instantiates a **PGlite 0.5.10** database running compiled PostgreSQL in a client-side Web Worker.
+- **Zero Cloud Compute Overhead**: Queries execute in **under 10ms** locally in the browser with full PostgreSQL syntax support (CTEs, Window Functions, JSONB, Subqueries).
+- **Tamper-Proof Evaluation**: Learner SQL queries never hit the production PostgreSQL database. For authoritative verification, the backend spawns an ephemeral PGlite instance, applies hidden validation assertions, calculates multiset differences, and tears down immediately.
+- **AST SQL Guard**: Enforces single-statement structure and blocks mutation operations (`DROP`, `ALTER`, `TRUNCATE`) via client and server AST inspection.
 
 ### 2. Dynamic Entitlements & User Feature Overrides ([DOC-07](./docs/07-dynamic-authorization-and-entitlements.md))
-- **Multi-Tier RBAC**: Native support for 4 core roles: `Admin`, `Contributor`, `UserPro`, and `User`.
-- **Per-User Feature Overrides**: Granular capability flags (e.g., `can_access_beta_labs`, `can_publish_unreviewed`) can be granted or revoked per user account without altering their global system role.
-- **Audit Trails**: Every permission mutation, role transition, and override modification is immutably logged with timestamp, operator ID, and IP address.
+- **Hierarchical RBAC**: First-class support for `Admin`, `Contributor`, `UserPro`, and `User`.
+- **Per-User Feature Overrides**: Granular capability toggles (such as `can_access_beta_labs` or `can_publish_unreviewed`) can be applied directly to individual user accounts without modifying system-wide roles.
+- **Immutable Audit Logging**: Every privilege escalation, role modification, and override change is permanently recorded with user ID, actor ID, timestamp, and client IP.
 
 ### 3. Enterprise Auth & Session Lifecycle ([ADR-001](./docs/adr/ADR-001-auth-refresh-rotation.md))
-- **Refresh Token Rotation**: Each token refresh issues a new cryptographically secure token pair while invalidating the prior token.
-- **SHA-256 Token Fingerprinting**: Refresh tokens are stored strictly as SHA-256 hashes in the database.
-- **Concurrency Grace Window**: A 30-second grace window accommodates network jitter and concurrent multi-tab browser requests without falsely triggering session revocation.
-- **XSS & CSRF Defense**: Authentication tokens are strictly transmitted via `HttpOnly`, `SameSite=Lax`, and `Secure` cookies.
+- **Refresh Token Rotation**: Every token refresh cycle invalidates the previous refresh token and generates a new cryptographically bound pair.
+- **SHA-256 Token Hashing**: Refresh tokens are stored strictly as SHA-256 hashes in the relational database.
+- **Concurrency Grace Window**: A 30-second overlap window protects against race conditions caused by network latency or multi-tab browser requests.
+- **XSS & CSRF Hardening**: Authentication tokens are strictly transmitted via `HttpOnly`, `SameSite=Lax`, and `Secure` cookies.
 
-### 4. Multi-Stage Content Lifecycle Studio
-- **Rigid State Machine**:
+### 4. Multi-Stage Content Lifecycle State Machine
+- **Formal Workflow Engine**:
   $$\text{Draft} \longrightarrow \text{Submitted} \longrightarrow \text{In Review} \genfrac{}{}{0pt}{}{\nearrow \text{Approved} \longrightarrow \text{Published}}{\searrow \text{Changes Requested} \longrightarrow \text{Draft}}$$
-- **Formal Content Grammar ([SPEC-01](./docs/specs/lab-markdown-v1.md))**: Custom Markdown AST grammar for curriculum authoring with preflight validation gates.
-- **Strict Role Separation**: Contributors author and iterate; only designated Admins can approve and trigger public release.
+- **Custom Markdown Grammar ([SPEC-01](./docs/specs/lab-markdown-v1.md))**: Structured curriculum format enabling embedded schema definitions, starter code snippets, and automated test seed blocks.
+- **Separation of Concerns**: Contributors build curriculum in the Studio; designated Admins evaluate submissions and manage production publication.
 
 ---
 
-## 🛠 Technology Stack
+## Technology Stack
 
 | Layer | Technology | Version | Architectural Role |
 |:---|:---|:---:|:---|
@@ -243,7 +221,7 @@ study-web/
 
 ---
 
-## 🚀 Monorepo Quick Start
+## Quick Start
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v20.x or later recommended)
@@ -256,7 +234,7 @@ study-web/
 git clone https://github.com/NguyenKhanhDuy2703/study-web.git
 cd study-web
 
-# (Optional) Spin up local PostgreSQL container
+# Spin up local PostgreSQL container
 docker run --name studyweb-postgres \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
@@ -277,7 +255,7 @@ cp .env.example .env
 
 # Sync Prisma Schema & Apply Seed Data
 npx prisma db push
-npm run prisma:seed # (or npx tsx prisma/seed.ts)
+npm run prisma:seed
 
 # Start NestJS in Development Mode
 npm run start:dev
@@ -287,8 +265,7 @@ npm run start:dev
 
 ### 3. Launch Learner Frontend (`MODULE_FE`)
 ```bash
-# Open a new terminal
-cd MODULE_FE
+cd ../MODULE_FE
 
 # Install dependencies
 npm install
@@ -300,8 +277,7 @@ npm run dev
 
 ### 4. Launch Admin & Contributor Portal (`MODULE_ADMIN`)
 ```bash
-# Open a new terminal
-cd MODULE_ADMIN
+cd ../MODULE_ADMIN
 
 # Install dependencies
 npm install
@@ -309,7 +285,7 @@ npm install
 # Start Vite Dev Server
 npm run dev
 ```
-> **Admin & Studio Portal**: `http://localhost:5174` (or assigned Vite port)
+> **Admin & Studio Portal**: `http://localhost:5174`
 
 ---
 
@@ -325,9 +301,9 @@ npm run dev
 
 ---
 
-## 🧪 Testing & Quality Verification
+## Automated Testing & Quality Assurance
 
-The codebase maintains strict automated test coverage across both unit, integration, and UI workflows:
+The codebase enforces strict automated test verification across unit, integration, and UI workflows:
 
 ```bash
 # Backend Test Suite (TSX Node Test Runner - 13 Tests across 6 Suites)
@@ -358,9 +334,9 @@ trivy fs --severity HIGH,CRITICAL .
 
 ---
 
-## 📚 Docs-as-Code Architecture Index
+## Documentation Index
 
-All architectural designs, system RFCs, and governance roadmaps are committed to version control in [`docs/`](./docs):
+All architectural designs, system specifications, and governance roadmaps are committed to version control in [`docs/`](./docs):
 
 | Document Code | Document Title | Version | Path |
 |:---|:---|:---:|:---|
@@ -381,21 +357,21 @@ All architectural designs, system RFCs, and governance roadmaps are committed to
 
 ---
 
-## 👨‍💻 Team & Lead Architect
+## Author & Maintainer
 
 **Nguyen Khanh Duy** — *Fullstack Lead & Software Architect*  
-Leading the architecture, core NestJS backend, PGlite WebAssembly sandbox, and dynamic authorization engine.
+Lead architect of the core NestJS backend, PGlite WebAssembly sandbox, and dynamic authorization engine.
 
-- 🌐 **GitHub**: [@NguyenKhanhDuy2703](https://github.com/NguyenKhanhDuy2703)  
-- 💼 **LinkedIn**: [Nguyễn Khánh Duy](https://www.linkedin.com/in/nguy%E1%BB%85n-kh%C3%A1nh-duy-4477a2355/)  
-- ✉️ **Email**: [nguyenkhanhduy270304@gmail.com](mailto:nguyenkhanhduy270304@gmail.com)
+- **GitHub**: [@NguyenKhanhDuy2703](https://github.com/NguyenKhanhDuy2703)  
+- **LinkedIn**: [Nguyễn Khánh Duy](https://www.linkedin.com/in/nguy%E1%BB%85n-kh%C3%A1nh-duy-4477a2355/)  
+- **Email**: [nguyenkhanhduy270304@gmail.com](mailto:nguyenkhanhduy270304@gmail.com)
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the [MIT License](LICENSE) — see the LICENSE file for details.
+This project is licensed under the [MIT License](LICENSE) — see the [LICENSE](LICENSE) file for details.
 
 <div align="center">
-  <sub>Built with engineering rigor, zero-latency feedback loops, and a passion for practical developer education.</sub>
+  <sub>Built with engineering rigor, zero-latency feedback loops, and an emphasis on practical developer education.</sub>
 </div>
