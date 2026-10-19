@@ -52,6 +52,21 @@ export function SqlPracticeWorkspace({
   const [guardError, setGuardError] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [showFirstTimeNotice, setShowFirstTimeNotice] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return !localStorage.getItem('study_sql_first_visit_dismissed');
+    } catch {
+      return false;
+    }
+  });
+
+  const handleDismissFirstTimeNotice = () => {
+    setShowFirstTimeNotice(false);
+    try {
+      localStorage.setItem('study_sql_first_visit_dismissed', 'true');
+    } catch {}
+  };
 
   const adapterRef = useRef<SqlEngineAdapter | null>(null);
   const submissionInFlightRef = useRef(false);
@@ -271,6 +286,55 @@ export function SqlPracticeWorkspace({
         </div>
       </div>
 
+      {/* ── First-Time / Sandbox Initialization Banner (English) ──────────── */}
+      {isLoadingSchema && (
+        <div
+          role="status"
+          className="mx-3 mt-2 p-3 rounded-lg border border-blue-500/30 bg-blue-500/10 text-foreground flex items-start gap-3 shadow-xs animate-in fade-in duration-300 shrink-0"
+        >
+          <div className="relative flex items-center justify-center size-8 rounded-full bg-blue-500/20 text-blue-500 shrink-0 mt-0.5">
+            <Database className="size-4 animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 flex size-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full size-2 bg-blue-500"></span>
+            </span>
+          </div>
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-bold text-foreground">
+                Setting up In-Browser PostgreSQL Database Sandbox
+              </h4>
+              <span className="text-[10px] font-mono uppercase bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold">
+                WebAssembly
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Please wait a moment while the local PostgreSQL engine compiles and your practice schema is seeded.
+              On your first visit, downloading database assets (~16 MB) may take 5–15 seconds depending on your connection.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {showFirstTimeNotice && !isLoadingSchema && !initError && (
+        <div className="mx-3 mt-2 p-2.5 rounded-md border border-border bg-card flex items-center justify-between text-xs text-foreground shadow-2xs shrink-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-3.5 text-amber-500 shrink-0" />
+            <span className="text-[11px]">
+              <strong>Welcome to SQL Sandbox!</strong> Your queries execute locally in your browser using isolated PostgreSQL WebAssembly. No data is sent to external servers.
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDismissFirstTimeNotice}
+            className="h-6 text-[10px] px-2 text-muted-foreground hover:text-foreground"
+          >
+            Got it
+          </Button>
+        </div>
+      )}
+
       {/* ── Monaco Editor ─────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 relative">
         <Editor
@@ -443,7 +507,17 @@ export function SqlPracticeWorkspace({
                 </div>
               )}
 
-              {!execResult && !guardError && (
+              {isLoadingSchema && (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
+                  <Database className="size-8 mb-3 text-primary animate-pulse opacity-80" />
+                  <p className="text-xs font-semibold text-foreground">Setting up Database Sandbox…</p>
+                  <p className="text-[11px] text-muted-foreground max-w-sm mt-1">
+                    Compiling in-browser PostgreSQL WebAssembly and preparing practice tables.
+                  </p>
+                </div>
+              )}
+
+              {!isLoadingSchema && !execResult && !guardError && (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
                   <Play className="size-6 mb-2 opacity-30" />
                   <p className="text-xs font-medium">Run your query to preview output</p>

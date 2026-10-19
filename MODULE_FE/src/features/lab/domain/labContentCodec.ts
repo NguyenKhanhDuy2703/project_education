@@ -10,6 +10,60 @@
 } from '@/types/lab.types';
 
 /**
+ * Self-healing helper: synthesizes basic PostgreSQL DDL and INSERT statements
+ * from sampleData when a legacy SQL lab record lacks schemaSql/seedSql.
+ */
+export function synthesizeSqlFromSampleData(
+  sampleData: Array<Record<string, unknown>>,
+  queryHint = '',
+): { schemaSql: string; seedSql: string } {
+  if (!Array.isArray(sampleData) || sampleData.length === 0) {
+    return { schemaSql: '', seedSql: '' };
+  }
+
+  // Detect table name from query hint (e.g. FROM Customers or JOIN Products)
+  const match = queryHint.match(/(?:FROM|JOIN)\s+["']?([a-zA-Z0-9_]+)["']?/i);
+  let tableName = match ? match[1] : 'dataset';
+  if (['table', 'order', 'user', 'group'].includes(tableName.toLowerCase())) {
+    tableName = `"${tableName}"`;
+  }
+
+  const sampleRow = sampleData[0];
+  const keys = Object.keys(sampleRow);
+  if (keys.length === 0) return { schemaSql: '', seedSql: '' };
+
+  const colDefs = keys.map((key) => {
+    let colType = 'TEXT';
+    const sampleVal = sampleData.find((r) => r[key] !== null && r[key] !== undefined)?.[key];
+    if (typeof sampleVal === 'number') {
+      colType = Number.isInteger(sampleVal) ? 'INTEGER' : 'NUMERIC';
+    } else if (typeof sampleVal === 'boolean') {
+      colType = 'BOOLEAN';
+    }
+    const isId = key.toLowerCase() === 'id' || key.toLowerCase().endsWith('id');
+    const safeKey = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `"${key.replace(/"/g, '""')}"`;
+    return `${safeKey} ${colType}${isId ? ' PRIMARY KEY' : ''}`;
+  });
+
+  const schemaSql = `CREATE TABLE IF NOT EXISTS ${tableName} (\n  ${colDefs.join(',\n  ')}\n);`;
+
+  const safeCols = keys.map((k) => (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k) ? k : `"${k.replace(/"/g, '""')}"`)).join(', ');
+  const rowsSql = sampleData.map((row) => {
+    const vals = keys.map((k) => {
+      const v = row[k];
+      if (v === null || v === undefined) return 'NULL';
+      if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+      return `'${String(v).replace(/'/g, "''")}'`;
+    });
+    return `(${vals.join(', ')})`;
+  });
+
+  const seedSql = `INSERT INTO ${tableName} (${safeCols}) VALUES\n  ${rowsSql.join(',\n  ')};`;
+
+  return { schemaSql, seedSql };
+}
+
+/**
  * Normalizes any legacy or versioned Lab record into a strictly-typed PracticeLabV1.
  */
 export function normalizeLabDetail(
@@ -40,14 +94,28 @@ export function normalizeLabDetail(
   let envelope: LabContentEnvelopeV1;
 
   if (sandboxType === 'sql_worker') {
+    let finalSchemaSql =
+      raw.sqlSchema ||
+      parsedObjectiveConfig.schemaSql ||
+      parsedObjectiveConfig.sqlSchema ||
+      '';
+    let finalSeedSql = parsedObjectiveConfig.seedSql || undefined;
+
+    // Self-healing fallback: if schemaSql is empty but sampleData exists, synthesize schema & seed
+    const rawSampleData = raw.sampleData || parsedObjectiveConfig.sampleData;
+    if (!finalSchemaSql.trim() && Array.isArray(rawSampleData) && rawSampleData.length > 0) {
+      const hint = `${instructions} ${initialSnippet} ${solution || ''}`;
+      const synthesized = synthesizeSqlFromSampleData(rawSampleData, hint);
+      if (synthesized.schemaSql) {
+        finalSchemaSql = `${synthesized.schemaSql}\n\n${synthesized.seedSql}`.trim();
+        // Keep finalSeedSql as undefined if not provided in config to preserve legacy compatibility
+      }
+    }
+
     const sqlConfig: SqlLabConfig = {
       version: parsedObjectiveConfig.version === '2.0' ? '2.0' : '1.0',
-      schemaSql:
-        raw.sqlSchema ||
-        parsedObjectiveConfig.schemaSql ||
-        parsedObjectiveConfig.sqlSchema ||
-        '',
-      seedSql: parsedObjectiveConfig.seedSql || undefined,
+      schemaSql: finalSchemaSql,
+      seedSql: finalSeedSql,
       expectedQueryResult:
         raw.expectedQueryResult ||
         parsedObjectiveConfig.expectedQueryResult ||
