@@ -24,6 +24,13 @@ import {
   Lock,
 } from 'lucide-react';
 import { DIFFICULTY_LABELS } from '@/constants/ui.constants';
+import { cn } from '@/lib/utils';
+import {
+  normalizeTopicKey,
+  getTopicTitle,
+  getTopicBadgeClass,
+} from '@/services/topicTags.service';
+
 
 export function HomePage() {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
@@ -134,8 +141,17 @@ export function HomePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {(seriesList ?? []).slice(0, 3).map((series) => {
-                const totalLabs = series._count?.labs ?? series.totalLabs ?? 0;
-                const estMinutes = series.estimatedMinutes ?? (totalLabs > 0 ? totalLabs * 20 : 30);
+                const totalLabs = series._count?.labs ?? series.labs?.length ?? series.totalLabs ?? 0;
+                const estMinutes =
+                  series.estimatedMinutes ??
+                  (series.labs && series.labs.length > 0
+                    ? series.labs.reduce((acc, l) => acc + (l.durationMinutes || l.estimatedMinutes || 20), 0)
+                    : totalLabs > 0
+                    ? totalLabs * 20
+                    : 30);
+                const topicKey = normalizeTopicKey(series.category || series.topic || 'general');
+                const topicTitle = getTopicTitle(topicKey, series.title);
+                const topicClass = getTopicBadgeClass(topicKey);
                 return (
                   <Link
                     key={series.id}
@@ -145,12 +161,15 @@ export function HomePage() {
                     <Card className="flex flex-col w-full hover:border-primary/60 transition-all hover:shadow-md cursor-pointer bg-card">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center justify-center size-9 rounded-xl bg-primary/10 text-primary">
-                            <BookOpen className="size-5" />
-                          </div>
-                          <div className="flex items-center gap-1.5">
+                          <Badge
+                            variant="outline"
+                            className={cn('text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 border truncate', topicClass)}
+                          >
+                            {topicTitle}
+                          </Badge>
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {series.isProOnly && (
-                              <Badge variant="secondary" className="text-[10px] gap-1 h-5 px-1.5 font-bold">
+                              <Badge variant="secondary" className="text-[10px] gap-1 h-5 px-1.5 font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                 <Lock className="size-2.5" /> Pro
                               </Badge>
                             )}

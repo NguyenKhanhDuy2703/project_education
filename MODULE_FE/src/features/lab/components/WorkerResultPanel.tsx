@@ -106,24 +106,55 @@ export function WorkerResultPanel({ status, result }: Props) {
 function TestCaseRow({ tc }: { tc: WorkerTestCase }) {
   return (
     <div
-      className={`flex items-start justify-between gap-2 p-2 rounded-lg border text-xs ${
+      className={`flex flex-col gap-1.5 p-2.5 rounded-lg border text-xs transition-colors ${
         tc.passed
           ? 'border-emerald-500/30 bg-emerald-500/5'
           : 'border-destructive/30 bg-destructive/5'
       }`}
     >
-      <div className="min-w-0">
-        <p className="font-medium text-foreground truncate">{tc.name}</p>
-        {tc.message && <p className="text-[11px] text-muted-foreground mt-0.5">{tc.message}</p>}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex items-center gap-1.5">
+          <span className={tc.passed ? 'text-emerald-600 font-bold' : 'text-destructive font-bold'}>
+            {tc.passed ? '✓' : '✗'}
+          </span>
+          <p className="font-semibold text-foreground truncate">{tc.name}</p>
+        </div>
+        <Badge
+          variant={tc.passed ? 'outline' : 'destructive'}
+          className={`ml-auto shrink-0 text-[10px] h-4.5 px-1.5 font-bold ${
+            tc.passed ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : ''
+          }`}
+        >
+          {tc.passed ? 'PASS' : 'FAIL'}
+        </Badge>
       </div>
-      <Badge
-        variant={tc.passed ? 'outline' : 'destructive'}
-        className={`ml-auto shrink-0 text-[10px] h-4.5 px-1.5 font-bold ${
-          tc.passed ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : ''
-        }`}
-      >
-        {tc.passed ? 'PASS' : 'FAIL'}
-      </Badge>
+
+      {tc.message && (
+        <p className="text-[11px] text-muted-foreground ml-4 leading-relaxed">{tc.message}</p>
+      )}
+
+      {!tc.passed && (tc.expected !== undefined || tc.actual !== undefined || tc.hint) && (
+        <div className="ml-4 mt-1 p-2 bg-muted/60 rounded border border-border/60 font-mono text-[11px] space-y-1">
+          {tc.expected !== undefined && (
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+              <span className="font-semibold text-muted-foreground w-20">Expected:</span>
+              <span className="bg-emerald-500/10 px-1 py-0.5 rounded font-mono">{String(tc.expected)}</span>
+            </div>
+          )}
+          {tc.actual !== undefined && (
+            <div className="flex items-center gap-2 text-destructive">
+              <span className="font-semibold text-muted-foreground w-20">Actual:</span>
+              <span className="bg-destructive/10 px-1 py-0.5 rounded font-mono">{String(tc.actual)}</span>
+            </div>
+          )}
+          {tc.hint && (
+            <div className="flex items-start gap-2 text-amber-600 dark:text-amber-400 pt-1 font-sans">
+              <span className="font-semibold text-muted-foreground w-20 shrink-0">💡 Gợi ý:</span>
+              <span className="leading-snug">{tc.hint}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

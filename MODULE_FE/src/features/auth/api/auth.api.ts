@@ -25,8 +25,13 @@ export const authApi = {
     };
   },
 
+  refreshToken: async (): Promise<{ accessToken: string }> => {
+    const res = await apiClient.post<any>('/auth/refresh', {}, { withCredentials: true });
+    return res.data?.data ?? res.data;
+  },
+
   logout: async (): Promise<void> => {
-    const refreshToken = localStorage.getItem('refresh_token');
-    await apiClient.post('/auth/logout', { refreshToken });
+    localStorage.removeItem('refresh_token');
+    await apiClient.post('/auth/logout', {}, { withCredentials: true });
   },
 };

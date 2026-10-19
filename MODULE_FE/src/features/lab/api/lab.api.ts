@@ -3,6 +3,7 @@ import type { ApiResponse } from '@/types/api.types';
 import type {
   LabDetail,
   SubmitLabPayload,
+  SubmitLabResult,
   LabSubmissionRecord,
   UserLabSubmissionItem,
   DashboardStats,
@@ -51,9 +52,10 @@ export const labApi = {
     await apiClient.delete(`/labs/${id}`);
   },
 
-  /** Submit user's code result after Web Worker execution */
-  submit: (labId: string, payload: SubmitLabPayload): Promise<void> => {
-    return apiClient.post(`/labs/${labId}/submit`, payload).then(() => undefined);
+  /** Submit an attempt and return the backend's authoritative result. */
+  submit: async (labId: string, payload: SubmitLabPayload): Promise<SubmitLabResult> => {
+    const res = await apiClient.post<any>(`/labs/${labId}/submit`, payload);
+    return res.data?.data ?? res.data;
   },
 
   /** Get current user's submission history for a lab */
