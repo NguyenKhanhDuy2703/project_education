@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLabDto } from './dto/create-lab.dto';
@@ -11,12 +12,17 @@ import { UpdateLabDto } from './dto/update-lab.dto';
 import { slugify } from '../../utils/slug.util';
 import { ContentLifecycleStatus, UserRole } from '@prisma/client';
 import { EntitlementsService } from '../entitlements/entitlements.service';
+import { SubmitLabDto } from './dto/submit-lab.dto';
+import { SqlLabConfig, DEFAULT_SQL_POLICY } from './domain/sql-lab.types';
+import { SqlGradingService } from './sql-grading.service';
+import { SqlPreflightDto } from './dto/sql-preflight.dto';
 
 @Injectable()
 export class LabsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly entitlementsService: EntitlementsService,
+    @Optional() private readonly sqlGradingService: SqlGradingService = new SqlGradingService(),
   ) {}
 
   async findBySlug(slugOrId: string, currentUser?: { userId: string; role: UserRole }) {
@@ -34,6 +40,7 @@ export class LabsService {
             title: true,
             slug: true,
             category: true,
+            isProOnly: true,
           },
         },
       },
@@ -52,10 +59,11 @@ export class LabsService {
       throw new NotFoundException(`Practice Lab "${slugOrId}" not found`);
     }
 
-    // Pro Access Check
+    // Pro Access Check (enforce if lab is Pro-only OR if parent series is Pro-only and lab is not a free preview)
     let isLocked = false;
     let lockReason: string | null = null;
-    if (lab.isProOnly && !isAuthorizedAuthorOrAdmin) {
+    const isProRequired = Boolean(lab.isProOnly || (lab.series?.isProOnly && !lab.isFreePreview));
+    if (isProRequired && !isAuthorizedAuthorOrAdmin) {
       if (!currentUser) {
         isLocked = true;
         lockReason = 'This lab requires authentication and a PRO subscription.';
@@ -70,6 +78,7 @@ export class LabsService {
         }
       }
     }
+
 
     // Dynamic Entitlement Resolution: Check VIEW_SOLUTION feature
     let canViewSolution = false;
@@ -87,8 +96,59 @@ export class LabsService {
 
     const { solution, ...publicFields } = lab;
 
+    let sampleData = undefined;
+    let expectedQueryResult = undefined;
+    let quizQuestions = undefined;
+    let sqlSchema = undefined;
+    let objectiveText = lab.objective;
+    let extractedConfig: Record<string, any> | undefined = undefined;
+
+    if (lab.objective) {
+      try {
+        const parsed = JSON.parse(lab.objective);
+        if (parsed && typeof parsed === 'object') {
+          if (Array.isArray(parsed)) {
+            quizQuestions = parsed;
+          } else {
+            const config = parsed.config && typeof parsed.config === 'object'
+              ? { ...parsed, ...parsed.config }
+              : parsed;
+
+            if (config.sqlSchema) sqlSchema = config.sqlSchema;
+            if (config.sampleData) sampleData = config.sampleData;
+            if (config.expectedQueryResult) expectedQueryResult = config.expectedQueryResult;
+            if (config.quizList) quizQuestions = config.quizList;
+            if (config.quizQuestions) quizQuestions = config.quizQuestions;
+            if (config.summary) objectiveText = config.summary;
+
+            // Strip author-only grading rules and hidden checks for non-privileged learners
+            if (!isAuthorizedAuthorOrAdmin) {
+              const sanitized = { ...config };
+              delete sanitized.gradingRules;
+              delete sanitized.hiddenChecks;
+              delete sanitized.acceptedAnswers;
+              delete sanitized.acceptedAnswersOrRules;
+              delete sanitized.expectedQueryResult;
+              delete sanitized.verificationSql;
+              extractedConfig = sanitized;
+              expectedQueryResult = undefined;
+            } else {
+              extractedConfig = config;
+            }
+          }
+        }
+      } catch {}
+    }
+
     return {
       ...publicFields,
+      objective: objectiveText,
+      config: extractedConfig,
+      sqlSchema,
+      sampleData,
+      expectedQueryResult,
+      quizQuestions,
+      quizList: quizQuestions,
       isLocked,
       lockReason,
       solution: canViewSolution && !isLocked ? solution : null,
@@ -110,17 +170,29 @@ export class LabsService {
   async submit(
     labId: string,
     userId: string,
-    payload: { submittedCode: string; status: string; timeMs: number; testLogs?: string },
+    payload: SubmitLabDto,
   ) {
     const lab = await this.findById(labId);
+    const authoritativeResult = lab.sandboxType === 'sql_worker'
+      ? await this.sqlGradingService.grade({
+          submittedCode: payload.submittedCode || '',
+          solution: lab.solution,
+          config: this.getSqlLabConfig(lab.objective),
+        })
+      : {
+          status: payload.status || 'failed',
+          timeMs: payload.timeMs || 0,
+          testLogs: payload.testLogs || null,
+        };
+
     const submission = await this.prisma.labSubmission.create({
       data: {
         labId: lab.id,
         userId,
         submittedCode: payload.submittedCode || '',
-        status: payload.status || 'passed',
-        executionTimeMs: payload.timeMs || 0,
-        testLogs: payload.testLogs || null,
+        status: authoritativeResult.status,
+        executionTimeMs: authoritativeResult.timeMs,
+        testLogs: authoritativeResult.testLogs,
       },
     });
 
@@ -135,8 +207,71 @@ export class LabsService {
     };
   }
 
+  async preflightSql(dto: SqlPreflightDto) {
+    const result = await this.sqlGradingService.grade({
+      submittedCode: dto.solution,
+      solution: dto.solution,
+      config: {
+        version: '2.0',
+        schemaSql: dto.schemaSql,
+        seedSql: dto.seedSql,
+        statementPolicy: dto.statementPolicy || 'read_only',
+        verificationSql: dto.verificationSql,
+        timeoutMs: dto.timeoutMs || DEFAULT_SQL_POLICY.timeoutMs,
+        maxResultRows: DEFAULT_SQL_POLICY.maxResultRows,
+        maxResultColumns: DEFAULT_SQL_POLICY.maxResultColumns,
+      },
+    });
+    return result;
+  }
+
+  async validateSqlLabForRelease(lab: { sandboxType: string; objective: string | null; solution: string | null }) {
+    if (lab.sandboxType !== 'sql_worker') return;
+    if (!lab.solution?.trim()) {
+      throw new BadRequestException('SQL lab requires a reference solution before review or publication.');
+    }
+    const result = await this.sqlGradingService.grade({
+      submittedCode: lab.solution,
+      solution: lab.solution,
+      config: this.getSqlLabConfig(lab.objective),
+    });
+    if (result.status !== 'passed') {
+      throw new BadRequestException(`SQL lab preflight failed: ${result.testLogs}`);
+    }
+  }
+
+  private getSqlLabConfig(objective: string | null): SqlLabConfig {
+    let parsed: Record<string, any> = {};
+    try {
+      parsed = objective ? JSON.parse(objective) : {};
+    } catch {
+      throw new BadRequestException('SQL lab configuration is invalid JSON.');
+    }
+    const raw = parsed?.config && typeof parsed.config === 'object'
+      ? { ...parsed, ...parsed.config }
+      : parsed;
+    const schemaSql = raw.schemaSql || raw.sqlSchema || '';
+    if (!schemaSql.trim()) {
+      throw new BadRequestException('SQL lab is missing schema SQL.');
+    }
+    return {
+      version: raw.version === '2.0' ? '2.0' : '1.0',
+      schemaSql,
+      seedSql: raw.seedSql || '',
+      expectedQueryResult: raw.expectedQueryResult,
+      expectedColumns: raw.expectedColumns,
+      verificationSql: raw.verificationSql,
+      orderSensitive: Boolean(raw.orderSensitive),
+      sampleRowsVisible: Boolean(raw.sampleRowsVisible),
+      statementPolicy: raw.statementPolicy || DEFAULT_SQL_POLICY.statementPolicy,
+      timeoutMs: raw.timeoutMs || DEFAULT_SQL_POLICY.timeoutMs,
+      maxResultRows: raw.maxResultRows || DEFAULT_SQL_POLICY.maxResultRows,
+      maxResultColumns: raw.maxResultColumns || DEFAULT_SQL_POLICY.maxResultColumns,
+    };
+  }
+
   async getUserSubmissions(userId: string) {
-    return this.prisma.labSubmission.findMany({
+    const submissions = await this.prisma.labSubmission.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -145,15 +280,15 @@ export class LabsService {
             id: true,
             title: true,
             slug: true,
-            difficulty: true,
             sandboxType: true,
+            durationMinutes: true,
             series: {
               select: {
                 id: true,
                 title: true,
                 slug: true,
                 category: true,
-                topic: true,
+                level: true,
               },
             },
           },
@@ -161,6 +296,16 @@ export class LabsService {
       },
       take: 100,
     });
+
+    return submissions.map((sub) => ({
+      ...sub,
+      lab: sub.lab
+        ? {
+            ...sub.lab,
+            difficulty: sub.lab.series?.level || 'beginner',
+          }
+        : undefined,
+    }));
   }
 
   async getSubmissions(labId: string, userId: string) {
@@ -218,20 +363,73 @@ export class LabsService {
         ? ContentLifecycleStatus.draft
         : (dto as any).status || ContentLifecycleStatus.draft;
 
+    const mapped = this.mapDtoToLabPersistence(dto);
+
     return this.prisma.lab.create({
       data: {
-        ...dto,
+        ...mapped,
         slug: targetSlug,
         authorId: user.userId,
         status,
         version: 'v1.0',
-      },
+      } as any,
       include: {
         author: {
           select: { id: true, name: true, role: true },
         },
       },
     });
+  }
+
+  private mapDtoToLabPersistence(dto: CreateLabDto | UpdateLabDto): Record<string, any> {
+    const {
+      sqlSchema,
+      sampleData,
+      expectedQueryResult,
+      quizQuestions,
+      config,
+      ...rest
+    } = dto;
+
+    let existingObjectiveParsed: Record<string, any> = {};
+    if (rest.objective && typeof rest.objective === 'string') {
+      try {
+        const parsed = JSON.parse(rest.objective);
+        if (typeof parsed === 'object' && parsed !== null) {
+          existingObjectiveParsed = parsed;
+        }
+      } catch {
+        existingObjectiveParsed = { summary: rest.objective };
+      }
+    }
+
+    const envelopeConfig: Record<string, any> = {
+      ...existingObjectiveParsed,
+      ...(config || {}),
+    };
+    if (sqlSchema) envelopeConfig.sqlSchema = sqlSchema;
+    if (sampleData) envelopeConfig.sampleData = sampleData;
+    if (expectedQueryResult) envelopeConfig.expectedQueryResult = expectedQueryResult;
+    if (quizQuestions) {
+      envelopeConfig.quizQuestions = quizQuestions;
+      envelopeConfig.quizList = quizQuestions;
+    }
+
+    const hasCustomConfig =
+      sqlSchema ||
+      sampleData ||
+      expectedQueryResult ||
+      quizQuestions ||
+      config;
+
+    const finalObjective = hasCustomConfig
+      ? JSON.stringify(envelopeConfig)
+      : rest.objective;
+
+    return {
+      ...rest,
+      objective: finalObjective,
+    };
   }
 
   async update(id: string, dto: UpdateLabDto, user: { userId: string; role: UserRole }) {
@@ -261,7 +459,8 @@ export class LabsService {
     }
 
     // Anti-Bypass: Strip unauthorized direct status promotions by Contributor
-    const updateData: any = { ...dto };
+    const mapped = this.mapDtoToLabPersistence(dto);
+    const updateData: any = { ...mapped };
     if (user.role !== UserRole.admin) {
       delete updateData.status;
       // If content was changes_requested and being edited, reset to draft
@@ -291,6 +490,8 @@ export class LabsService {
         `Cannot submit lab with status '${lab.status}'. Only draft or changes_requested can be submitted.`,
       );
     }
+
+    await this.validateSqlLabForRelease(lab);
 
     // Bump version if resubmitting
     let nextVersion = lab.version || 'v1.0';

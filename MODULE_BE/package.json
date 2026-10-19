@@ -12,10 +12,11 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "test": "echo \"Backend unit tests placeholder\"",
+    "test": "tsx --test \"test/**/*.spec.ts\"",
     "postinstall": "prisma skills sync || exit 0"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "@nestjs/common": "^12.0.1",
     "@nestjs/config": "^12.0.1",
     "@nestjs/core": "^12.0.1",
@@ -51,6 +52,7 @@
     "prettier": "^3.4.2",
     "prisma": "^6.19.3",
     "source-map-support": "^0.5.21",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.2"
   },
   "overrides": {

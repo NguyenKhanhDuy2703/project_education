@@ -24,6 +24,8 @@ import { CreateLabDto } from './dto/create-lab.dto';
 import { UpdateLabDto } from './dto/update-lab.dto';
 import { FeatureEntitlementGuard } from '../entitlements/guards/feature-entitlement.guard';
 import { RequireFeature } from '../entitlements/decorators/require-feature.decorator';
+import { SubmitLabDto } from './dto/submit-lab.dto';
+import { SqlPreflightDto } from './dto/sql-preflight.dto';
 
 @ApiTags('Labs (Practice & Blog)')
 @Controller('labs')
@@ -46,6 +48,14 @@ export class LabsController {
     return this.labsService.getUserSubmissions(req.user.userId);
   }
 
+  @Post('sql/preflight')
+  @UseGuards(AuthGuard('jwt'), ContributorGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Execute an SQL reference solution in isolated PGlite for authoring validation' })
+  async preflightSql(@Body() dto: SqlPreflightDto) {
+    return this.labsService.preflightSql(dto);
+  }
+
   @Get(':slug')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Get practice lab / blog details by slug (Public / Student view)' })
@@ -61,7 +71,7 @@ export class LabsController {
   async submit(
     @Param('id') labId: string,
     @Req() req: Request & { user: any },
-    @Body() body: any,
+    @Body() body: SubmitLabDto,
   ) {
     return this.labsService.submit(labId, req.user.userId, body);
   }
