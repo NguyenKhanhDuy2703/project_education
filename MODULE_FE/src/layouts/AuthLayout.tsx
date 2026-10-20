@@ -56,7 +56,7 @@ export function AuthLayout() {
 
         {/* Footer */}
         <p className="text-center text-[0.68rem] text-muted-foreground">
-          © 2025 StudyIT.dev · Hands-on IT Learning
+          © {new Date().getFullYear()} StudyIT.dev · Hands-on IT Learning
         </p>
       </div>
     </div>

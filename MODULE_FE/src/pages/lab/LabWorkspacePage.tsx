@@ -9,7 +9,7 @@
  * - Pluggable Right Pane via getWorkspaceStrategy(sandboxType)
  */
 import { Suspense, useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAppSelector } from '@/stores/store';
 import { can } from '@/features/auth/permissions';
 import { useLabWorkspaceData } from '@/features/lab/hooks/useLabWorkspaceData';
@@ -39,7 +39,6 @@ import {
 
 export function LabWorkspacePage() {
   const { labId } = useParams<{ labId: string }>();
-  const navigate = useNavigate();
   const { user } = useAppSelector((s) => s.auth);
 
   const hasLabProAccess = can(user, 'LAB_PRO');
@@ -118,42 +117,29 @@ export function LabWorkspacePage() {
   };
 
   const isBlockedProLab = Boolean(
-    (rawLab?.isProOnly && !hasLabProAccess) ||
-    (rawLab?.series?.isProOnly && !rawLab?.isFreePreview && !hasLabProAccess) ||
-    rawLab?.isLocked
+    (rawLab?.isProOnly || normalizedLab?.isProOnly) && !hasLabProAccess
   );
 
-  // ── Guard: 403 or PRO tier requirement ─────────────────────────────────────
+  // ── Guard: 403 Forbidden / PRO Gate ────────────────────────────────────────
   if (is403 || isBlockedProLab) {
     return (
       <>
         <div className="container mx-auto px-4 py-16 max-w-xl text-center space-y-4">
-          <Badge
-            variant="secondary"
-            className="text-xs font-bold px-2.5 py-1 bg-amber-500/10 text-amber-600 border-amber-500/20"
-          >
-            PRO TIER
+          <Badge variant="secondary" className="text-xs px-2.5 py-0.5 font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+            Exclusive PRO Lab Workspace
           </Badge>
-          <h2 className="text-xl font-bold text-foreground">Exclusive PRO Lab Workspace</h2>
+          <h2 className="text-xl font-bold text-foreground">
+            {rawLab?.title || 'Interactive Lab Challenge'}
+          </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Lab challenge {rawLab?.title ? `"${rawLab.title}"` : ''} is reserved for PRO members. Upgrade your plan or request access to enter the interactive workspace.
+            This premium practice challenge requires an active PRO membership. Upgrade your account to unlock interactive exercises, solutions, and community submissions.
           </p>
           <div className="flex items-center justify-center gap-3 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (rawLab?.series?.slug) {
-                  navigate(`/series/${rawLab.series.slug}`);
-                } else {
-                  navigate('/series');
-                }
-              }}
-            >
-              Back to Series
+            <Button variant="default" onClick={() => setShowUpgrade(true)}>
+              Unlock with PRO
             </Button>
-            <Button onClick={() => setShowUpgrade(true)} className="font-semibold shadow-xs">
-              Unlock PRO Access Now
+            <Button variant="outline" asChild>
+              <Link to="/series">Browse Free Labs</Link>
             </Button>
           </div>
         </div>
@@ -185,7 +171,7 @@ export function LabWorkspacePage() {
   const StrategyWorkspace = getWorkspaceStrategy(normalizedLab.sandboxType);
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
+    <div className="h-full w-full overflow-hidden flex flex-col bg-background">
       {/* ── Top Header Toolbar ────────────────────────────────────────────── */}
       <header className="h-12 border-b border-border bg-card flex items-center justify-between px-3 shrink-0 gap-3">
         <div className="flex items-center gap-1 sm:gap-2 min-w-0">

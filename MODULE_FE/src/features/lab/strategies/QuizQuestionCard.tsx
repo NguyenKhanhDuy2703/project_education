@@ -2,6 +2,7 @@ import React from 'react';
 import type { QuizQuestionV1 } from '../../../types/lab.types';
 import type { QuestionGradingDetail } from '../quiz/quizGrading';
 import { CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
+import { MarkdownFragment } from '../components/MarkdownFragment';
 
 export interface QuizQuestionCardProps {
   question: QuizQuestionV1;
@@ -25,17 +26,17 @@ export const QuizQuestionCard: React.FC<QuizQuestionCardProps> = ({
   return (
     <div
       id={`question-${index}`}
-      className="p-5 rounded-xl border border-border bg-card shadow-xs space-y-4 scroll-mt-6"
+      className="relative p-5 rounded-xl border border-border bg-card shadow-xs space-y-4 scroll-mt-6"
     >
       {/* Question Header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+        <div className="space-y-1 flex-1">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-primary">
             Question {index + 1}
-          </span>
-          <h3 className="text-sm md:text-base font-medium text-foreground leading-relaxed">
-            {question.question}
           </h3>
+          <div className="text-sm md:text-base font-medium text-foreground leading-relaxed">
+            <MarkdownFragment content={question.question} />
+          </div>
         </div>
 
         {/* Post-submit status pill */}
@@ -61,12 +62,13 @@ export const QuizQuestionCard: React.FC<QuizQuestionCardProps> = ({
         {question.options.map((option, optIdx) => {
           const isSelected = selectedOptionIndex === optIdx;
           const letter = OPTION_LETTERS[optIdx] || String(optIdx + 1);
+          const effectiveCorrectIndex = gradingDetail?.correctOptionIndex ?? question.correctIndex;
 
           let optionStyle =
             'border-border hover:border-primary/50 hover:bg-muted/30 bg-background text-foreground';
 
           if (isSubmitted) {
-            if (optIdx === question.correctIndex) {
+            if (optIdx === effectiveCorrectIndex) {
               optionStyle =
                 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 font-medium ring-1 ring-emerald-500';
             } else if (isSelected && !gradingDetail?.isCorrect) {
@@ -83,7 +85,7 @@ export const QuizQuestionCard: React.FC<QuizQuestionCardProps> = ({
           return (
             <label
               key={optIdx}
-              className={`flex items-center gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${
+              className={`relative flex items-center gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${
                 isSubmitted ? 'cursor-default pointer-events-none' : ''
               } ${optionStyle}`}
             >
@@ -101,7 +103,7 @@ export const QuizQuestionCard: React.FC<QuizQuestionCardProps> = ({
               {/* Letter Badge */}
               <span
                 className={`size-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                  isSubmitted && optIdx === question.correctIndex
+                  isSubmitted && optIdx === effectiveCorrectIndex
                     ? 'bg-emerald-500 text-white'
                     : isSubmitted && isSelected && !gradingDetail?.isCorrect
                     ? 'bg-destructive text-white'
@@ -114,14 +116,22 @@ export const QuizQuestionCard: React.FC<QuizQuestionCardProps> = ({
               </span>
 
               {/* Option Text */}
-              <span className="text-sm flex-1 leading-normal">{option}</span>
+              <div className="text-sm flex-1 leading-normal">
+                <MarkdownFragment content={option} inlineOnly />
+              </div>
 
               {/* Status Icons on Submit */}
-              {isSubmitted && optIdx === question.correctIndex && (
-                <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+              {isSubmitted && optIdx === effectiveCorrectIndex && (
+                <>
+                  <span className="sr-only">(Correct answer)</span>
+                  <CheckCircle2 className="size-4 text-emerald-500 shrink-0" aria-hidden="true" />
+                </>
               )}
               {isSubmitted && isSelected && !gradingDetail?.isCorrect && (
-                <XCircle className="size-4 text-destructive shrink-0" />
+                <>
+                  <span className="sr-only">(Your incorrect choice)</span>
+                  <XCircle className="size-4 text-destructive shrink-0" aria-hidden="true" />
+                </>
               )}
             </label>
           );
@@ -129,15 +139,20 @@ export const QuizQuestionCard: React.FC<QuizQuestionCardProps> = ({
       </div>
 
       {/* Post-submit Explanation Section (Only shown after submission - DEC-08) */}
-      {isSubmitted && question.explanation && (
-        <div className="mt-3 p-3.5 rounded-lg border border-border/80 bg-muted/40 text-xs text-foreground space-y-1">
-          <div className="flex items-center gap-1.5 font-semibold text-muted-foreground">
-            <HelpCircle className="size-3.5 text-primary" />
-            <span>Explanation</span>
+      {(() => {
+        const effectiveExplanation = gradingDetail?.explanation || question.explanation;
+        return isSubmitted && effectiveExplanation ? (
+          <div className="mt-3 p-3.5 rounded-lg border border-border/80 bg-muted/40 text-xs text-foreground space-y-1">
+            <div className="flex items-center gap-1.5 font-semibold text-muted-foreground">
+              <HelpCircle className="size-3.5 text-primary" />
+              <span>Explanation</span>
+            </div>
+            <div className="leading-relaxed pl-5 text-xs text-foreground">
+              <MarkdownFragment content={effectiveExplanation} />
+            </div>
           </div>
-          <p className="leading-relaxed pl-5">{question.explanation}</p>
-        </div>
-      )}
+        ) : null;
+      })()}
     </div>
   );
 };

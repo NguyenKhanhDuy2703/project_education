@@ -4,8 +4,6 @@ export interface FormatBadgeInfo {
   label: string;
   shortLabel: string;
   badgeClass: string;
-  dotClass: string;
-  emoji: string;
 }
 
 export function getFormatInfo(format?: string): FormatBadgeInfo {
@@ -15,24 +13,18 @@ export function getFormatInfo(format?: string): FormatBadgeInfo {
         label: 'SQL Query',
         shortLabel: 'SQL',
         badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30',
-        dotClass: 'bg-blue-500',
-        emoji: '🔵',
       };
     case 'quizlet':
       return {
         label: 'Quiz & Thinking',
         shortLabel: 'Quizlet',
         badgeClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30',
-        dotClass: 'bg-purple-500',
-        emoji: '🟣',
       };
     case 'hybrid':
       return {
         label: 'Auto Test & Quiz',
         shortLabel: 'Auto & Quiz',
         badgeClass: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30',
-        dotClass: 'bg-teal-500',
-        emoji: '🧪',
       };
     case 'js_worker':
     default:
@@ -40,8 +32,6 @@ export function getFormatInfo(format?: string): FormatBadgeInfo {
         label: 'Automation Test',
         shortLabel: 'Auto Test',
         badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-        dotClass: 'bg-emerald-500',
-        emoji: '🟢',
       };
   }
 }
