@@ -2,6 +2,8 @@
 **/node_modules/
 **/dist/
 **/src/generated/
+**/playwright-report/
+**/test-results/
 
 # Environment files
 **/.env

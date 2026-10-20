@@ -15,9 +15,13 @@ import {
   ArrowRight,
   ShieldCheck,
   Layers,
+  Sun,
+  Sliders,
 } from 'lucide-react';
 import { ContributorApplyModal } from '@/features/contributor/components/ContributorApplyModal';
 import { Link } from 'react-router-dom';
+import { useTheme } from '@/features/preferences/theme';
+import { useI18n } from '@/features/preferences/i18n';
 
 function getInitials(name?: string) {
   if (!name) return 'U';
@@ -29,6 +33,8 @@ function getInitials(name?: string) {
 export function UserProfileView() {
   const { user } = useAppSelector((state) => state.auth);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const { themePreference, setThemePreference } = useTheme();
+  const { t } = useI18n();
 
   const isContributor = user?.isContributor === true || user?.role === 'admin' || user?.role === 'contributor';
 
@@ -137,8 +143,8 @@ export function UserProfileView() {
           </div>
 
           <div className="p-4 border-t border-border/50 bg-muted/10 text-xs text-muted-foreground flex items-center justify-between">
-            <span>Authentication: Session Active</span>
-            <span className="font-mono text-[10px]">JWT Guarded</span>
+            <span>{t('dashboard.signedIn')}</span>
+            <span className="text-xs font-medium text-muted-foreground">{t('dashboard.securityStatus')}</span>
           </div>
         </Card>
 
@@ -211,11 +217,48 @@ export function UserProfileView() {
           </div>
 
           <div className="p-4 border-t border-border/50 bg-muted/10 text-xs text-muted-foreground flex items-center justify-between">
-            <span>Authoring Rights</span>
+            <span>{t('dashboard.authoringRights')}</span>
             <span className="font-semibold text-foreground/80">
-              {isContributor ? 'Granted' : 'Standard Learner'}
+              {isContributor ? t('dashboard.granted') : t('dashboard.standardLearner')}
             </span>
           </div>
+        </Card>
+
+        {/* Card 3: Appearance & Preferences */}
+        <Card className="border-border bg-card shadow-xs md:col-span-2">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+              <Sliders className="size-4 text-primary" />
+              <span>{t('theme.label')}</span>
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Customize interface appearance and theme preference
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4 max-w-sm">
+            {/* Theme Preference */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Sun className="size-3.5 text-muted-foreground" />
+                <span>{t('theme.label')}</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['light', 'dark', 'system'] as const).map((pref) => (
+                  <Button
+                    key={pref}
+                    type="button"
+                    variant={themePreference === pref ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setThemePreference(pref)}
+                    className="text-xs capitalize font-medium"
+                    aria-pressed={themePreference === pref}
+                  >
+                    {t(`theme.${pref}` as any)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
         </Card>
       </div>
 

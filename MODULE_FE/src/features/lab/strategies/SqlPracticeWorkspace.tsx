@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { WorkspaceStrategyProps } from './workspaceStrategy.types';
 import Editor from '@monaco-editor/react';
+import { useTheme } from '@/features/preferences/theme';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -75,6 +76,7 @@ export function SqlPracticeWorkspace({
 
   const adapterRef = useRef<SqlEngineAdapter | null>(null);
   const submissionInFlightRef = useRef(false);
+  const { resolvedTheme } = useTheme();
 
   // Extract config
   const config =
@@ -353,7 +355,7 @@ export function SqlPracticeWorkspace({
               <Editor
                 height="100%"
                 language="sql"
-                theme="vs-dark"
+                theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
                 value={code}
                 onChange={(val) => handleCodeChange(val || '')}
                 options={{

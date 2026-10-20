@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { WorkspaceStrategyProps } from '../workspaceStrategy.types';
 import Editor from '@monaco-editor/react';
 import { useLabWorker } from '@/features/lab/hooks/useLabWorker';
+import { useTheme } from '@/features/preferences/theme';
 import { WorkerResultPanel } from '@/features/lab/components/WorkerResultPanel';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -15,6 +16,7 @@ export function LegacyCodeWorkspace({
   isSubmitting = false,
   onResetCode,
 }: WorkspaceStrategyProps) {
+  const { resolvedTheme } = useTheme();
   const [rightBottomTab, setRightBottomTab] = useState<'testcase' | 'result'>('testcase');
   const { status: workerStatus, result, run: runWorker, reset: resetWorker } = useLabWorker();
 
@@ -87,7 +89,7 @@ export function LegacyCodeWorkspace({
         <Editor
           height="100%"
           language={lab.sandboxType === 'sql_worker' ? 'sql' : 'javascript'}
-          theme="vs-dark"
+          theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
           value={code}
           onChange={(val) => onCodeChange(val || '')}
           options={{

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { WorkspaceStrategyProps } from './workspaceStrategy.types';
 import Editor from '@monaco-editor/react';
 import { useLabWorker } from '@/features/lab/hooks/useLabWorker';
+import { useTheme } from '@/features/preferences/theme';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -23,7 +24,6 @@ import {
   AlertCircle,
   Lock,
 } from 'lucide-react';
-import { TestingCheatSheet } from '../components/TestingCheatSheet';
 import { SmartClozeEditor } from '../components/SmartClozeEditor';
 import {
   assembleClozeCode,
@@ -40,7 +40,7 @@ export function AutomationTestWorkspace({
   isSubmitting = false,
   onResetCode,
 }: WorkspaceStrategyProps) {
-  const [bottomTab, setBottomTab] = useState<'results' | 'cheatsheet' | 'logs'>('results');
+  const [bottomTab, setBottomTab] = useState<'results' | 'scenarios' | 'logs'>('results');
   const { status: workerStatus, result, run: runWorker, reset: resetWorker } = useLabWorker();
 
   const envelope = lab?.envelope;
@@ -51,6 +51,7 @@ export function AutomationTestWorkspace({
   const smartClozeConfig = isSmartCloze ? (config as AutomationExerciseV2) : null;
 
   // Cloze state
+  const { resolvedTheme } = useTheme();
   const [answers, setAnswers] = useState<Record<string, any>>(() =>
     smartClozeConfig ? getDefaultAnswers(smartClozeConfig.blanks) : {},
   );
@@ -224,11 +225,11 @@ export function AutomationTestWorkspace({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setBottomTab(bottomTab === 'cheatsheet' ? 'results' : 'cheatsheet')}
+            onClick={() => setBottomTab(bottomTab === 'scenarios' ? 'results' : 'scenarios')}
             className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2"
           >
             <HelpCircle className="size-3" />
-            <span>CheatSheet</span>
+            <span>Scenario Guide</span>
           </Button>
 
           {(onResetCode || isSmartCloze) && (
@@ -306,7 +307,7 @@ export function AutomationTestWorkspace({
                 <Editor
                   height="100%"
                   language="javascript"
-                  theme="vs-dark"
+                  theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
                   value={code}
                   onChange={(val) => handleMonacoCodeChange(val || '')}
                   options={{
@@ -329,7 +330,7 @@ export function AutomationTestWorkspace({
             <div className="h-full border-t-0 flex flex-col bg-card flex-1 overflow-hidden">
         <Tabs
           value={bottomTab}
-          onValueChange={(v) => setBottomTab(v as 'results' | 'cheatsheet' | 'logs')}
+          onValueChange={(v) => setBottomTab(v as 'results' | 'scenarios' | 'logs')}
           className="flex flex-col h-full"
         >
           <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/20 p-0 h-8 gap-1 px-2">
@@ -342,9 +343,9 @@ export function AutomationTestWorkspace({
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="cheatsheet" className="text-xs h-7 px-3 gap-1.5">
+            <TabsTrigger value="scenarios" className="text-xs h-7 px-3 gap-1.5">
               <Sparkles className="size-3 text-primary" />
-              Testing CheatSheet
+              Scenario Guidance
             </TabsTrigger>
             <TabsTrigger value="logs" className="text-xs h-7 px-3 gap-1.5">
               <Terminal className="size-3" />
@@ -473,9 +474,48 @@ export function AutomationTestWorkspace({
             )}
           </TabsContent>
 
-          {/* CheatSheet Tab */}
-          <TabsContent value="cheatsheet" className="flex-1 overflow-y-auto p-3 m-0">
-            <TestingCheatSheet collapsible={false} />
+          {/* Scenario Guidance Tab */}
+          <TabsContent value="scenarios" className="flex-1 overflow-y-auto p-4 m-0 space-y-4 text-xs">
+            <div className="space-y-1.5">
+              <h4 className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                <Sparkles className="size-4 text-primary" />
+                Scenario-Driven Parameterized Testing
+              </h4>
+              <p className="text-muted-foreground leading-relaxed">
+                Parameterized testing runs one test structure across multiple data variations without duplicating test code.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-1">
+                <p className="font-semibold text-foreground">1. Unique Test Titles</p>
+                <p className="text-muted-foreground leading-relaxed text-[11px]">
+                  Each execution must generate a unique test title (e.g. <code>{'`[${caseId}] ${title}`'}</code>) so test runners differentiate individual results.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-1">
+                <p className="font-semibold text-foreground">2. Shared Lifecycle Outside Loop</p>
+                <p className="text-muted-foreground leading-relaxed text-[11px]">
+                  Always declare shared fixtures and lifecycle hooks (<code>beforeAll</code> / <code>afterAll</code>) outside the <code>forEach</code> loop.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-1">
+                <p className="font-semibold text-foreground">3. Official Documentation Reference</p>
+                <p className="text-muted-foreground leading-relaxed text-[11px]">
+                  Consult the official upstream reference at{' '}
+                  <a
+                    href="https://playwright.dev/docs/test-parameterize"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline underline-offset-2 font-medium"
+                  >
+                    Playwright Parameterized Tests ↗
+                  </a>
+                </p>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Console Logs Tab */}

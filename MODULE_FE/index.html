@@ -1,7 +1,24 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('study_theme') || 'system';
+          var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+          var locale = localStorage.getItem('study_locale');
+          if (locale === 'en' || locale === 'vi') {
+            document.documentElement.lang = locale;
+          }
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="StudyIT.dev - Nền tảng học IT có lộ trình cho Tester và Backend Developer. Thực hành qua dự án mẫu xuyên suốt, luyện thi ISTQB." />

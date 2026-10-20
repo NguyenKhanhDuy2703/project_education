@@ -263,6 +263,7 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 max-w-6xl space-y-4">
+      <h1 className="sr-only">Series Catalog</h1>
       {/* ── 1. Top View Switcher Tabs (No Title/Subtitle, Clean Luxury) ─ */}
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <Tabs
@@ -528,9 +529,8 @@ function DedicatedSeriesCard({
             </Badge>
             <Badge
               variant="outline"
-              className={cn('text-[10px] font-semibold px-2 py-0.5 border gap-1 shrink-0', formatInfo.badgeClass)}
+              className={cn('text-[10px] font-semibold px-2 py-0.5 border shrink-0', formatInfo.badgeClass)}
             >
-              <span className={cn('size-1.5 rounded-full', formatInfo.dotClass)} />
               {formatInfo.label}
             </Badge>
           </div>
@@ -626,9 +626,8 @@ function FeaturedLabCard({
             </Badge>
             <Badge
               variant="outline"
-              className={cn('text-[10px] font-semibold px-2 py-0.5 border gap-1 shrink-0', formatInfo.badgeClass)}
+              className={cn('text-[10px] font-semibold px-2 py-0.5 border shrink-0', formatInfo.badgeClass)}
             >
-              <span className={cn('size-1.5 rounded-full', formatInfo.dotClass)} />
               {formatInfo.shortLabel}
             </Badge>
           </div>

@@ -36,15 +36,15 @@ import {
   clearStudioDraft,
 } from '@/features/lab/utils/studioDraftStorage';
 
-const DEFAULT_THEORY_TEMPLATE = `# 1. Lý thuyết Cốt lõi
+const DEFAULT_THEORY_TEMPLATE = `# 1. Core Theory
 
-Giải thích ngắn gọn và trực quan các khái niệm cần nắm vững trước khi thực hành.
+Briefly and visually explain key concepts learners need to understand before practicing.
 
-## 2. Cú pháp & Ví dụ Mẫu
-Nêu cú pháp cơ bản và các ví dụ minh họa trực quan.
+## 2. Syntax & Examples
+Provide basic syntax and illustrative code examples.
 
-## 3. Yêu cầu Bài Thực hành
-Nêu rõ mục tiêu học viên cần hoàn thành trong phần bài tập bên dưới.`;
+## 3. Practice Requirements
+Specify the exact learning objectives and expected outcome for the exercise below.`;
 
 export function LabStudioPage() {
   const { labId } = useParams<{ labId?: string }>();
@@ -92,10 +92,10 @@ INSERT INTO customers VALUES
     quizQuestions: [
       {
         id: 'q1',
-        question: 'Câu hỏi 1: Lựa chọn nào sau đây là chính xác?',
-        options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
+        question: 'Question 1: Which of the following statements is correct?',
+        options: ['Option A', 'Option B', 'Option C', 'Option D'],
         correctIndex: 0,
-        explanation: 'Giải thích vì sao lựa chọn A là chính xác.',
+        explanation: 'Explanation for why Option A is correct.',
       },
     ],
   });
@@ -148,8 +148,8 @@ INSERT INTO customers VALUES
             : [
                 {
                   id: 'q1',
-                  question: 'Câu hỏi 1: Nhập nội dung câu hỏi...',
-                  options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
+                  question: 'Question 1: Enter question text here...',
+                  options: ['Option A', 'Option B', 'Option C', 'Option D'],
                   correctIndex: 0,
                   explanation: '',
                 },
@@ -228,7 +228,7 @@ INSERT INTO customers VALUES
         if (
           savedDraft &&
           savedDraft.title &&
-          window.confirm('Tìm thấy bản nháp chưa xuất bản từ phiên làm việc trước. Bạn có muốn khôi phục không?')
+          window.confirm('Found an unpublished draft from a previous session. Would you like to restore it?')
         ) {
           const parsed = parseLabMarkdown(savedDraft.markdown, savedDraft.sandboxType as SandboxType);
           const env = parsed.envelope;
@@ -249,7 +249,7 @@ INSERT INTO customers VALUES
           setLastSavedTime(new Date(savedDraft.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
       } catch (err) {
-        console.error('Lỗi đọc bản nháp:', err);
+        console.error('Error restoring studio draft:', err);
       }
     }
   }, [isEditing, draftKey]);
@@ -269,7 +269,7 @@ INSERT INTO customers VALUES
         });
         setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       } catch (e) {
-        console.error('Lỗi tự động lưu nháp:', e);
+        console.error('Error auto-saving draft:', e);
       }
     }, 1500);
 
@@ -292,14 +292,14 @@ INSERT INTO customers VALUES
         const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         setLastSavedTime(nowStr);
         setToast({
-          message: `Đã lưu bản nháp vào bộ nhớ trình duyệt lúc ${nowStr}.`,
+          message: `Draft saved to browser storage at ${nowStr}.`,
           type: 'success',
         });
       } else {
-        setToast({ message: 'Không thể lưu bản nháp vào trình duyệt.', type: 'error' });
+        setToast({ message: 'Unable to save draft to browser storage.', type: 'error' });
       }
-    } catch (e) {
-      setToast({ message: 'Lỗi khi lưu bản nháp.', type: 'error' });
+    } catch {
+      setToast({ message: 'Error saving draft.', type: 'error' });
     }
   };
 
@@ -312,17 +312,17 @@ INSERT INTO customers VALUES
         updated.initialSnippet = `SELECT * FROM customers;`;
         updated.solution = `SELECT id, full_name FROM customers WHERE total_spent > 1000;`;
       } else if (nextType === 'js_worker' && (!prev.initialSnippet || prev.initialSnippet.trim().length < 10)) {
-        updated.initialSnippet = `function solution(a, b) {\n  // Viết mã nguồn tại đây\n}`;
+        updated.initialSnippet = `function solution(a, b) {\n  // Write your code here\n}`;
         updated.solution = `function solution(a, b) {\n  return a + b;\n}`;
-        updated.testScript = `test('tính tổng 2 số', () => {\n  expect(solution(1, 2)).toBe(3);\n});`;
+        updated.testScript = `test('calculates sum of two numbers', () => {\n  expect(solution(1, 2)).toBe(3);\n});`;
       } else if (nextType === 'quizlet' && (!prev.quizQuestions || prev.quizQuestions.length === 0)) {
         updated.quizQuestions = [
           {
             id: 'q1',
-            question: 'Câu hỏi 1: Lựa chọn nào sau đây là chính xác?',
-            options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
+            question: 'Question 1: Which of the following statements is correct?',
+            options: ['Option A', 'Option B', 'Option C', 'Option D'],
             correctIndex: 0,
-            explanation: 'Giải thích vì sao lựa chọn A là chính xác.',
+            explanation: 'Explanation for why Option A is correct.',
           },
         ];
       }
@@ -360,47 +360,47 @@ INSERT INTO customers VALUES
   // ── Preflight Gate Handler ───────────────────────────────────────────────
   const handleRunPreflight = () => {
     if (!form.title.trim() || form.title.trim().length < 5) {
-      setToast({ message: 'Preflight: Tiêu đề bài lab cần ít nhất 5 ký tự.', type: 'error' });
+      setToast({ message: 'Preflight: Lab title must be at least 5 characters.', type: 'error' });
       setPreflightPassed(false);
       return;
     }
     if (!form.seriesId) {
-      setToast({ message: 'Preflight: Vui lòng chọn Chuyên đề (Series) cha.', type: 'error' });
+      setToast({ message: 'Preflight: Please select a parent Series.', type: 'error' });
       setPreflightPassed(false);
       return;
     }
     if (!form.instructions?.trim() || form.instructions.trim().length < 100) {
-      setToast({ message: 'Preflight: Nội dung Lý thuyết cần tối thiểu 100 ký tự.', type: 'error' });
+      setToast({ message: 'Preflight: Theory guide must be at least 100 characters.', type: 'error' });
       setPreflightPassed(false);
       return;
     }
 
     if (form.sandboxType === 'sql_worker') {
       if (!form.sqlSchema?.trim()) {
-        setToast({ message: 'Preflight: Thiếu Lược đồ DDL/DML bảng cho bài SQL.', type: 'error' });
+        setToast({ message: 'Preflight: Missing Table DDL/DML schema for SQL lab.', type: 'error' });
         setPreflightPassed(false);
         return;
       }
       if (!form.solution?.trim()) {
-        setToast({ message: 'Preflight: Thiếu câu truy vấn Lời giải mẫu (Solution) cho bài SQL.', type: 'error' });
+        setToast({ message: 'Preflight: Missing sample Reference Solution query for SQL lab.', type: 'error' });
         setPreflightPassed(false);
         return;
       }
     } else if (form.sandboxType === 'js_worker') {
       if (!form.initialSnippet?.trim()) {
-        setToast({ message: 'Preflight: Thiếu Starter Code cho bài Automation.', type: 'error' });
+        setToast({ message: 'Preflight: Missing Starter Code for Automation lab.', type: 'error' });
         setPreflightPassed(false);
         return;
       }
       if (!form.testScript?.trim()) {
-        setToast({ message: 'Preflight: Thiếu Test Script kiểm thử cho bài Automation.', type: 'error' });
+        setToast({ message: 'Preflight: Missing Test Script for Automation lab.', type: 'error' });
         setPreflightPassed(false);
         return;
       }
     } else if (form.sandboxType === 'quizlet') {
       const questions = form.quizQuestions || [];
       if (questions.length === 0) {
-        setToast({ message: 'Preflight: Thiếu câu hỏi trong bài Trắc nghiệm.', type: 'error' });
+        setToast({ message: 'Preflight: Missing questions in Quiz lab.', type: 'error' });
         setPreflightPassed(false);
         return;
       }
@@ -409,7 +409,7 @@ INSERT INTO customers VALUES
       );
       if (hasInvalid) {
         setToast({
-          message: 'Preflight: Có câu hỏi chưa đủ ít nhất 2 đáp án hoặc chưa chọn đáp án đúng.',
+          message: 'Preflight: Each question requires at least 2 options and a selected correct answer.',
           type: 'error',
         });
         setPreflightPassed(false);
@@ -419,7 +419,7 @@ INSERT INTO customers VALUES
 
     setPreflightPassed(true);
     setToast({
-      message: 'Preflight kiểm thử thành công! Bài lab đã đủ điều kiện gửi duyệt/xuất bản.',
+      message: 'Preflight passed! The lab is ready for submission and publishing.',
       type: 'success',
     });
   };
@@ -437,16 +437,16 @@ INSERT INTO customers VALUES
       const hasSchema = (form.sqlSchema || '').trim().length >= 20;
       const hasSolution = (form.solution || '').trim().length >= 10;
       hasExerciseConfig = hasSchema && hasSolution;
-      if (!hasSchema) exerciseReason = 'Thiếu Lược đồ DDL/DML bảng';
-      else if (!hasSolution) exerciseReason = 'Thiếu câu truy vấn Solution mẫu';
+      if (!hasSchema) exerciseReason = 'Missing Table DDL/DML Schema';
+      else if (!hasSolution) exerciseReason = 'Missing Reference Solution query';
     } else if (form.sandboxType === 'js_worker') {
       const hasStarter = (form.initialSnippet || '').trim().length >= 10;
       const hasSolution = (form.solution || '').trim().length >= 10;
       const hasTestScript = (form.testScript || '').trim().length >= 10;
       hasExerciseConfig = hasStarter && hasSolution && hasTestScript;
-      if (!hasStarter) exerciseReason = 'Thiếu Starter Code cho học viên';
-      else if (!hasSolution) exerciseReason = 'Thiếu Reference Solution';
-      else if (!hasTestScript) exerciseReason = 'Thiếu Test cases kiểm thử';
+      if (!hasStarter) exerciseReason = 'Missing Starter Code for learners';
+      else if (!hasSolution) exerciseReason = 'Missing Reference Solution';
+      else if (!hasTestScript) exerciseReason = 'Missing Test cases';
     } else if (form.sandboxType === 'quizlet') {
       const questions = form.quizQuestions || [];
       const allValid =
@@ -460,8 +460,8 @@ INSERT INTO customers VALUES
             q.correctIndex < q.options.length
         );
       hasExerciseConfig = allValid;
-      if (questions.length === 0) exerciseReason = 'Chưa có câu hỏi trắc nghiệm';
-      else if (!allValid) exerciseReason = 'Có câu hỏi chưa đủ 2 đáp án hoặc chưa chọn đáp án đúng';
+      if (questions.length === 0) exerciseReason = 'No quiz questions configured';
+      else if (!allValid) exerciseReason = 'Question has fewer than 2 options or no correct answer selected';
     } else {
       hasExerciseConfig = true; // markdown_only
     }
@@ -498,7 +498,7 @@ INSERT INTO customers VALUES
       queryClient.invalidateQueries({ queryKey: ['contributor-labs'] });
 
       setToast({
-        message: isEditing ? 'Cập nhật bài thực hành thành công!' : 'Đã gửi duyệt/xuất bản bài thực hành thành công!',
+        message: isEditing ? 'Lab updated successfully!' : 'Lab submitted/published successfully!',
         type: 'success',
       });
       setTimeout(() => {
@@ -507,7 +507,7 @@ INSERT INTO customers VALUES
     },
     onError: (err: any) => {
       setToast({
-        message: err?.response?.data?.message || 'Có lỗi xảy ra khi lưu bài thực hành.',
+        message: err?.response?.data?.message || 'An error occurred while saving the lab.',
         type: 'error',
       });
     },
@@ -516,24 +516,24 @@ INSERT INTO customers VALUES
   const handlePublish = () => {
     if (!validationChecklist.isAllValid) {
       if (!validationChecklist.hasSeries) {
-        setToast({ message: 'Vui lòng chọn Chuyên đề (Series) cha.', type: 'error' });
+        setToast({ message: 'Please select a parent Series.', type: 'error' });
         return;
       }
       if (!validationChecklist.hasTitle) {
-        setToast({ message: 'Vui lòng nhập Tiêu đề bài lab (tối thiểu 5 ký tự).', type: 'error' });
+        setToast({ message: 'Please enter a lab title (at least 5 characters).', type: 'error' });
         return;
       }
       if (!validationChecklist.hasTheory) {
-        setToast({ message: 'Nội dung Lý thuyết cần tối thiểu 100 ký tự.', type: 'error' });
+        setToast({ message: 'Theory guide must be at least 100 characters.', type: 'error' });
         return;
       }
       if (!validationChecklist.hasExerciseConfig) {
-        setToast({ message: `Cấu hình bài tập chưa đạt: ${validationChecklist.exerciseReason}`, type: 'error' });
+        setToast({ message: `Exercise configuration incomplete: ${validationChecklist.exerciseReason}`, type: 'error' });
         return;
       }
     }
     if (!preflightPassed) {
-      setToast({ message: 'Vui lòng chạy Preflight kiểm thử thành công trước khi xuất bản.', type: 'error' });
+      setToast({ message: 'Please run and pass Preflight check before publishing.', type: 'error' });
       return;
     }
 
@@ -542,15 +542,15 @@ INSERT INTO customers VALUES
 
   const formatTypeName = {
     sql_worker: 'SQL Database',
-    quizlet: 'Trắc nghiệm Quizlet',
+    quizlet: 'Quizlet Assessment',
     js_worker: 'JavaScript Worker',
-    markdown_only: 'Bài đọc Lý thuyết',
+    markdown_only: 'Theory & Reading',
   }[form.sandboxType || 'sql_worker'];
 
   if (isEditing && isLoadingLab) {
     return (
       <div className="container mx-auto p-12 text-center text-sm text-muted-foreground">
-        Đang tải thông tin bài thực hành...
+        Loading lab details...
       </div>
     );
   }
@@ -571,7 +571,7 @@ INSERT INTO customers VALUES
 
           <span className="text-muted-foreground/30 font-mono text-xs hidden sm:inline">|</span>
 
-          {/* 2 Primary Mode Tabs: Soạn thảo vs Xem trước học viên */}
+          {/* 2 Primary Mode Tabs: Editor vs Student Preview */}
           <div className="flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg border border-border">
             <button
               type="button"
@@ -582,7 +582,7 @@ INSERT INTO customers VALUES
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Soạn thảo
+              Editor
             </button>
 
             <button
@@ -594,7 +594,7 @@ INSERT INTO customers VALUES
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Xem trước học viên
+              Student Preview
             </button>
           </div>
 
@@ -607,7 +607,7 @@ INSERT INTO customers VALUES
         <div className="flex items-center gap-2">
           {lastSavedTime && (
             <span className="text-[11px] text-muted-foreground hidden md:inline">
-              Đã lưu {lastSavedTime}
+              Saved {lastSavedTime}
             </span>
           )}
 
@@ -618,7 +618,7 @@ INSERT INTO customers VALUES
             onClick={handleManualSaveDraft}
             className="h-8 text-xs font-medium px-3"
           >
-            Lưu nháp
+            Save Draft
           </Button>
 
           {/* Preflight Test Button */}
@@ -634,7 +634,7 @@ INSERT INTO customers VALUES
             }`}
           >
             {preflightPassed && <CheckCircle2 className="size-3.5 mr-1" />}
-            <span>{preflightPassed ? 'Preflight đạt' : 'Chạy Preflight'}</span>
+            <span>{preflightPassed ? 'Preflight Passed' : 'Run Preflight'}</span>
           </Button>
 
           {/* Single Unified Publish / Submit Button with Pre-publish Checklist Gate */}
@@ -651,12 +651,12 @@ INSERT INTO customers VALUES
             >
               <span>
                 {saveMutation.isPending
-                  ? 'Đang lưu...'
+                  ? 'Saving...'
                   : isEditing
-                  ? 'Lưu thay đổi'
+                  ? 'Save Changes'
                   : isContributor
-                  ? 'Gửi duyệt bài lab'
-                  : 'Xuất bản bài lab'}
+                  ? 'Submit for Review'
+                  : 'Publish Lab'}
               </span>
             </Button>
 
@@ -665,13 +665,13 @@ INSERT INTO customers VALUES
               <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-popover text-popover-foreground border border-border rounded-xl shadow-xl text-xs z-50 hidden group-hover:block pointer-events-none animate-in fade-in-50">
                 <div className="flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400 mb-1.5">
                   <ShieldAlert className="size-3.5" />
-                  <span>Chưa đủ điều kiện xuất bản</span>
+                  <span>Publishing prerequisites not met</span>
                 </div>
                 <ul className="space-y-1 text-[11px] text-muted-foreground list-disc list-inside">
-                  {!preflightPassed && <li>Cần chạy Preflight kiểm thử thành công trước khi xuất bản</li>}
-                  {!validationChecklist.hasSeries && <li>Chưa chọn Chuyên đề (Series)</li>}
-                  {!validationChecklist.hasTitle && <li>Tiêu đề cần tối thiểu 5 ký tự</li>}
-                  {!validationChecklist.hasTheory && <li>Lý thuyết cần tối thiểu 100 ký tự</li>}
+                  {!preflightPassed && <li>Must pass Preflight check before publishing</li>}
+                  {!validationChecklist.hasSeries && <li>Parent Series not selected</li>}
+                  {!validationChecklist.hasTitle && <li>Title requires at least 5 characters</li>}
+                  {!validationChecklist.hasTheory && <li>Theory guide requires at least 100 characters</li>}
                   {!validationChecklist.hasExerciseConfig && <li>{validationChecklist.exerciseReason}</li>}
                 </ul>
               </div>
@@ -685,7 +685,7 @@ INSERT INTO customers VALUES
         <div className="fixed top-14 right-6 z-50 max-w-sm animate-in fade-in slide-in-from-top-2">
           <Alert variant={toast.type === 'error' ? 'destructive' : 'default'} className="bg-card shadow-lg border">
             <AlertTitle className="text-xs font-bold">
-              {toast.type === 'success' ? 'Thành công' : 'Lỗi kiểm tra'}
+              {toast.type === 'success' ? 'Success' : 'Validation Alert'}
             </AlertTitle>
             <AlertDescription className="text-xs mt-0.5">{toast.message}</AlertDescription>
           </Alert>
@@ -699,13 +699,13 @@ INSERT INTO customers VALUES
           <div className="w-full lg:w-[280px] shrink-0 space-y-4">
             <div className="p-4 rounded-2xl border border-border bg-card shadow-xs space-y-4">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider block border-b border-border pb-2">
-                Thông tin Bài Lab
+                Lab Configuration
               </span>
 
               {/* Series selector */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                  Chuyên đề (Series) *
+                  Series *
                 </label>
                 <select
                   required
@@ -729,7 +729,7 @@ INSERT INTO customers VALUES
                   }}
                   className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                 >
-                  <option value="">-- Chọn Series cha --</option>
+                  <option value="">-- Select Parent Series --</option>
                   {seriesList.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.title}
@@ -741,7 +741,7 @@ INSERT INTO customers VALUES
               {/* Sandbox format */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                  Loại hình bài tập *
+                  Exercise Type *
                 </label>
                 <select
                   value={form.sandboxType}
@@ -750,15 +750,15 @@ INSERT INTO customers VALUES
                 >
                   <option value="sql_worker">SQL Database</option>
                   <option value="js_worker">JavaScript Worker</option>
-                  <option value="quizlet">Trắc nghiệm Quizlet</option>
-                  <option value="markdown_only">Bài đọc Lý thuyết</option>
+                  <option value="quizlet">Quizlet Assessment</option>
+                  <option value="markdown_only">Theory & Reading</option>
                 </select>
               </div>
 
               {/* Lab Title */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                  Tiêu đề bài Lab *
+                  Lab Title *
                 </label>
                 <input
                   type="text"
@@ -768,7 +768,7 @@ INSERT INTO customers VALUES
                     setForm({ ...form, title: e.target.value });
                     setPreflightPassed(false);
                   }}
-                  placeholder="vd: Lọc khách hàng VIP bằng SQL WHERE"
+                  placeholder="e.g., Filter VIP Customers with SQL WHERE"
                   className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                 />
               </div>
@@ -777,7 +777,7 @@ INSERT INTO customers VALUES
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div>
                   <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block mb-1">
-                    Thời lượng
+                    Duration
                   </label>
                   <div className="relative">
                     <input
@@ -788,7 +788,7 @@ INSERT INTO customers VALUES
                       }
                       className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
                     />
-                    <span className="absolute right-2.5 top-1.5 text-[10px] text-muted-foreground">phút</span>
+                    <span className="absolute right-2.5 top-1.5 text-[10px] text-muted-foreground">min</span>
                   </div>
                 </div>
 
@@ -800,7 +800,7 @@ INSERT INTO customers VALUES
                       onChange={(e) => setForm({ ...form, isProOnly: e.target.checked })}
                       className="rounded text-primary focus:ring-primary size-3.5"
                     />
-                    <span>Gói PRO</span>
+                    <span>PRO Tier</span>
                   </label>
                 </div>
               </div>
@@ -808,29 +808,29 @@ INSERT INTO customers VALUES
               {/* Pre-publish Readiness Checklist */}
               <div className="pt-3 border-t border-border space-y-2">
                 <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                  Điều kiện xuất bản
+                  Publishing Checklist
                 </span>
                 <div className="space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Series cha:</span>
+                    <span className="text-muted-foreground">Parent Series:</span>
                     {validationChecklist.hasSeries ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Đã chọn</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Selected</span>
                     ) : (
-                      <span className="text-muted-foreground text-[11px]">○ Chưa chọn</span>
+                      <span className="text-muted-foreground text-[11px]">○ Not selected</span>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Tiêu đề (≥ 5 ký tự):</span>
+                    <span className="text-muted-foreground">Title (≥ 5 chars):</span>
                     {validationChecklist.hasTitle ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Đạt chuẩn</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Passed</span>
                     ) : (
                       <span className="text-muted-foreground text-[11px]">○ {form.title.trim().length}/5</span>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Lý thuyết (≥ 100 ký tự):</span>
+                    <span className="text-muted-foreground">Theory (≥ 100 chars):</span>
                     {validationChecklist.hasTheory ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Đạt chuẩn</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Passed</span>
                     ) : (
                       <span className="text-muted-foreground text-[11px]">
                         ○ {(form.instructions || '').trim().length}/100
@@ -838,19 +838,19 @@ INSERT INTO customers VALUES
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Cấu hình bài tập:</span>
+                    <span className="text-muted-foreground">Exercise Config:</span>
                     {validationChecklist.hasExerciseConfig ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Đạt chuẩn</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Passed</span>
                     ) : (
-                      <span className="text-amber-600 dark:text-amber-400 text-[11px]">⚠ Thiếu</span>
+                      <span className="text-amber-600 dark:text-amber-400 text-[11px]">⚠ Incomplete</span>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Preflight:</span>
                     {preflightPassed ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Thành công</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Passed</span>
                     ) : (
-                      <span className="text-muted-foreground text-[11px]">○ Chưa chạy</span>
+                      <span className="text-muted-foreground text-[11px]">○ Not run</span>
                     )}
                   </div>
                 </div>
@@ -865,7 +865,7 @@ INSERT INTO customers VALUES
                   onClick={() => setActiveTab('preview')}
                   className="w-full text-xs font-semibold h-8"
                 >
-                  Mở Xem trước học viên →
+                  Open Student Preview →
                 </Button>
               </div>
             </div>
@@ -878,11 +878,8 @@ INSERT INTO customers VALUES
               <div className="px-5 py-3 border-b border-border bg-muted/20 flex items-center justify-between">
                 <div>
                   <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    1. Lý thuyết & Hướng dẫn học viên
+                    1. Theory & Learner Guide
                   </h2>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Soạn nội dung bài học bằng Markdown. Sử dụng thanh công cụ để định dạng nhanh.
-                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span
@@ -892,7 +889,7 @@ INSERT INTO customers VALUES
                         : 'bg-muted text-muted-foreground'
                     }`}
                   >
-                    {(form.instructions || '').trim().length} / 100 ký tự
+                    {(form.instructions || '').trim().length} / 100 characters
                   </span>
                 </div>
               </div>
@@ -911,7 +908,7 @@ INSERT INTO customers VALUES
                   setForm((prev) => ({ ...prev, instructions: e.target.value }));
                   setPreflightPassed(false);
                 }}
-                placeholder="# 1. Lý thuyết cốt lõi...&#10;&#10;## 2. Cú pháp & Ví dụ...&#10;&#10;## 3. Yêu cầu bài tập..."
+                placeholder="# 1. Core Theory...&#10;&#10;## 2. Syntax & Examples...&#10;&#10;## 3. Practice Requirements..."
                 className="w-full p-4 font-mono text-xs leading-relaxed bg-transparent text-foreground resize-y focus:outline-none min-h-[260px]"
                 spellCheck={false}
               />
@@ -922,11 +919,8 @@ INSERT INTO customers VALUES
               <div className="flex items-center justify-between pb-3 border-b border-border">
                 <div>
                   <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    2. Cấu hình Bài tập thực hành: <span className="text-primary">{formatTypeName}</span>
+                    2. Exercise Configuration: <span className="text-primary">{formatTypeName}</span>
                   </h2>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Thiết lập môi trường làm bài, mã nguồn ban đầu, lời giải mẫu và tiêu chuẩn kiểm thử.
-                  </p>
                 </div>
                 <Badge variant="outline" className="font-mono text-xs uppercase text-primary border-primary/30">
                   {form.sandboxType}
@@ -994,9 +988,9 @@ INSERT INTO customers VALUES
               {/* FORMAT D: MARKDOWN ONLY */}
               {form.sandboxType === 'markdown_only' && (
                 <div className="py-8 text-center space-y-2">
-                  <h3 className="text-sm font-bold text-foreground">Chế độ Bài đọc Lý thuyết</h3>
+                  <h3 className="text-sm font-bold text-foreground">Theory Reading Mode</h3>
                   <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                    Thể loại bài này không yêu cầu mã lệnh thực hành. Học viên sẽ đọc nội dung lý thuyết ở phần 1 và hoàn thành bài đọc.
+                    This exercise format requires no executable code. Learners will read the theory in Section 1 and complete the lesson.
                   </p>
                 </div>
               )}
@@ -1010,7 +1004,7 @@ INSERT INTO customers VALUES
         <div className="flex-1 p-4 lg:p-6 max-w-7xl mx-auto w-full h-[calc(100vh-80px)]">
           <StudioStudentPreview
             envelope={previewEnvelope}
-            title={form.title || 'Tiêu đề bài thực hành'}
+            title={form.title || 'Lab Challenge Title'}
             sandboxType={(form.sandboxType as SandboxType) || 'sql_worker'}
           />
         </div>

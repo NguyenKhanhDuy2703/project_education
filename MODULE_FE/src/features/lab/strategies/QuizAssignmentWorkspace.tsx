@@ -142,7 +142,7 @@ export function QuizAssignmentWorkspace({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden">
+    <div className="h-full w-full flex flex-col min-w-0 min-h-0 bg-background overflow-hidden">
       {/* ── Top Sticky Toolbar ────────────────────────────────────────────── */}
       <div className="h-10 border-b border-border bg-card flex items-center justify-between px-4 shrink-0 z-10 shadow-2xs">
         <div className="flex items-center gap-2">
@@ -183,6 +183,8 @@ export function QuizAssignmentWorkspace({
           {/* Post-submit Score Badge */}
           {isSubmitted && gradingResult && (
             <Badge
+              role="status"
+              aria-live="polite"
               variant={gradingResult.isPassed ? 'default' : 'destructive'}
               className="h-7 text-xs px-2.5 gap-1.5"
             >
@@ -216,7 +218,7 @@ export function QuizAssignmentWorkspace({
       </div>
 
       {/* ── Scrollable Question List ──────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 max-w-4xl w-full mx-auto">
+      <div className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 pb-20 md:pb-24 space-y-6 max-w-4xl w-full mx-auto">
         {questions.map((q, index) => {
           const detail = gradingResult?.details.find((d) => d.questionId === q.id);
 

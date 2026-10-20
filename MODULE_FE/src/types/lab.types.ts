@@ -236,6 +236,42 @@ export interface AutomationExerciseV2 {
   cheatSheetVisible?: boolean;
 }
 
+// ─── Playwright Parameterized Scenario Contract (Subtask 4.1 / DEC-08) ────────
+export interface PlaywrightScenarioDatasetRow {
+  caseId: string;
+  title: string;
+  inputs: Record<string, any>;
+  expected: Record<string, any>;
+}
+
+export type PlaywrightMatcher =
+  | 'toBe'
+  | 'toEqual'
+  | 'toHaveText'
+  | 'toBeVisible'
+  | 'toHaveCount'
+  | 'toContain'
+  | 'toHaveValue';
+
+export interface PlaywrightParameterizedScenario {
+  scenarioId: string;
+  title: string;
+  description?: string;
+  baseUrlOrRoute: string;
+  dataset: PlaywrightScenarioDatasetRow[];
+  actionTemplate?: string;
+  locatorIntent?: string;
+  expectedOutcome?: string;
+  matcher: PlaywrightMatcher;
+}
+
+export interface PlaywrightParameterizedExerciseConfig {
+  version: '2.0';
+  interactionMode: 'parameterized_scenarios' | 'smart_cloze';
+  framework: 'playwright';
+  scenarios: PlaywrightParameterizedScenario[];
+}
+
 export interface SqlLabConfig {
   version: '1.0' | '2.0';
   schemaSql: string;

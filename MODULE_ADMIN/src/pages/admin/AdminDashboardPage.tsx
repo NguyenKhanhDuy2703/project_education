@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -18,6 +19,7 @@ import { seriesApi } from '@/features/lab/api/series.api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AccessibleBarChart, type BarChartItem } from '@/components/charts/AccessibleBarChart';
 
 export function AdminDashboardPage() {
   // 1. Fetch Users Count
@@ -53,6 +55,50 @@ export function AdminDashboardPage() {
 
   // Calculate Subscriptions count across plans
   const totalSubscriptions = plans.reduce((acc, p) => acc + (p._count?.subscriptions ?? 0), 0);
+
+  // Content Mix Distribution Snapshot (Task 10 / Subtask 10.3)
+  const contentChartItems: BarChartItem[] = useMemo(() => {
+    let sqlCount = 0;
+    let quizCount = 0;
+    let autoCount = 0;
+    let otherCount = 0;
+
+    seriesList.forEach((s) => {
+      const labsCount = s._count?.labs ?? s.labs?.length ?? 1;
+      const cat = (s.category || s.topic || s.slug || '').toLowerCase();
+      if (cat.includes('sql') || cat.includes('database')) {
+        sqlCount += labsCount;
+      } else if (cat.includes('quiz')) {
+        quizCount += labsCount;
+      } else if (cat.includes('auto') || cat.includes('test') || cat.includes('playwright')) {
+        autoCount += labsCount;
+      } else {
+        otherCount += labsCount;
+      }
+    });
+
+    const items: BarChartItem[] = [
+      { id: 'sql', label: 'SQL Query & Schema Practice', value: sqlCount, colorClass: 'bg-blue-500' },
+      { id: 'quiz', label: 'Quiz & Conceptual Thinking', value: quizCount, colorClass: 'bg-purple-500' },
+      { id: 'auto', label: 'Playwright & Automation Testing', value: autoCount, colorClass: 'bg-emerald-500' },
+    ];
+    if (otherCount > 0) {
+      items.push({ id: 'other', label: 'General & Core Topics', value: otherCount, colorClass: 'bg-amber-500' });
+    }
+    return items;
+  }, [seriesList]);
+
+  // Subscriptions Distribution Snapshot (Task 10 / Subtask 10.3)
+  const planChartItems: BarChartItem[] = useMemo(() => {
+    const palette = ['bg-primary', 'bg-violet-500', 'bg-indigo-500', 'bg-teal-500'];
+    return plans.map((p, idx) => ({
+      id: p.id,
+      label: p.name,
+      value: p._count?.subscriptions ?? 0,
+      colorClass: palette[idx % palette.length],
+      badge: p.isDefault ? 'Default' : p.price > 0 ? 'Paid' : 'Free',
+    }));
+  }, [plans]);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -173,6 +219,34 @@ export function AdminDashboardPage() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Visual Analytics Snapshot Section (Task 10 / Subtask 10.3) */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-lg font-bold text-foreground tracking-tight">
+            Platform Distribution Analytics
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Snapshot distributions based on live curriculum catalog and active subscriber records.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AccessibleBarChart
+            title="Curriculum Practice Labs Mix"
+            description="Active challenge distribution across technical execution formats"
+            items={contentChartItems}
+            valueUnit="labs"
+            isLoading={isLoadingSeries}
+          />
+          <AccessibleBarChart
+            title="Subscriptions by Plan Tier"
+            description="Current active user allocations across configured entitlement tiers"
+            items={planChartItems}
+            valueUnit="learners"
+            isLoading={isLoadingPlans}
+          />
+        </div>
       </div>
 
       {/* 2-Column Section: Plans Breakdown + Recent Security Audit */}
