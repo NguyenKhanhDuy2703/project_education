@@ -517,4 +517,130 @@ export class LabsService {
       where: { id },
     });
   }
+
+  async getDashboardStats(userId: string) {
+    // 1. Total active and published labs
+    const totalLabs = await this.prisma.lab.count({
+      where: {
+        isActive: true,
+        status: ContentLifecycleStatus.published,
+      },
+    });
+
+    // 2. Submissions by this user
+    const submissions = await this.prisma.labSubmission.findMany({
+      where: { userId },
+      select: {
+        labId: true,
+        status: true,
+        createdAt: true,
+        lab: {
+          select: {
+            id: true,
+            seriesId: true,
+            isActive: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Count unique passed labs among published & active labs
+    const passedLabIds = new Set<string>();
+    submissions.forEach((sub) => {
+      if (
+        sub.status === 'passed' &&
+        sub.lab?.isActive &&
+        sub.lab?.status === ContentLifecycleStatus.published
+      ) {
+        passedLabIds.add(sub.labId);
+      }
+    });
+
+    const totalCompleted = Math.min(passedLabIds.size, totalLabs);
+
+    // 3. Consecutive day streak based on submission dates (UTC calendar day)
+    let streakDays = 0;
+    if (submissions.length > 0) {
+      const uniqueDays = Array.from(
+        new Set(
+          submissions.map((s) => s.createdAt.toISOString().slice(0, 10)),
+        ),
+      ).sort((a, b) => b.localeCompare(a)); // desc
+
+      if (uniqueDays.length > 0) {
+        const now = new Date();
+        const todayStr = now.toISOString().slice(0, 10);
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+        let checkDate: Date | null = null;
+        if (uniqueDays[0] === todayStr) {
+          checkDate = now;
+        } else if (uniqueDays[0] === yesterdayStr) {
+          checkDate = yesterday;
+        }
+
+        if (checkDate) {
+          const daySet = new Set(uniqueDays);
+          let currentDay = new Date(checkDate);
+          while (true) {
+            const dateStr = currentDay.toISOString().slice(0, 10);
+            if (daySet.has(dateStr)) {
+              streakDays++;
+              currentDay = new Date(currentDay.getTime() - 24 * 60 * 60 * 1000);
+            } else {
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 4. Series progress
+    const seriesList = await this.prisma.labSeries.findMany({
+      where: {
+        isActive: true,
+        status: ContentLifecycleStatus.published,
+      },
+      select: {
+        id: true,
+        title: true,
+        labs: {
+          where: {
+            isActive: true,
+            status: ContentLifecycleStatus.published,
+          },
+          select: { id: true },
+        },
+      },
+      orderBy: { orderIndex: 'asc' },
+    });
+
+    const seriesProgress = seriesList
+      .filter((s) => s.labs.length > 0)
+      .map((s) => {
+        const seriesTotalLabs = s.labs.length;
+        const seriesCompletedLabs = s.labs.filter((l) => passedLabIds.has(l.id)).length;
+        const percentComplete =
+          seriesTotalLabs > 0
+            ? Math.round((seriesCompletedLabs / seriesTotalLabs) * 100)
+            : 0;
+        return {
+          seriesId: s.id,
+          seriesTitle: s.title,
+          completedLabs: seriesCompletedLabs,
+          totalLabs: seriesTotalLabs,
+          percentComplete,
+        };
+      });
+
+    return {
+      totalCompleted,
+      totalLabs,
+      streakDays,
+      seriesProgress,
+    };
+  }
 }

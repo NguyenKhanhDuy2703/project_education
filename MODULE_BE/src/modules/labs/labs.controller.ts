@@ -48,6 +48,22 @@ export class LabsController {
     return this.labsService.getUserSubmissions(req.user.userId);
   }
 
+  @Get('me/stats')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get dashboard statistics for current user' })
+  async getMyStats(@Req() req: Request & { user: any }) {
+    return this.labsService.getDashboardStats(req.user.userId);
+  }
+
+  @Get('user/dashboard-stats')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get dashboard statistics for current user (Frontend alias)' })
+  async getUserDashboardStats(@Req() req: Request & { user: any }) {
+    return this.labsService.getDashboardStats(req.user.userId);
+  }
+
   @Post('sql/preflight')
   @UseGuards(AuthGuard('jwt'), ContributorGuard)
   @ApiBearerAuth()

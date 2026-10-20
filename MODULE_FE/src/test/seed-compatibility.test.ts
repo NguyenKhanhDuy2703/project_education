@@ -136,4 +136,23 @@ describe('Seed Labs Backward Compatibility Audit', () => {
     expect(config.blanks).toHaveLength(1);
     expect(config.blanks[0].defaultValue).toBe(200);
   });
+
+  it('correctly normalizes Playwright parameterized test lab from seed.ts', () => {
+    const playwrightSeedLab = {
+      id: 'lab-pw-01',
+      slug: 'auto-syntax-04-playwright-parameterized-testing',
+      title: 'Playwright Parameterized Testing: Data-Driven Test Automation',
+      sandboxType: 'js_worker',
+      objective: 'Làm chủ kỹ thuật Parameterized Testing trong Playwright với mảng lặp forEach và unique test titles',
+      instructions: '# Playwright Parameterized Testing',
+      initialSnippet: 'const authScenarios = [...];',
+      testScript: 'assert(true);',
+      solution: '...',
+    };
+
+    const normalized = normalizeLabDetail(playwrightSeedLab as any);
+    expect(normalized.sandboxType).toBe('js_worker');
+    expect(normalized.envelope.sandboxType).toBe('js_worker');
+    expect(normalized.title).toBe('Playwright Parameterized Testing: Data-Driven Test Automation');
+  });
 });

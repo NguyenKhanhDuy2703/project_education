@@ -42,8 +42,15 @@ export function LabTheoryPane({
   const [internalTab, setInternalTab] = useState<'description' | 'solution' | 'history'>('description');
   const [copiedSolution, setCopiedSolution] = useState(false);
 
-  const currentTab = activeTab ?? internalTab;
+  const instructions = 'envelope' in lab ? lab.envelope.instructions : lab.instructions || '';
+  const solution = 'envelope' in lab ? lab.envelope.solution : lab.solution;
+  const sandboxType = lab.sandboxType || 'js_worker';
+  const difficulty = 'difficulty' in lab ? (lab as any).difficulty : 'Beginner';
+  const isQuiz = (sandboxType as string) === 'quizlet' || (sandboxType as string) === 'quiz';
+
+  const currentTab = isQuiz && (activeTab ?? internalTab) === 'solution' ? 'description' : (activeTab ?? internalTab);
   const handleTabChange = (val: string) => {
+    if (isQuiz && val === 'solution') return;
     const tabVal = val as 'description' | 'solution' | 'history';
     setInternalTab(tabVal);
     onTabChange?.(tabVal);
@@ -56,11 +63,6 @@ export function LabTheoryPane({
     });
   };
 
-  const instructions = 'envelope' in lab ? lab.envelope.instructions : lab.instructions || '';
-  const solution = 'envelope' in lab ? lab.envelope.solution : lab.solution;
-  const sandboxType = lab.sandboxType || 'js_worker';
-  const difficulty = 'difficulty' in lab ? (lab as any).difficulty : 'Beginner';
-
   return (
     <aside
       className={
@@ -69,15 +71,42 @@ export function LabTheoryPane({
       }
     >
       <Tabs value={currentTab} onValueChange={handleTabChange} className="flex flex-col h-full">
-        <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/30 p-1 h-9 gap-1">
-          <TabsTrigger value="description" className="text-xs font-medium px-3">
+        <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/30 p-1 h-9 gap-1 overflow-x-auto no-scrollbar shrink-0 flex items-center">
+          <TabsTrigger
+            value="description"
+            className="text-xs font-medium px-2.5 sm:px-3 shrink-0 whitespace-nowrap"
+            aria-label="Instructions"
+          >
             Instructions
           </TabsTrigger>
-          <TabsTrigger value="solution" className="text-xs font-medium px-3">
-            Solution {hasSolutionAccess ? '(PRO)' : '[PRO Locked]'}
-          </TabsTrigger>
-          <TabsTrigger value="history" className="text-xs font-medium px-3">
-            Submissions ({submissions.length})
+          {!isQuiz && (
+            <TabsTrigger
+              value="solution"
+              className="text-xs font-medium px-2.5 sm:px-3 shrink-0 whitespace-nowrap flex items-center gap-1.5"
+              aria-label={`Solution ${hasSolutionAccess ? '(PRO)' : '[PRO Locked]'}`}
+            >
+              <span>Solution</span>
+              <Badge
+                variant="outline"
+                className={`text-[9px] px-1 py-0 h-3.5 font-bold ${
+                  hasSolutionAccess
+                    ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                    : 'border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10'
+                }`}
+              >
+                PRO
+              </Badge>
+            </TabsTrigger>
+          )}
+          <TabsTrigger
+            value="history"
+            className="text-xs font-medium px-2.5 sm:px-3 shrink-0 whitespace-nowrap flex items-center gap-1"
+            aria-label={`Submissions (${submissions.length})`}
+          >
+            <span>Submissions</span>
+            <span className="text-[10px] text-muted-foreground font-semibold">
+              ({submissions.length})
+            </span>
           </TabsTrigger>
         </TabsList>
 
@@ -135,71 +164,73 @@ export function LabTheoryPane({
           {/* Contextual slot (e.g. CheatSheet, SQL Schema table, etc.) */}
           {contextualSlot && <div className="mb-4">{contextualSlot}</div>}
 
-          {/* Markdown Content */}
+          {/* Theory / Instructions markdown body */}
           <div
             className="prose prose-sm dark:prose-invert max-w-none text-foreground leading-relaxed"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(instructions) }}
           />
         </TabsContent>
 
-        <TabsContent value="solution" className="flex-1 overflow-y-auto p-5 m-0 text-sm">
-          {hasSolutionAccess ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-border">
+        {!isQuiz && (
+          <TabsContent value="solution" className="flex-1 overflow-y-auto p-5 m-0 text-sm">
+            {hasSolutionAccess ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-border">
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                  >
+                    Verified Reference Solution (PRO)
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCopySolution(solution || '')}
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                  >
+                    {copiedSolution ? (
+                      <Check className="size-3 text-emerald-500" />
+                    ) : (
+                      <Copy className="size-3" />
+                    )}
+                    <span>{copiedSolution ? 'Copied!' : 'Copy Code'}</span>
+                  </Button>
+                </div>
+
+                <pre className="p-3.5 rounded-xl bg-muted/60 border border-border font-mono text-xs overflow-x-auto text-foreground leading-relaxed">
+                  <code>{solution || '-- Solution will appear here'}</code>
+                </pre>
+
+                <div className="text-xs text-muted-foreground space-y-1 bg-primary/5 border border-primary/20 rounded-lg p-3">
+                  <p className="font-semibold text-foreground">Explanation & Best Practices:</p>
+                  <p>
+                    Review the implementation above and ensure edge conditions, boundary values, and performance limits are accounted for.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border p-6 text-center space-y-3">
                 <Badge
-                  variant="outline"
-                  className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                  variant="secondary"
+                  className="text-xs font-bold px-2 py-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20"
                 >
-                  Verified Reference Solution (PRO)
+                  PRO CONTENT
                 </Badge>
+                <p className="font-bold text-sm text-foreground">Exclusive to PRO Accounts</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  View detailed solutions, clean code breakdown, and best practices to accelerate your learning.
+                </p>
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => handleCopySolution(solution || '')}
-                  className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                  onClick={onUpgradeClick}
+                  className="text-xs font-semibold"
                 >
-                  {copiedSolution ? (
-                    <Check className="size-3 text-emerald-500" />
-                  ) : (
-                    <Copy className="size-3" />
-                  )}
-                  <span>{copiedSolution ? 'Copied!' : 'Copy Code'}</span>
+                  Unlock PRO Solution
                 </Button>
               </div>
-
-              <pre className="p-3.5 rounded-xl bg-muted/60 border border-border font-mono text-xs overflow-x-auto text-foreground leading-relaxed">
-                <code>{solution || '-- Solution will appear here'}</code>
-              </pre>
-
-              <div className="text-xs text-muted-foreground space-y-1 bg-primary/5 border border-primary/20 rounded-lg p-3">
-                <p className="font-semibold text-foreground">Explanation & Best Practices:</p>
-                <p>
-                  Review the implementation above and ensure edge conditions, boundary values, and performance limits are accounted for.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-border p-6 text-center space-y-3">
-              <Badge
-                variant="secondary"
-                className="text-xs font-bold px-2 py-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20"
-              >
-                PRO CONTENT
-              </Badge>
-              <p className="font-bold text-sm text-foreground">Exclusive to PRO Accounts</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                View detailed solutions, clean code breakdown, and best practices to accelerate your learning.
-              </p>
-              <Button
-                size="sm"
-                onClick={onUpgradeClick}
-                className="text-xs font-semibold"
-              >
-                Unlock PRO Solution
-              </Button>
-            </div>
-          )}
-        </TabsContent>
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="history" className="flex-1 overflow-y-auto p-5 m-0 text-sm space-y-3">
           <div className="flex items-center justify-between pb-1 border-b border-border/40">

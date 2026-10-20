@@ -1446,7 +1446,113 @@ assert('Bad status -> false', validateLoginResponse(badStatusRes) === false);
     },
   });
 
-  console.log('✅ Seed completed successfully with 4 Curated Series and 17 Labs into PostgreSQL!');
+  await prisma.lab.upsert({
+    where: { slug: 'auto-syntax-04-playwright-parameterized-testing' },
+    update: {
+      seriesId: seriesAutoSyntax.id,
+      title: 'Playwright Parameterized Testing: Data-Driven Test Automation',
+      sandboxType: 'js_worker',
+      objective: 'Làm chủ kỹ thuật Parameterized Testing trong Playwright với mảng lặp forEach và unique test titles',
+      instructions: `# Playwright Parameterized Testing (Data-Driven Tests)\n\nKhi cần kiểm thử cùng một luồng nghiệp vụ trên nhiều tập dữ liệu (ví dụ: các quyền đăng nhập, từ khóa tìm kiếm, giá trị biên), hãy sử dụng mảng dữ liệu lặp qua \`forEach\` thay vì sao chép các hàm \`test()\`.\n\n### Nguyên Tắc Cốt Lõi:\n1. **Unique Test Title**: Sử dụng template string lồng dữ liệu (\`[\${role}] \${title}\`) để test runner phân biệt các lần chạy độc lập.\n2. **Shared Hooks Outside Loop**: Đặt \`beforeAll\`/\`afterAll\` bên ngoài vòng lặp \`forEach\`.\n3. **Tham chiếu chuẩn**: Xem tài liệu Playwright chính thức tại [Playwright Parameterize](https://playwright.dev/docs/test-parameterize).\n\n### Nhiệm Vụ Của Bạn:\nHoàn thành bộ kịch bản tham số hóa để kiểm tra 3 vai trò người dùng (\`standard_user\`, \`pro_subscriber\`, \`admin_operator\`) trả về đúng đường dẫn tương ứng!`,
+      initialSnippet: `// 1. Ma trận kịch bản đăng nhập theo vai trò
+const authScenarios = [
+  { role: 'standard_user', targetUrl: '/dashboard' },
+  { role: 'pro_subscriber', targetUrl: '/pro-hub' },
+  { role: 'admin_operator', targetUrl: '/admin' }
+];
+
+// 2. Hàm giả lập runner kiểm tra kịch bản tham số hóa
+function runParameterizedAuthSuite() {
+  const titles = [];
+  authScenarios.forEach(({ role, targetUrl }) => {
+    const testTitle = \`Verify login destination for role: \${role}\`;
+    titles.push(testTitle);
+  });
+  return titles;
+}
+`,
+      testScript: `const titles = runParameterizedAuthSuite();
+assert('Tạo đủ 3 kịch bản kiểm thử', titles.length === 3);
+assert('Mỗi test case có tiêu đề duy nhất', new Set(titles).size === 3);
+assert('Kịch bản admin tồn tại', titles.some(t => t.includes('admin_operator')));
+assert('Kịch bản pro tồn tại', titles.some(t => t.includes('pro_subscriber')));
+`,
+      solution: `const authScenarios = [
+  { role: 'standard_user', targetUrl: '/dashboard' },
+  { role: 'pro_subscriber', targetUrl: '/pro-hub' },
+  { role: 'admin_operator', targetUrl: '/admin' }
+];
+
+function runParameterizedAuthSuite() {
+  const titles = [];
+  authScenarios.forEach(({ role, targetUrl }) => {
+    const testTitle = \`Verify login destination for role: \${role}\`;
+    titles.push(testTitle);
+  });
+  return titles;
+}`,
+      durationMinutes: 20,
+      isFreePreview: true,
+      isProOnly: false,
+      orderIndex: 4,
+      status: ContentLifecycleStatus.published,
+      authorId: contributorUser.id,
+    },
+    create: {
+      seriesId: seriesAutoSyntax.id,
+      title: 'Playwright Parameterized Testing: Data-Driven Test Automation',
+      slug: 'auto-syntax-04-playwright-parameterized-testing',
+      sandboxType: 'js_worker',
+      objective: 'Làm chủ kỹ thuật Parameterized Testing trong Playwright với mảng lặp forEach và unique test titles',
+      instructions: `# Playwright Parameterized Testing (Data-Driven Tests)\n\nKhi cần kiểm thử cùng một luồng nghiệp vụ trên nhiều tập dữ liệu (ví dụ: các quyền đăng nhập, từ khóa tìm kiếm, giá trị biên), hãy sử dụng mảng dữ liệu lặp qua \`forEach\` thay vì sao chép các hàm \`test()\`.\n\n### Nguyên Tắc Cốt Lõi:\n1. **Unique Test Title**: Sử dụng template string lồng dữ liệu (\`[\${role}] \${title}\`) để test runner phân biệt các lần chạy độc lập.\n2. **Shared Hooks Outside Loop**: Đặt \`beforeAll\`/\`afterAll\` bên ngoài vòng lặp \`forEach\`.\n3. **Tham chiếu chuẩn**: Xem tài liệu Playwright chính thức tại [Playwright Parameterize](https://playwright.dev/docs/test-parameterize).\n\n### Nhiệm Vụ Của Bạn:\nHoàn thành bộ kịch bản tham số hóa để kiểm tra 3 vai trò người dùng (\`standard_user\`, \`pro_subscriber\`, \`admin_operator\`) trả về đúng đường dẫn tương ứng!`,
+      initialSnippet: `// 1. Ma trận kịch bản đăng nhập theo vai trò
+const authScenarios = [
+  { role: 'standard_user', targetUrl: '/dashboard' },
+  { role: 'pro_subscriber', targetUrl: '/pro-hub' },
+  { role: 'admin_operator', targetUrl: '/admin' }
+];
+
+// 2. Hàm giả lập runner kiểm tra kịch bản tham số hóa
+function runParameterizedAuthSuite() {
+  const titles = [];
+  authScenarios.forEach(({ role, targetUrl }) => {
+    const testTitle = \`Verify login destination for role: \${role}\`;
+    titles.push(testTitle);
+  });
+  return titles;
+}
+`,
+      testScript: `const titles = runParameterizedAuthSuite();
+assert('Tạo đủ 3 kịch bản kiểm thử', titles.length === 3);
+assert('Mỗi test case có tiêu đề duy nhất', new Set(titles).size === 3);
+assert('Kịch bản admin tồn tại', titles.some(t => t.includes('admin_operator')));
+assert('Kịch bản pro tồn tại', titles.some(t => t.includes('pro_subscriber')));
+`,
+      solution: `const authScenarios = [
+  { role: 'standard_user', targetUrl: '/dashboard' },
+  { role: 'pro_subscriber', targetUrl: '/pro-hub' },
+  { role: 'admin_operator', targetUrl: '/admin' }
+];
+
+function runParameterizedAuthSuite() {
+  const titles = [];
+  authScenarios.forEach(({ role, targetUrl }) => {
+    const testTitle = \`Verify login destination for role: \${role}\`;
+    titles.push(testTitle);
+  });
+  return titles;
+}`,
+      durationMinutes: 20,
+      isFreePreview: true,
+      isProOnly: false,
+      orderIndex: 4,
+      isActive: true,
+      status: ContentLifecycleStatus.published,
+      authorId: contributorUser.id,
+    },
+  });
+
+  console.log('✅ Seed completed successfully with 4 Curated Series and 18 Labs into PostgreSQL!');
 }
 
 main()

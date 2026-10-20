@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   MessageSquarePlus,
@@ -30,93 +30,87 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAppSelector } from '@/stores/store';
 import { feedbackApi, type FeedbackCategory } from '@/features/feedback/api/feedback.api';
+import { useI18n, type TranslationKey } from '@/features/preferences/i18n';
 
 interface CategoryOption {
   id: FeedbackCategory;
-  label: string;
+  labelKey: TranslationKey;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const CATEGORIES: CategoryOption[] = [
-  { id: 'bug', label: 'Báo lỗi', icon: Bug },
-  { id: 'feature_request', label: 'Góp ý tính năng', icon: Lightbulb },
-  { id: 'content_lab', label: 'Nội dung bài tập', icon: BookOpen },
-  { id: 'other', label: 'Khác', icon: HelpCircle },
+  { id: 'bug', labelKey: 'feedback.categoryIssue', icon: Bug },
+  { id: 'feature_request', labelKey: 'feedback.categoryFeature', icon: Lightbulb },
+  { id: 'content_lab', labelKey: 'feedback.categoryContent', icon: BookOpen },
+  { id: 'other', labelKey: 'feedback.categoryOther', icon: HelpCircle },
 ];
 
 interface SystemFeature {
   id: string;
-  shortName: string;
-  fullName: string;
+  nameKey: TranslationKey;
+  suggestionKeys: TranslationKey[];
   icon: React.ComponentType<{ className?: string }>;
-  suggestions: string[];
 }
 
 const SYSTEM_FEATURES: SystemFeature[] = [
   {
     id: 'series_catalog',
-    shortName: 'Series & Lộ trình',
-    fullName: 'Khám phá Series & Lộ trình học',
+    nameKey: 'feedback.features.seriesCatalog',
     icon: BookOpen,
-    suggestions: [
-      'Không tải được danh sách bài tập trong series',
-      'Lộ trình hiển thị sai thứ tự bài học',
-      'Đề bài bị lỗi hiển thị cú pháp Markdown / hình ảnh',
+    suggestionKeys: [
+      'feedback.suggestions.series_1',
+      'feedback.suggestions.series_2',
+      'feedback.suggestions.series_3',
     ],
   },
   {
     id: 'lab_workspace',
-    shortName: 'Thực hành Lab',
-    fullName: 'Không gian Thực hành Lab Workspace',
+    nameKey: 'feedback.features.labWorkspace',
     icon: Code2,
-    suggestions: [
-      'Trình soạn thảo Monaco Editor bị lag hoặc mất nét',
-      'Không lưu được bài code khi bấm Submit',
-      'Cây thư mục file tree không cập nhật tệp tin',
+    suggestionKeys: [
+      'feedback.suggestions.lab_1',
+      'feedback.suggestions.lab_2',
+      'feedback.suggestions.lab_3',
     ],
   },
   {
     id: 'code_runner',
-    shortName: 'Chạy Code & Sandbox',
-    fullName: 'Trình chạy Code & Docker Sandbox',
+    nameKey: 'feedback.features.codeRunner',
     icon: Terminal,
-    suggestions: [
-      'Chạy code bị timeout (vượt quá thời gian chờ)',
-      'Kết quả test case không khớp với kết quả thực tế',
-      'Lỗi khởi động môi trường Docker container',
+    suggestionKeys: [
+      'feedback.suggestions.runner_1',
+      'feedback.suggestions.runner_2',
+      'feedback.suggestions.runner_3',
     ],
   },
   {
     id: 'contributor_studio',
-    shortName: 'Studio Tác giả',
-    fullName: 'Studio Soạn thảo Bài tập & Series',
+    nameKey: 'feedback.features.contributorStudio',
     icon: PenTool,
-    suggestions: [
-      'Không lưu được bản nháp bài lab mới',
-      'Lỗi upload hình ảnh minh họa bài tập',
-      'Trình kiểm thử test case mẫu báo lỗi không rõ nguyên nhân',
+    suggestionKeys: [
+      'feedback.suggestions.studio_1',
+      'feedback.suggestions.studio_2',
+      'feedback.suggestions.studio_3',
     ],
   },
   {
     id: 'dashboard_progress',
-    shortName: 'Tiến độ & Bài nộp',
-    fullName: 'Bảng điều khiển & Lịch sử nộp bài',
+    nameKey: 'feedback.features.dashboardProgress',
     icon: LayoutDashboard,
-    suggestions: [
-      'Lịch sử nộp bài hiển thị sai trạng thái Passed/Failed',
-      'Biểu đồ thống kê học tập (streak) không cập nhật',
-      'Điểm kinh nghiệm (XP) tính chưa chính xác',
+    suggestionKeys: [
+      'feedback.suggestions.dash_1',
+      'feedback.suggestions.dash_2',
+      'feedback.suggestions.dash_3',
     ],
   },
   {
     id: 'auth_account',
-    shortName: 'Tài khoản & Đăng nhập',
-    fullName: 'Tài khoản, Xác thực & Cài đặt',
+    nameKey: 'feedback.features.authAccount',
     icon: ShieldCheck,
-    suggestions: [
-      'Gặp sự cố khi đăng nhập bằng tài khoản Google',
-      'Không cập nhật được thông tin cá nhân hoặc mật khẩu',
-      'Phiên đăng nhập bị hết hạn đột ngột',
+    suggestionKeys: [
+      'feedback.suggestions.auth_1',
+      'feedback.suggestions.auth_2',
+      'feedback.suggestions.auth_3',
     ],
   },
 ];
@@ -124,6 +118,7 @@ const SYSTEM_FEATURES: SystemFeature[] = [
 export function FeedbackWidget() {
   const location = useLocation();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { t } = useI18n();
 
   const [isOpen, setIsOpen] = useState(false);
   const [category, setCategory] = useState<FeedbackCategory>('bug');
@@ -133,6 +128,12 @@ export function FeedbackWidget() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-study-feedback', handleOpen);
+    return () => window.removeEventListener('open-study-feedback', handleOpen);
+  }, []);
 
   const activeFeature = SYSTEM_FEATURES.find((f) => f.id === selectedFeatureId);
 
@@ -176,13 +177,13 @@ export function FeedbackWidget() {
 
     const trimmedMsg = message.trim();
     if (trimmedMsg.length < 5) {
-      setErrorMsg('Vui lòng nhập nội dung phản hồi tối thiểu 5 ký tự.');
+      setErrorMsg(t('feedback.minCharsError'));
       return;
     }
 
-    // Embed selected system feature into message header for clear tracking
+    // Embed selected system feature ID into message header for machine-readable diagnostic tracking
     const finalMessage = activeFeature
-      ? `[Tính năng: ${activeFeature.shortName}] ${trimmedMsg}`
+      ? `[Area: ${activeFeature.id}] ${trimmedMsg}`
       : trimmedMsg;
 
     setIsSubmitting(true);
@@ -198,7 +199,7 @@ export function FeedbackWidget() {
     } catch (err: any) {
       const serverMsg =
         err?.response?.data?.message ||
-        'Không thể gửi phản hồi lúc này. Vui lòng thử lại sau.';
+        t('feedback.error');
       setErrorMsg(Array.isArray(serverMsg) ? serverMsg.join(', ') : serverMsg);
     } finally {
       setIsSubmitting(false);
@@ -212,7 +213,7 @@ export function FeedbackWidget() {
           type="button"
           variant="default"
           size="icon"
-          aria-label="Gửi phản hồi & Góp ý"
+          aria-label={t('feedback.triggerAria')}
           className="fixed bottom-6 right-6 z-40 size-12 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
         >
           <MessageSquarePlus className="size-6" />
@@ -227,10 +228,10 @@ export function FeedbackWidget() {
             </div>
             <div className="space-y-1">
               <DialogTitle className="text-lg font-semibold text-foreground">
-                Cảm ơn bạn đã gửi phản hồi!
+                {t('feedback.success')}
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
-                Ý kiến đóng góp của bạn đã được ghi nhận và giúp chúng tôi cải thiện nền tảng tốt hơn.
+                {t('feedback.successDesc')}
               </DialogDescription>
             </div>
             <div className="pt-2 flex gap-3 w-full">
@@ -240,7 +241,7 @@ export function FeedbackWidget() {
                 className="flex-1 border-border"
                 onClick={() => resetForm()}
               >
-                Gửi phản hồi khác
+                {t('feedback.sendAnother')}
               </Button>
               <Button
                 type="button"
@@ -248,7 +249,7 @@ export function FeedbackWidget() {
                 className="flex-1"
                 onClick={() => setIsOpen(false)}
               >
-                Đóng
+                {t('feedback.close')}
               </Button>
             </div>
           </div>
@@ -256,10 +257,10 @@ export function FeedbackWidget() {
           <>
             <DialogHeader>
               <DialogTitle className="text-lg font-semibold text-foreground">
-                Gửi phản hồi & Góp ý
+                {t('feedback.title')}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Hãy cho chúng tôi biết trải nghiệm của bạn hoặc những tính năng cần khắc phục, cải thiện.
+                {t('feedback.subtitle')}
               </DialogDescription>
             </DialogHeader>
 
@@ -267,7 +268,7 @@ export function FeedbackWidget() {
               {/* Category Chips */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">
-                  Phân loại yêu cầu
+                  {t('feedback.categoryLabel')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {CATEGORIES.map((cat) => {
@@ -285,7 +286,7 @@ export function FeedbackWidget() {
                         }`}
                       >
                         <IconComponent className="size-3.5" />
-                        <span>{cat.label}</span>
+                        <span>{t(cat.labelKey)}</span>
                       </button>
                     );
                   })}
@@ -297,7 +298,7 @@ export function FeedbackWidget() {
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <Sparkles className="size-3.5 text-primary" />
-                    Chức năng liên quan (Chọn nhanh)
+                    {t('feedback.relatedFeatures')}
                   </label>
                   {activeFeature && (
                     <button
@@ -305,7 +306,7 @@ export function FeedbackWidget() {
                       onClick={() => setSelectedFeatureId(null)}
                       className="text-[11px] text-muted-foreground hover:text-foreground underline cursor-pointer"
                     >
-                      Bỏ chọn
+                      {t('feedback.deselect')}
                     </button>
                   )}
                 </div>
@@ -326,7 +327,7 @@ export function FeedbackWidget() {
                         }`}
                       >
                         <Icon className="size-3.5 shrink-0" />
-                        <span className="truncate">{feat.shortName}</span>
+                        <span className="truncate">{t(feat.nameKey)}</span>
                       </button>
                     );
                   })}
@@ -336,19 +337,22 @@ export function FeedbackWidget() {
                 {activeFeature && (
                   <div className="pt-2 border-t border-border/60 space-y-1.5">
                     <span className="text-[11px] font-medium text-muted-foreground">
-                      Gợi ý nội dung thường gặp cho {activeFeature.shortName}:
+                      {t('feedback.commonSuggestions', { feature: t(activeFeature.nameKey) })}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
-                      {activeFeature.suggestions.map((sug, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => handleApplySuggestion(sug)}
-                          className="text-[11px] px-2.5 py-1 rounded-md bg-card hover:bg-primary/10 hover:text-primary border border-border transition-colors text-left text-foreground/80 cursor-pointer"
-                        >
-                          + {sug}
-                        </button>
-                      ))}
+                      {activeFeature.suggestionKeys.map((sugKey) => {
+                        const sugText = t(sugKey);
+                        return (
+                          <button
+                            key={sugKey}
+                            type="button"
+                            onClick={() => handleApplySuggestion(sugText)}
+                            className="text-[11px] px-2.5 py-1 rounded-md bg-card hover:bg-primary/10 hover:text-primary border border-border transition-colors text-left text-foreground/80 cursor-pointer"
+                          >
+                            + {sugText}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -357,7 +361,7 @@ export function FeedbackWidget() {
               {/* User Identity or Guest Email */}
               {isAuthenticated && user ? (
                 <div className="p-2.5 rounded-lg bg-muted/30 border border-border text-xs text-muted-foreground flex items-center justify-between">
-                  <span>Gửi với tư cách:</span>
+                  <span>{t('feedback.sendingAs')}</span>
                   <span className="font-medium text-foreground truncate max-w-[200px]">
                     {user.name || user.email}
                   </span>
@@ -365,13 +369,13 @@ export function FeedbackWidget() {
               ) : (
                 <div className="space-y-1.5">
                   <label htmlFor="feedback-email" className="text-xs font-medium text-foreground">
-                    Email liên hệ{' '}
-                    <span className="text-muted-foreground font-normal">(không bắt buộc)</span>
+                    {t('feedback.emailLabel')}{' '}
+                    <span className="text-muted-foreground font-normal">{t('feedback.emailOptional')}</span>
                   </label>
                   <Input
                     id="feedback-email"
                     type="email"
-                    placeholder="name@example.com (để nhận phản hồi)"
+                    placeholder={t('feedback.emailPlaceholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="h-9 text-xs"
@@ -383,7 +387,7 @@ export function FeedbackWidget() {
               <div className="space-y-1.5">
                 <label htmlFor="feedback-msg" className="text-xs font-semibold text-foreground flex justify-between">
                   <span>
-                    Nội dung phản hồi <span className="text-destructive">*</span>
+                    {t('feedback.messageLabel')} <span className="text-destructive">*</span>
                   </span>
                   <span className="text-muted-foreground font-normal text-[11px]">
                     {message.length}/2000
@@ -394,7 +398,7 @@ export function FeedbackWidget() {
                   rows={4}
                   required
                   maxLength={2000}
-                  placeholder="Mô tả chi tiết vấn đề bạn gặp phải, hoặc chọn các gợi ý nhanh phía trên..."
+                  placeholder={t('feedback.messagePlaceholder')}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="text-xs resize-none"
@@ -420,12 +424,12 @@ export function FeedbackWidget() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Đang gửi phản hồi...
+                      {t('feedback.submitting')}
                     </>
                   ) : (
                     <>
                       <Send className="size-4" />
-                      Gửi phản hồi
+                      {t('feedback.submit')}
                     </>
                   )}
                 </Button>

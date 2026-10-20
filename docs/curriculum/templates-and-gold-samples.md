@@ -202,3 +202,94 @@ describe('Xác thực Hồ sơ Người dùng (User Profile)', () => {
 });
 :::
 ```
+
+---
+
+## 3. Mẫu Chuẩn Vàng 3: Bài Thực Hành Playwright Parameterized Testing (Data-Driven Tests)
+*(Theo chuẩn chính thức của Playwright: https://playwright.dev/docs/test-parameterize)*
+
+```markdown
+# Playwright Parameterized Testing: Data-Driven Test Automation
+
+### 1. Nguyên Lý Kiểm Thử Tham Số Hóa (Parameterized Testing)
+Khi bạn cần kiểm thử một luồng nghiệp vụ trên nhiều tập dữ liệu khác nhau (ví dụ: đăng nhập nhiều role, tìm kiếm các từ khóa biên, kiểm tra validation form), việc duplicate các khối `test()` dẫn đến mã nguồn cồng kềnh và khó bảo trì.
+Thay vào đó, chuẩn thực hành tốt nhất của Playwright là định nghĩa một ma trận dữ liệu và duyệt qua mảng dữ liệu bằng `forEach`:
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+const searchCases = [
+  { term: 'PostgreSQL', expectedCount: 5 },
+  { term: 'Playwright', expectedCount: 3 },
+  { term: 'UnknownXYZ', expectedCount: 0 },
+];
+
+searchCases.forEach(({ term, expectedCount }) => {
+  // BẮT BUỘC: Mỗi test case phải có tên duy nhất để báo cáo kiểm thử phân biệt được
+  test(`Tìm kiếm từ khóa "${term}" trả về ${expectedCount} kết quả`, async ({ page }) => {
+    await page.goto('/series');
+    await page.fill('input[type="search"]', term);
+    await expect(page.locator('.series-card')).toHaveCount(expectedCount);
+  });
+});
+```
+
+### 2. Quy Tắc Cốt Lõi Khi Tham Số Hóa
+1. **Tiêu đề duy nhất (Unique Test Titles)**: Sử dụng template string `${term}` hoặc `${caseId}` trong tên test để tránh trùng lặp báo cáo.
+2. **Hooks nằm ngoài vòng lặp (Shared Hooks Outside Loop)**: Nếu dùng `beforeAll` hoặc `afterAll`, luôn đặt chúng ở cấp độ ngoài của file hoặc describe, không gọi bên trong `forEach`.
+3. **Phân biệt Test-Level vs Project-Level**: Tham số hóa bằng mảng lặp dành cho dữ liệu nghiệp vụ (test-level). Khi cần chạy trên nhiều trình duyệt hoặc môi trường, cấu hình qua `projects` trong `playwright.config.ts`.
+
+:::initial javascript
+import { test, expect } from '@playwright/test';
+
+// 1. Ma trận kịch bản đăng nhập theo Role
+const authScenarios = [
+  { role: 'standard_user', username: 'user@example.com', targetUrl: '/dashboard' },
+  { role: 'pro_subscriber', username: 'pro@example.com', targetUrl: '/pro-hub' },
+  { role: 'admin_operator', username: 'admin@example.com', targetUrl: '/admin' }
+];
+
+// 2. Tham số hóa kịch bản kiểm thử
+authScenarios.forEach(({ role, username, targetUrl }) => {
+  // TODO: Điền cú pháp test title duy nhất và assertion
+  test(`Đăng nhập thành công với vai trò: \${role}`, async ({ page }) => {
+    await page.goto('/login');
+    await page.fill('#email', username);
+    await page.fill('#password', 'SecurePass123!');
+    await page.click('button[type="submit"]');
+
+    await expect(page).toHaveURL(targetUrl);
+  });
+});
+:::
+
+:::tests javascript
+test('Parameterized scenarios compile and generate unique test suites', () => {
+  expect(typeof authScenarios).toBe('object');
+  expect(authScenarios.length).toBe(3);
+  const titles = new Set(authScenarios.map(s => `Đăng nhập thành công với vai trò: ${s.role}`));
+  expect(titles.size).toBe(3);
+});
+:::
+
+:::solution javascript
+import { test, expect } from '@playwright/test';
+
+const authScenarios = [
+  { role: 'standard_user', username: 'user@example.com', targetUrl: '/dashboard' },
+  { role: 'pro_subscriber', username: 'pro@example.com', targetUrl: '/pro-hub' },
+  { role: 'admin_operator', username: 'admin@example.com', targetUrl: '/admin' }
+];
+
+authScenarios.forEach(({ role, username, targetUrl }) => {
+  test(`Đăng nhập thành công với vai trò: \${role}`, async ({ page }) => {
+    await page.goto('/login');
+    await page.fill('#email', username);
+    await page.fill('#password', 'SecurePass123!');
+    await page.click('button[type="submit"]');
+
+    await expect(page).toHaveURL(targetUrl);
+  });
+});
+:::
+```

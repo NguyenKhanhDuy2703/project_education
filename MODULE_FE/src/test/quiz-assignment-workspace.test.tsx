@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QuizAssignmentWorkspace } from '../features/lab/strategies/QuizAssignmentWorkspace';
+import { QuizQuestionCard } from '../features/lab/strategies/QuizQuestionCard';
 import type { PracticeLabV1 } from '../types/lab.types';
 
 describe('QuizAssignmentWorkspace Suite (Subtasks 6.2 - 6.5)', () => {
@@ -118,14 +119,52 @@ describe('QuizAssignmentWorkspace Suite (Subtasks 6.2 - 6.5)', () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalled();
+      expect(onSubmit).toHaveBeenCalledTimes(1);
     });
 
-    // Score badge should be visible
-    expect(screen.getByText(/Passed: 100%/i)).toBeDefined();
+    // Score badge should be visible and announceable to screen readers (Subtask 2.4)
+    const scoreBadge = screen.getByRole('status');
+    expect(scoreBadge).toBeDefined();
+    expect(scoreBadge.getAttribute('aria-live')).toBe('polite');
+    expect(scoreBadge.textContent).toContain('Passed: 100%');
+
+    // Accessible text for correct answer icon
+    expect(screen.getAllByText('(Correct answer)').length).toBeGreaterThan(0);
 
     // Explanation should now be visible
     expect(screen.getByText(/B-Tree is a self-balancing tree data structure/i)).toBeDefined();
+  });
+
+  it('enforces double-submit guard and shows incorrect answer accessibility label', async () => {
+    const onSubmit = vi.fn().mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    render(
+      <QuizAssignmentWorkspace
+        lab={mockQuizLab as PracticeLabV1}
+        code=""
+        onCodeChange={vi.fn()}
+        onSubmit={onSubmit}
+      />
+    );
+
+    // Answer Q1 incorrectly (opt 1 instead of 0)
+    fireEvent.click(screen.getByLabelText(/Hash table/i));
+    // Answer Q2 correctly (opt 1)
+    fireEvent.click(screen.getByLabelText(/Full-text search or arrays/i));
+
+    const submitBtn = screen.getByRole('button', { name: /Submit Quiz/i });
+    // Fire double-click
+    fireEvent.click(submitBtn);
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    // Verify incorrect choice has accessible screen reader text
+    expect(screen.getByText('(Your incorrect choice)')).toBeDefined();
+    // Verify correct answer is also marked
+    expect(screen.getAllByText('(Correct answer)').length).toBeGreaterThan(0);
   });
 
   it('opens and closes question palette modal', async () => {
@@ -150,5 +189,39 @@ describe('QuizAssignmentWorkspace Suite (Subtasks 6.2 - 6.5)', () => {
     await waitFor(() => {
       expect(screen.queryByText(/Question Palette/i)).toBeNull();
     });
+  });
+
+  it('highlights correct answer even when question.correctIndex is omitted and resolved via gradingDetail', () => {
+    const questionWithoutCorrectIndex = {
+      id: 'q-secure',
+      question: 'What is ACID in database systems?',
+      options: ['Atomicity, Consistency, Isolation, Durability', 'Arbitrary Code In Database'],
+      // correctIndex omitted intentionally
+    } as any;
+
+    const gradingDetail = {
+      questionId: 'q-secure',
+      selectedOptionIndex: 0,
+      correctOptionIndex: 0,
+      isCorrect: true,
+      isAnswered: true,
+      explanation: 'ACID guarantees database transaction reliability.',
+    };
+
+    render(
+      <QuizQuestionCard
+        question={questionWithoutCorrectIndex}
+        index={0}
+        selectedOptionIndex={0}
+        onSelectOption={vi.fn()}
+        isSubmitted={true}
+        gradingDetail={gradingDetail}
+      />
+    );
+
+    // Option 0 should have the correct answer text & badge
+    expect(screen.getByText('(Correct answer)')).toBeDefined();
+    expect(screen.getByText('Correct')).toBeDefined();
+    expect(screen.getByText(/ACID guarantees database transaction reliability/i)).toBeDefined();
   });
 });

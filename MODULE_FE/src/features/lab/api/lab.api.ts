@@ -1,5 +1,4 @@
 import { apiClient } from '@/services/api.client';
-import type { ApiResponse } from '@/types/api.types';
 import type {
   LabDetail,
   SubmitLabPayload,
@@ -71,9 +70,13 @@ export const labApi = {
   },
 
   /** Dashboard stats — completed labs, streak, series progress */
-  getDashboardStats: (): Promise<DashboardStats> => {
-    return apiClient
-      .get<ApiResponse<DashboardStats>>('/users/me/dashboard-stats')
-      .then((r) => r.data.data);
+  getDashboardStats: async (): Promise<DashboardStats> => {
+    try {
+      const res = await apiClient.get<any>('/labs/me/stats');
+      return res.data?.data ?? res.data;
+    } catch {
+      const res = await apiClient.get<any>('/labs/user/dashboard-stats');
+      return res.data?.data ?? res.data;
+    }
   },
 };

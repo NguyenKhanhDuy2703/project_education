@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function WorkspaceSkeleton() {
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-background">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-background">
       <div className="h-12 border-b border-border bg-card px-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Skeleton className="h-5 w-24" />

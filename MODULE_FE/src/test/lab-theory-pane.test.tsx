@@ -86,4 +86,33 @@ describe('LabTheoryPane Component Suite (Subtask 3.3)', () => {
     expect(screen.getByTestId('custom-slot')).toBeDefined();
     expect(screen.getByText('Custom CheatSheet Slot')).toBeDefined();
   });
+
+  it('does NOT render solution tab when sandboxType is quizlet or quiz', () => {
+    const quizLab: Partial<LabDetail> = {
+      id: 'lab-quiz-1',
+      slug: 'lab-quiz-1',
+      title: 'Quiz Demonstration Lab',
+      instructions: '# Quiz Instructions',
+      sandboxType: 'quizlet',
+      isProOnly: false,
+      solution: 'Answer 1 is B',
+    };
+
+    render(
+      <MemoryRouter>
+        <LabTheoryPane
+          lab={quizLab as LabDetail}
+          currentLabIndex={0}
+          hasSolutionAccess={true}
+          activeTab="solution"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('tab', { name: /Instructions/i })).toBeDefined();
+    expect(screen.getByRole('tab', { name: /Submissions/i })).toBeDefined();
+    // Verifies Solution tab trigger and content are omitted for quizzes
+    expect(screen.queryByRole('tab', { name: /Solution/i })).toBeNull();
+    expect(screen.queryByText(/Answer 1 is B/i)).toBeNull();
+  });
 });

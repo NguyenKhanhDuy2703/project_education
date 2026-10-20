@@ -94,9 +94,8 @@ export function SeriesDetailPage() {
             </Badge>
             <Badge
               variant="outline"
-              className={cn('text-xs font-semibold border gap-1', seriesFormatInfo.badgeClass)}
+              className={cn('text-xs font-semibold border', seriesFormatInfo.badgeClass)}
             >
-              <span className={cn('size-1.5 rounded-full', seriesFormatInfo.dotClass)} />
               {seriesFormatInfo.label}
             </Badge>
             {series.isProOnly && (
@@ -214,9 +213,8 @@ function LabRowItem({
           <p className="text-sm font-semibold text-foreground truncate">{lab.title}</p>
           <Badge
             variant="outline"
-            className={cn('text-[10px] h-4.5 px-1.5 font-bold border shrink-0 gap-1', formatInfo.badgeClass)}
+            className={cn('text-[10px] h-4.5 px-1.5 font-bold border shrink-0', formatInfo.badgeClass)}
           >
-            <span className={cn('size-1.5 rounded-full', formatInfo.dotClass)} />
             {formatInfo.label}
           </Badge>
         </div>

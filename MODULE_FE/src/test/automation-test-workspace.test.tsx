@@ -283,5 +283,32 @@ describe('AutomationTestWorkspace Component Suite (Subtask 4.5 & 4.6)', () => {
     expect(liveRegion).toBeDefined();
     expect(liveRegion?.textContent).toContain('test assertions passed');
   });
+
+  it('renders Scenario Guidance tab and removes Testing CheatSheet (Subtask 4.4)', () => {
+    render(
+      <AutomationTestWorkspace
+        lab={mockLab as PracticeLabV1}
+        code="expect(1).toBe(1);"
+        onCodeChange={() => {}}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    // Scenario Guidance tab trigger exists
+    const scenarioTab = screen.getByRole('tab', { name: /Scenario Guidance/i });
+    expect(scenarioTab).toBeDefined();
+
+    // Testing CheatSheet tab must NOT exist
+    expect(screen.queryByRole('tab', { name: /Testing CheatSheet/i })).toBeNull();
+    expect(screen.queryByText(/API Automation Testing CheatSheet/i)).toBeNull();
+
+    // Click Scenario Guide button
+    const guideBtn = screen.getByRole('button', { name: /Scenario Guide/i });
+    fireEvent.click(guideBtn);
+
+    expect(screen.getByText(/Scenario-Driven Parameterized Testing/i)).toBeDefined();
+    expect(screen.getByText(/Unique Test Titles/i)).toBeDefined();
+    expect(screen.getByRole('link', { name: /Playwright Parameterized Tests/i })).toBeDefined();
+  });
 });
 

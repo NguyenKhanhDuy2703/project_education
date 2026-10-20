@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.STAGING_URL || 'https://project-education-red.vercel.app';
+const isStaging = Boolean(process.env.STAGING_URL);
+const baseURL = process.env.STAGING_URL || 'http://127.0.0.1:4173';
 
 export default defineConfig({
   testDir: './specs',
@@ -21,7 +22,19 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+      },
     },
   ],
+  webServer: isStaging
+    ? undefined
+    : {
+        command: 'npm run preview -- --port 4173 --host 127.0.0.1',
+        cwd: '../../MODULE_FE',
+        url: 'http://127.0.0.1:4173',
+        reuseExistingServer: true,
+        timeout: 30000,
+      },
 });

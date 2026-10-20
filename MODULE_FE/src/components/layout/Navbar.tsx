@@ -13,8 +13,12 @@ import {
   Home,
   Layers,
   Compass,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { ContributorApplyModal } from '@/features/contributor/components/ContributorApplyModal';
+import { useTheme } from '@/features/preferences/theme';
+import { useI18n } from '@/features/preferences/i18n';
 
 export function Navbar() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
@@ -22,6 +26,9 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [applyModalOpen, setApplyModalOpen] = useState(false);
+
+  const { resolvedTheme, toggleTheme } = useTheme();
+  const { t } = useI18n();
 
   interface NavLinkItem {
     name: string;
@@ -32,9 +39,9 @@ export function Navbar() {
   }
 
   const baseNavLinks: NavLinkItem[] = [
-    { name: 'Home', href: '/', icon: Home, exact: true },
-    { name: 'Series Catalog', href: '/series', icon: Layers },
-    { name: 'Roadmaps', href: '/roadmaps', icon: Compass },
+    { name: t('nav.home'), href: '/', icon: Home, exact: true },
+    { name: t('nav.catalog'), href: '/series', icon: Layers },
+    { name: t('nav.roadmaps'), href: '/roadmaps', icon: Compass },
   ];
 
   const navLinks: NavLinkItem[] = baseNavLinks;
@@ -99,7 +106,7 @@ export function Navbar() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search labs, test cases, APIs..."
+              placeholder={t('nav.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-9 pl-9 pr-8 text-xs bg-muted/70 rounded-full border border-border focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-muted-foreground"
@@ -110,13 +117,27 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Auth / User Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Theme and Language Controls & Auth / User Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            aria-label={t('theme.toggleAria')}
+            title={`${t('theme.label')}: ${resolvedTheme === 'dark' ? t('theme.light') : t('theme.dark')}`}
+            className="hidden sm:inline-flex size-8 sm:size-9 p-0 rounded-full text-foreground/80 hover:bg-muted hover:text-foreground"
+          >
+            {resolvedTheme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </Button>
+
+          
+
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                aria-label="Notifications"
+                aria-label={t('nav.notifications')}
                 className="relative p-2 rounded-full text-foreground/80 hover:bg-muted transition-colors"
               >
                 <Bell className="size-4" />
@@ -126,7 +147,7 @@ export function Navbar() {
               {/* User Avatar Badge (non-clickable, no redirect to dashboard) */}
               <div
                 className="flex items-center gap-2 p-1 rounded-full select-none"
-                aria-label={user?.name || 'User profile'}
+                aria-label={user?.name || t('nav.profile')}
               >
                 <Avatar className="size-8 border border-border">
                   <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || 'User'} />
@@ -137,15 +158,15 @@ export function Navbar() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link to="/login">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Link to="/login" className="hidden sm:inline-block">
                 <Button variant="ghost" size="sm" className="font-medium text-xs sm:text-sm">
-                  Log in
+                  {t('nav.login')}
                 </Button>
               </Link>
               <Link to="/register">
                 <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs sm:text-sm shadow-sm">
-                  Sign up
+                  {t('nav.signup')}
                 </Button>
               </Link>
             </div>
@@ -170,7 +191,7 @@ export function Navbar() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search courses and labs..."
+              placeholder={t('nav.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-9 pl-9 pr-3 text-xs bg-muted/60 rounded-md border border-border"
@@ -204,16 +225,35 @@ export function Navbar() {
             })}
           </div>
 
+          {/* Mobile Theme Toggle */}
+          <div className="flex items-center justify-between pt-3 border-t border-border">
+            <span className="text-xs text-muted-foreground font-medium">
+              {t('theme.label')}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleTheme}
+                className="text-xs h-8 flex items-center gap-1.5"
+                aria-label={t('theme.toggleAria')}
+              >
+                {resolvedTheme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+                <span>{resolvedTheme === 'dark' ? t('theme.light') : t('theme.dark')}</span>
+              </Button>
+            </div>
+          </div>
+
           {!isAuthenticated && (
             <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border">
               <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="outline" className="w-full text-xs">
-                  Log in
+                  {t('nav.login')}
                 </Button>
               </Link>
               <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full text-xs bg-primary text-primary-foreground font-semibold">
-                  Sign up
+                  {t('nav.signup')}
                 </Button>
               </Link>
             </div>
