@@ -1,5 +1,7 @@
 # Kế Hoạch Đổi Tên Series SQL & Tinh Gọn Tập Trung Vào Testing & SQL
 
+> **Status**: SUPERSEDED — catalog direction and SQL curriculum are now governed by the completed V3 plans.
+
 > **Yêu cầu người dùng**:
 > 1. Đổi tên Series và các bài lab SQL: Loại bỏ hoàn toàn thương hiệu/tiền tố "W3Schools", đổi thành `SQL Query Fundamentals` (Truy vấn CSDL căn bản), các bài lab đặt tên dạng `SQL 01: Câu Lệnh SELECT`, `SQL 02: SELECT Cột Cụ Thể`,...
 > 2. Tinh gọn phạm vi hiển thị: Tạm thời chỉ tập trung vào 2 mảng chính là **Testing** và **SQL**; tạm ẩn các series Backend NestJS và Docker DevOps (`isActive: false`).

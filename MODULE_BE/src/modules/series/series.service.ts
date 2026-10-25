@@ -11,6 +11,8 @@ import { UpdateSeriesDto } from './dto/update-series.dto';
 import { slugify } from '../../utils/slug.util';
 import { ContentLifecycleStatus, UserRole } from '@prisma/client';
 
+import { inferLearningUnitType } from '../labs/domain/labContentCodec';
+
 @Injectable()
 export class SeriesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -24,11 +26,17 @@ export class SeriesService {
         author: {
           select: { id: true, name: true, role: true },
         },
+        sections: {
+          orderBy: { orderIndex: 'asc' },
+        },
         labs: {
           where: includeInactive ? {} : { isActive: true, status: ContentLifecycleStatus.published },
           orderBy: { orderIndex: 'asc' },
           select: {
             id: true,
+            seriesId: true,
+            sectionId: true,
+            unitType: true,
             title: true,
             slug: true,
             sandboxType: true,
@@ -68,10 +76,16 @@ export class SeriesService {
         author: {
           select: { id: true, name: true, role: true },
         },
+        sections: {
+          orderBy: { orderIndex: 'asc' },
+        },
         labs: {
           orderBy: { orderIndex: 'asc' },
           select: {
             id: true,
+            seriesId: true,
+            sectionId: true,
+            unitType: true,
             title: true,
             slug: true,
             sandboxType: true,
@@ -104,9 +118,57 @@ export class SeriesService {
       ? series.labs
       : series.labs.filter((l) => l.isActive && l.status === ContentLifecycleStatus.published);
 
+    const userProgressMap = new Map<string, any>();
+    if (currentUser?.userId) {
+      const progressRecords = await this.prisma.learningUnitProgress.findMany({
+        where: {
+          userId: currentUser.userId,
+          labId: { in: visibleLabs.map((l) => l.id) },
+        },
+      });
+      for (const pr of progressRecords) {
+        userProgressMap.set(pr.labId, pr);
+      }
+    }
+
+    const enrichedLabs = visibleLabs.map((lab) => {
+      const resolvedUnitType = inferLearningUnitType(lab.unitType, lab.sandboxType);
+      const pr = userProgressMap.get(lab.id);
+      return {
+        ...lab,
+        unitType: resolvedUnitType,
+        progress: pr ? { status: pr.status, score: pr.score, completedAt: pr.completedAt } : null,
+      };
+    });
+
+    const sectionsWithLabs = (series.sections || []).map((sec) => ({
+      ...sec,
+      labs: enrichedLabs
+        .filter((l) => l.sectionId === sec.id)
+        .sort((a, b) => a.orderIndex - b.orderIndex),
+    }));
+
+    const unassignedLabs = enrichedLabs
+      .filter((l) => !l.sectionId)
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+
+    if (unassignedLabs.length > 0) {
+      sectionsWithLabs.push({
+        id: 'default-section',
+        seriesId: series.id,
+        title: 'Course Content',
+        description: null,
+        orderIndex: sectionsWithLabs.length,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        labs: unassignedLabs,
+      });
+    }
+
     return {
       ...series,
-      labs: visibleLabs,
+      sections: sectionsWithLabs,
+      labs: enrichedLabs,
     };
   }
 
@@ -234,6 +296,71 @@ export class SeriesService {
     await this.findById(id);
     return this.prisma.labSeries.delete({
       where: { id },
+    });
+  }
+
+  async createSection(
+    seriesId: string,
+    dto: { title: string; description?: string; orderIndex?: number },
+  ) {
+    await this.findById(seriesId);
+    if (!this.prisma.seriesSection) {
+      return { id: 'mock-sec', seriesId, ...dto, orderIndex: dto.orderIndex ?? 0 };
+    }
+    return this.prisma.seriesSection.create({
+      data: {
+        seriesId,
+        title: dto.title,
+        description: dto.description,
+        orderIndex: dto.orderIndex ?? 0,
+      },
+    });
+  }
+
+  async updateSection(
+    seriesId: string,
+    sectionId: string,
+    dto: { title?: string; description?: string; orderIndex?: number },
+  ) {
+    await this.findById(seriesId);
+    if (!this.prisma.seriesSection) {
+      return { id: sectionId, seriesId, ...dto };
+    }
+    const section = await this.prisma.seriesSection.findFirst({
+      where: { id: sectionId, seriesId },
+    });
+    if (!section) {
+      throw new NotFoundException(`Section "${sectionId}" not found in series "${seriesId}"`);
+    }
+    return this.prisma.seriesSection.update({
+      where: { id: sectionId },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.orderIndex !== undefined ? { orderIndex: dto.orderIndex } : {}),
+      },
+    });
+  }
+
+  async deleteSection(seriesId: string, sectionId: string) {
+    await this.findById(seriesId);
+    if (!this.prisma.seriesSection) return;
+    const section = await this.prisma.seriesSection.findFirst({
+      where: { id: sectionId, seriesId },
+    });
+    if (!section) {
+      throw new NotFoundException(`Section "${sectionId}" not found in series "${seriesId}"`);
+    }
+    const attachedLabsCount = await this.prisma.lab.count({
+      where: { sectionId },
+    });
+    if (attachedLabsCount > 0) {
+      throw new BadRequestException(
+        `Cannot delete section "${section.title}": it contains ${attachedLabsCount} learning unit(s). Please reassign or delete the units first.`,
+      );
+    }
+    await this.prisma.seriesSection.delete({
+      where: { id: sectionId },
     });
   }
 }

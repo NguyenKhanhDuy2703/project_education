@@ -8,6 +8,7 @@ import {
 } from '../features/lab/strategies/workspaceRegistry';
 import { FallbackWorkspace } from '../features/lab/strategies/FallbackWorkspace';
 import type { WorkspaceStrategyProps } from '../features/lab/strategies/workspaceStrategy.types';
+import { setFeatureOverride, resetFeatureOverrides } from '../config/features';
 
 describe('Workspace Strategy Registry Suite (Subtask 3.4)', () => {
   beforeEach(() => {
@@ -44,10 +45,28 @@ describe('Workspace Strategy Registry Suite (Subtask 3.4)', () => {
     expect(getWorkspaceStrategy('quizlet')).toBe(FallbackWorkspace);
   });
 
-  it('maps default strategies to AutomationTestWorkspace, SqlPracticeWorkspace and QuizAssignmentWorkspace', () => {
+  it('maps default strategies to AutomationTestWorkspace, SqlPracticeWorkspace, QuizAssignmentWorkspace and TheoryLessonView', () => {
     resetDefaultStrategies();
     expect(getWorkspaceStrategy('js_worker').name).toContain('AutomationTestWorkspace');
     expect(getWorkspaceStrategy('sql_worker')).not.toBe(FallbackWorkspace);
     expect(getWorkspaceStrategy('quizlet').name).toContain('QuizAssignmentWorkspace');
+    expect(getWorkspaceStrategy('markdown_only').name).toContain('TheoryLessonView');
+  });
+
+  it('routes to AutomationV3Workspace when envelopeVersion is 3.0 and flag is enabled', () => {
+    resetDefaultStrategies();
+    const strategy = getWorkspaceStrategy('js_worker', '3.0');
+    expect(strategy.name).toContain('AutomationV3Workspace');
+  });
+
+  it('falls back to js_worker strategy when envelopeVersion is 3.0 but AUTOMATION_V3_ENABLED is disabled', () => {
+    resetDefaultStrategies();
+    try {
+      setFeatureOverride('AUTOMATION_V3_ENABLED', false);
+      const strategy = getWorkspaceStrategy('js_worker', '3.0');
+      expect(strategy.name).toContain('AutomationTestWorkspace');
+    } finally {
+      resetFeatureOverrides();
+    }
   });
 });

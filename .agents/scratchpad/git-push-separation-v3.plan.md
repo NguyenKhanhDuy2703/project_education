@@ -1,6 +1,6 @@
 # Git Branch Separation & Push Plan (Monorepo Triad)
 
-> **Status**: IN PROGRESS  
+> **Status**: SUPERSEDED — DO NOT EXECUTE; branch and push steps no longer match the current working tree.
 > **Source Base**: `dev`  
 > **Target Remote**: `origin` (`https://github.com/NguyenKhanhDuy2703/project_education.git`)  
 > **Monorepo Scope Isolation Standard**: `.agents/rules/git-workflow.md`
@@ -24,7 +24,7 @@
   - *Verify*: `npm run build` in `MODULE_FE` exits with code 0
 
 ### Task 3: Docs & Documentation Branch (`feat/docs-readme-video-preview-showcase-and-english`)
-- [/] Subtask 3.1: Return to `dev`, create branch `feat/docs-readme-video-preview-showcase-and-english`, stage `README.md`, `README.vi.md`, `MODULE_ADMIN/README.md`, `LICENSE`, `docs/assets/`, `.agents/`, and commit.
+- **CANCELLED (superseded)** — Subtask 3.1: Return to `dev`, create branch `feat/docs-readme-video-preview-showcase-and-english`, stage `README.md`, `README.vi.md`, `MODULE_ADMIN/README.md`, `LICENSE`, `docs/assets/`, `.agents/`, and commit.
   - *Files*: `README.md`, `README.vi.md`, `MODULE_ADMIN/README.md`, `LICENSE`, `docs/assets/`, `.agents/`
   - *Verify*: `git log -1` verifies commit only contains docs, assets, and plans
 - [ ] Subtask 3.2: Verify no uncommitted working tree changes remain.

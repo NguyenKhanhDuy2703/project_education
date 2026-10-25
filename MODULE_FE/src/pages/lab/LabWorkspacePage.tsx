@@ -8,19 +8,24 @@
  * - Shared Theory Pane via LabTheoryPane
  * - Pluggable Right Pane via getWorkspaceStrategy(sandboxType)
  */
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, createElement, useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useContainerBreakpoint } from '@/hooks/useContainerBreakpoint';
 import { useAppSelector } from '@/stores/store';
 import { can } from '@/features/auth/permissions';
 import { useLabWorkspaceData } from '@/features/lab/hooks/useLabWorkspaceData';
 import { useLabNavigation } from '@/features/lab/hooks/useLabNavigation';
 import { useLabSubmission } from '@/features/lab/hooks/useLabSubmission';
 import { getWorkspaceStrategy } from '@/features/lab/strategies/workspaceRegistry';
+import type { WorkspaceStrategyProps } from '@/features/lab/strategies/workspaceStrategy.types';
 import { LabTheoryPane } from './_components/LabTheoryPane';
 import { CurriculumDrawerSheet } from './_components/CurriculumDrawerSheet';
 import { CompletionCelebrationDialog } from './_components/CompletionCelebrationDialog';
 import { WorkspaceSkeleton } from './_components/WorkspaceSkeleton';
 import { UpgradeModal } from '@/features/lab/components/UpgradeModal';
+import { inferLearningUnitType } from '@/features/lab/domain/labContentCodec';
+import { getUnitTypeInfo } from '@/services/formatBadge.service';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -36,6 +41,19 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react';
+
+type WorkspaceStrategyRendererProps = WorkspaceStrategyProps & {
+  sandboxType: string;
+  envelopeVersion?: string;
+};
+
+function WorkspaceStrategyRenderer({
+  sandboxType,
+  envelopeVersion,
+  ...workspaceProps
+}: WorkspaceStrategyRendererProps) {
+  return createElement(getWorkspaceStrategy(sandboxType, envelopeVersion), workspaceProps);
+}
 
 export function LabWorkspacePage() {
   const { labId } = useParams<{ labId: string }>();
@@ -87,8 +105,30 @@ export function LabWorkspacePage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Responsive container & layout presets for SQL Practice
+  const workspaceContainerRef = useRef<HTMLDivElement>(null);
+  const { breakpoint: workspaceBreakpoint } = useContainerBreakpoint(workspaceContainerRef);
+  const [sqlLayoutPreset, setSqlLayoutPreset] = useState<'reading' | 'split' | 'practice'>('split');
+  const [sqlLayoutCounter, setSqlLayoutCounter] = useState(0);
+  const [sqlMobileTab, setSqlMobileTab] = useState<'theory' | 'sql'>('theory');
+
+  const handleSelectPreset = (preset: 'reading' | 'split' | 'practice') => {
+    setSqlLayoutPreset(preset);
+    try {
+      const leftSize = preset === 'reading' ? 65 : preset === 'practice' ? 25 : 45;
+      const rightSize = 100 - leftSize;
+      localStorage.setItem(
+        'study-web:panels:study-web-lab-horizontal-split',
+        JSON.stringify({ 'sql-theory-panel': leftSize, 'sql-workspace-panel': rightSize })
+      );
+    } catch {}
+    setSqlLayoutCounter((c) => c + 1);
+  };
+
   // Sync initial starter snippet on lab load or transition
+  /* eslint-disable react/set-state-in-effect -- route/data changes intentionally reset editor state */
   useEffect(() => {
+    // The selected lab is an external route/data source; changing it intentionally resets editor state.
     if (normalizedLab?.envelope.initialSnippet !== undefined) {
       setCode(normalizedLab.envelope.initialSnippet);
     } else if (rawLab?.initialSnippet !== undefined) {
@@ -97,7 +137,15 @@ export function LabWorkspacePage() {
       setCode('');
     }
     setLeftTab('description');
-  }, [normalizedLab?.id, normalizedLab?.slug, rawLab?.id, rawLab?.slug]);
+  }, [
+    normalizedLab?.id,
+    normalizedLab?.slug,
+    normalizedLab?.envelope.initialSnippet,
+    rawLab?.id,
+    rawLab?.slug,
+    rawLab?.initialSnippet,
+  ]);
+  /* eslint-enable react/set-state-in-effect */
 
   const handleResetCode = useCallback(() => {
     const starter = normalizedLab?.envelope.initialSnippet ?? rawLab?.initialSnippet;
@@ -167,9 +215,9 @@ export function LabWorkspacePage() {
     );
   }
 
-  // 5. Strategy resolution for right pane
-  const StrategyWorkspace = getWorkspaceStrategy(normalizedLab.sandboxType);
-
+  // 5. Strategy resolution for workspace
+  const resolvedUnitType = inferLearningUnitType(normalizedLab.unitType, normalizedLab.sandboxType);
+  const unitInfo = getUnitTypeInfo(resolvedUnitType, normalizedLab.sandboxType);
   return (
     <div className="h-full w-full overflow-hidden flex flex-col bg-background">
       {/* ── Top Header Toolbar ────────────────────────────────────────────── */}
@@ -201,6 +249,14 @@ export function LabWorkspacePage() {
             onSwitchLab={handleSwitchLab}
           />
 
+          {/* Pedagogical Unit Type Badge */}
+          <Badge
+            variant="outline"
+            className={cn('text-[11px] font-semibold hidden md:inline-flex shrink-0', unitInfo.badgeClass)}
+          >
+            {unitInfo.label}
+          </Badge>
+
           {/* Prev / Next Lab navigation */}
           <div className="flex items-center">
             <Button
@@ -228,6 +284,51 @@ export function LabWorkspacePage() {
 
         {/* Center / Right actions */}
         <div className="flex items-center gap-2">
+          {/* Preset Buttons for SQL Practice */}
+          {resolvedUnitType === 'sql_practice' && workspaceBreakpoint !== 'small' && (
+            <div className="hidden lg:flex items-center bg-muted/60 rounded-md p-0.5 border border-border/60 text-xs">
+              <button
+                type="button"
+                onClick={() => handleSelectPreset('reading')}
+                className={cn(
+                  'px-2 py-0.5 rounded text-[11px] font-medium transition-colors',
+                  sqlLayoutPreset === 'reading'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title="Reading focus: 65% Theory, 35% SQL"
+              >
+                Reading focus
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectPreset('split')}
+                className={cn(
+                  'px-2 py-0.5 rounded text-[11px] font-medium transition-colors',
+                  sqlLayoutPreset === 'split'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title="Balanced split: 45% Theory, 55% SQL"
+              >
+                Split
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectPreset('practice')}
+                className={cn(
+                  'px-2 py-0.5 rounded text-[11px] font-medium transition-colors',
+                  sqlLayoutPreset === 'practice'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title="Practice focus: 25% Theory, 75% SQL"
+              >
+                Practice focus
+              </button>
+            </div>
+          )}
+
           <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-md border border-border/50">
             <Clock className="size-3 text-muted-foreground" />
             <span>{rawLab.estimatedMinutes || rawLab.durationMinutes || 20}m</span>
@@ -257,49 +358,149 @@ export function LabWorkspacePage() {
         </div>
       </header>
 
-      {/* ── 2-Column Split Workspace (Resizable) ────────────────────────── */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        <ResizablePanelGroup
-          direction="horizontal"
-          autoSaveId="study-web-lab-horizontal-split"
-          className="flex-1 min-h-0 w-full"
-        >
-          {/* Left column: Theory & Instructions */}
-          <ResizablePanel defaultSize="40%" minSize="20%" maxSize="70%" className="flex flex-col min-w-0">
-            <LabTheoryPane
-              lab={normalizedLab}
-              series={series}
-              currentLabIndex={currentLabIndex}
-              isSolved={isSolved}
-              submissions={submissions}
-              hasSolutionAccess={hasSolutionAccess}
-              activeTab={leftTab}
-              onTabChange={setLeftTab}
-              onSelectSubmissionCode={(subCode) => setCode(subCode)}
-              onUpgradeClick={() => setShowUpgrade(true)}
-              className="w-full h-full border-r-0 border-b-0 flex flex-col bg-card overflow-hidden shrink-0"
-            />
-          </ResizablePanel>
+      {/* ── Main Workspace: 4 Pedagogical Patterns ───────────────────────── */}
+      {resolvedUnitType === 'sql_practice' || (normalizedLab.sandboxType === 'js_worker' && normalizedLab.envelope?.version !== '3.0') ? (
+        <div ref={workspaceContainerRef} className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {workspaceBreakpoint === 'small' ? (
+            /* Responsive Tabs for mobile/small container (Pattern 1) */
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex h-11 border-b border-border bg-muted/20 px-2 items-center justify-around shrink-0 md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setSqlMobileTab('theory')}
+                  className={cn(
+                    'text-xs font-medium px-4 py-2 min-h-[44px] min-w-[44px] rounded transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                    sqlMobileTab === 'theory'
+                      ? 'bg-background text-foreground shadow-xs font-semibold'
+                      : 'text-muted-foreground'
+                  )}
+                >
+                  Theory &amp; Task
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSqlMobileTab('sql')}
+                  className={cn(
+                    'text-xs font-medium px-4 py-2 min-h-[44px] min-w-[44px] rounded transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                    sqlMobileTab === 'sql'
+                      ? 'bg-background text-foreground shadow-xs font-semibold'
+                      : 'text-muted-foreground'
+                  )}
+                >
+                  SQL Workspace
+                </button>
+              </div>
 
-          <ResizableHandle withHandle />
-
-          {/* Right column: Strategy-specific workspace */}
-          <ResizablePanel defaultSize="60%" minSize="30%" className="flex flex-col min-w-0">
-            <main className="h-full w-full flex flex-col min-w-0 bg-background overflow-hidden">
-              <Suspense fallback={<WorkspaceSkeleton />}>
-                <StrategyWorkspace
+              <div className="flex-1 min-h-0 overflow-hidden">
+                {sqlMobileTab === 'theory' ? (
+                  <LabTheoryPane
+                    lab={normalizedLab}
+                    series={series}
+                    currentLabIndex={currentLabIndex}
+                    isSolved={isSolved}
+                    submissions={submissions}
+                    hasSolutionAccess={hasSolutionAccess}
+                    activeTab={leftTab}
+                    onTabChange={setLeftTab}
+                    onSelectSubmissionCode={(subCode) => setCode(subCode)}
+                    onUpgradeClick={() => setShowUpgrade(true)}
+                    className="w-full h-full border-r-0 border-b-0 flex flex-col bg-card overflow-hidden shrink-0"
+                  />
+                ) : (
+                  <main className="h-full w-full flex flex-col min-w-0 bg-background overflow-hidden">
+                    <Suspense fallback={<WorkspaceSkeleton />}>
+                      <WorkspaceStrategyRenderer
+                        key={normalizedLab.id}
+                        sandboxType={normalizedLab.sandboxType}
+                        envelopeVersion={normalizedLab.envelope?.version}
+                        lab={normalizedLab}
+                        code={code}
+                        onCodeChange={setCode}
+                        onSubmit={submitAttempt}
+                        isSubmitting={isSubmitting}
+                        onResetCode={handleResetCode}
+                      />
+                    </Suspense>
+                  </main>
+                )}
+              </div>
+            </div>
+          ) : (
+            <ResizablePanelGroup
+              key={`sql-split-${sqlLayoutPreset}-${sqlLayoutCounter}`}
+              direction="horizontal"
+              autoSaveId="study-web-lab-horizontal-split"
+              className="flex-1 min-h-0 w-full"
+            >
+              {/* Left column: Theory & Instructions */}
+              <ResizablePanel
+                id="sql-theory-panel"
+                defaultSize={sqlLayoutPreset === 'reading' ? '65%' : sqlLayoutPreset === 'practice' ? '25%' : '45%'}
+                minSize="20%"
+                maxSize="75%"
+                className="flex flex-col min-w-0"
+              >
+                <LabTheoryPane
                   lab={normalizedLab}
-                  code={code}
-                  onCodeChange={setCode}
-                  onSubmit={submitAttempt}
-                  isSubmitting={isSubmitting}
-                  onResetCode={handleResetCode}
+                  series={series}
+                  currentLabIndex={currentLabIndex}
+                  isSolved={isSolved}
+                  submissions={submissions}
+                  hasSolutionAccess={hasSolutionAccess}
+                  activeTab={leftTab}
+                  onTabChange={setLeftTab}
+                  onSelectSubmissionCode={(subCode) => setCode(subCode)}
+                  onUpgradeClick={() => setShowUpgrade(true)}
+                  className="w-full h-full border-r-0 border-b-0 flex flex-col bg-card overflow-hidden shrink-0"
                 />
-              </Suspense>
-            </main>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
+              </ResizablePanel>
+
+              <ResizableHandle withHandle />
+
+              {/* Right column: SQL workspace */}
+              <ResizablePanel
+                id="sql-workspace-panel"
+                defaultSize={sqlLayoutPreset === 'reading' ? '35%' : sqlLayoutPreset === 'practice' ? '75%' : '55%'}
+                minSize="25%"
+                className="flex flex-col min-w-0"
+              >
+                <main className="h-full w-full flex flex-col min-w-0 bg-background overflow-hidden">
+                  <Suspense fallback={<WorkspaceSkeleton />}>
+                    <WorkspaceStrategyRenderer
+                      key={normalizedLab.id}
+                      sandboxType={normalizedLab.sandboxType}
+                      envelopeVersion={normalizedLab.envelope?.version}
+                      lab={normalizedLab}
+                      code={code}
+                      onCodeChange={setCode}
+                      onSubmit={submitAttempt}
+                      isSubmitting={isSubmitting}
+                      onResetCode={handleResetCode}
+                    />
+                  </Suspense>
+                </main>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          )}
+        </div>
+      ) : (
+        /* Dedicated full-width layout for Theory lessons, Checkpoints, and Automation labs */
+        <main className="flex-1 min-h-0 w-full flex flex-col bg-background overflow-hidden">
+          <Suspense fallback={<WorkspaceSkeleton />}>
+            <WorkspaceStrategyRenderer
+              key={normalizedLab.id}
+              sandboxType={normalizedLab.sandboxType}
+              envelopeVersion={normalizedLab.envelope?.version}
+              lab={normalizedLab}
+              code={code}
+              onCodeChange={setCode}
+              onSubmit={submitAttempt}
+              isSubmitting={isSubmitting}
+              onResetCode={handleResetCode}
+            />
+          </Suspense>
+        </main>
+      )}
 
       {/* ── Completion & Upgrade Modals ──────────────────────────────────── */}
       <CompletionCelebrationDialog
@@ -307,6 +508,7 @@ export function LabWorkspacePage() {
         onOpenChange={setShowSuccessModal}
         nextLab={nextLab}
         series={series}
+        unitType={resolvedUnitType}
       />
       <UpgradeModal open={showUpgrade} labTitle={rawLab.title} onClose={() => setShowUpgrade(false)} />
     </div>

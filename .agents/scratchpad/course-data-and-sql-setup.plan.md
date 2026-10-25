@@ -1,5 +1,7 @@
 # Kế Hoạch Triển Khai: Sửa Lỗi SQL Lab, Thông Báo Setup Sandbox Tiếng Anh & Dọn Dẹp Khóa Học
 
+> **Status**: COMPLETED — checklist 8/8 closed; later V3 curriculum work supersedes its data scope.
+
 > **Yêu cầu người dùng**:
 > 1. Sửa lỗi SQL lab (code hiển thị sẵn đáp án & không chạy query được).
 > 2. Bổ sung cơ chế thông báo chờ setup database sandbox bằng tiếng Anh khi user làm SQL lần đầu (hoặc đang tải WASM).

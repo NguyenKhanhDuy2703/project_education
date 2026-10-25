@@ -10,12 +10,16 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLabDto } from './dto/create-lab.dto';
 import { UpdateLabDto } from './dto/update-lab.dto';
 import { slugify } from '../../utils/slug.util';
-import { ContentLifecycleStatus, UserRole } from '@prisma/client';
+import { ContentLifecycleStatus, LearningProgressStatus, LearningUnitType, UserRole } from '@prisma/client';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { SubmitLabDto } from './dto/submit-lab.dto';
 import { SqlLabConfig, DEFAULT_SQL_POLICY } from './domain/sql-lab.types';
 import { SqlGradingService } from './sql-grading.service';
 import { SqlPreflightDto } from './dto/sql-preflight.dto';
+import { validateV3AutomationSubmission } from './automation-v3-validator';
+import { UpdatePositionDto, CompleteTheoryDto } from './dto/theory-progress.dto';
+import { inferLearningUnitType } from './domain/labContentCodec';
+import { QuizGradingService } from './quiz-grading.service';
 
 @Injectable()
 export class LabsService {
@@ -23,6 +27,7 @@ export class LabsService {
     private readonly prisma: PrismaService,
     private readonly entitlementsService: EntitlementsService,
     @Optional() private readonly sqlGradingService: SqlGradingService = new SqlGradingService(),
+    @Optional() private readonly quizGradingService: QuizGradingService = new QuizGradingService(),
   ) {}
 
   async findBySlug(slugOrId: string, currentUser?: { userId: string; role: UserRole }) {
@@ -119,6 +124,7 @@ export class LabsService {
             if (config.expectedQueryResult) expectedQueryResult = config.expectedQueryResult;
             if (config.quizList) quizQuestions = config.quizList;
             if (config.quizQuestions) quizQuestions = config.quizQuestions;
+            if (config.questions) quizQuestions = config.questions;
             if (config.summary) objectiveText = config.summary;
 
             // Strip author-only grading rules and hidden checks for non-privileged learners
@@ -130,6 +136,9 @@ export class LabsService {
               delete sanitized.acceptedAnswersOrRules;
               delete sanitized.expectedQueryResult;
               delete sanitized.verificationSql;
+              delete sanitized.gradingKey;
+              delete sanitized.solutionPlan;
+              delete sanitized.serverGradingRules;
               extractedConfig = sanitized;
               expectedQueryResult = undefined;
             } else {
@@ -140,8 +149,54 @@ export class LabsService {
       } catch {}
     }
 
+    // Sanitize quiz questions for non-author learners (prevent answer leaking)
+    if (!isAuthorizedAuthorOrAdmin) {
+      const sanitizeQuestionItem = (q: any) => {
+        if (!q || typeof q !== 'object') return q;
+        const { correctIndex, explanation, hint, gradingKey, ...sanitizedQ } = q;
+        return sanitizedQ;
+      };
+
+      if (Array.isArray(quizQuestions)) {
+        quizQuestions = quizQuestions.map(sanitizeQuestionItem);
+      }
+      if (extractedConfig?.questions && Array.isArray(extractedConfig.questions)) {
+        extractedConfig.questions = extractedConfig.questions.map(sanitizeQuestionItem);
+      }
+      if (extractedConfig?.quizQuestions && Array.isArray(extractedConfig.quizQuestions)) {
+        extractedConfig.quizQuestions = extractedConfig.quizQuestions.map(sanitizeQuestionItem);
+      }
+      if (extractedConfig?.quizList && Array.isArray(extractedConfig.quizList)) {
+        extractedConfig.quizList = extractedConfig.quizList.map(sanitizeQuestionItem);
+      }
+    }
+
+    const unitType = inferLearningUnitType(lab.unitType, lab.sandboxType);
+
+    let progress = null;
+    if (currentUser?.userId && this.prisma.learningUnitProgress) {
+      const pr = await this.prisma.learningUnitProgress.findUnique({
+        where: {
+          userId_labId: {
+            userId: currentUser.userId,
+            labId: lab.id,
+          },
+        },
+      });
+      if (pr) {
+        progress = {
+          status: pr.status,
+          score: pr.score,
+          completedAt: pr.completedAt,
+          lastPosition: pr.lastPosition,
+        };
+      }
+    }
+
     return {
       ...publicFields,
+      unitType,
+      progress,
       objective: objectiveText,
       config: extractedConfig,
       sqlSchema,
@@ -173,17 +228,55 @@ export class LabsService {
     payload: SubmitLabDto,
   ) {
     const lab = await this.findById(labId);
-    const authoritativeResult = lab.sandboxType === 'sql_worker'
-      ? await this.sqlGradingService.grade({
-          submittedCode: payload.submittedCode || '',
-          solution: lab.solution,
-          config: this.getSqlLabConfig(lab.objective),
-        })
-      : {
-          status: payload.status || 'failed',
-          timeMs: payload.timeMs || 0,
-          testLogs: payload.testLogs || null,
-        };
+    let authoritativeResult: {
+      status: string;
+      timeMs: number;
+      testLogs?: string | null;
+      scorePercentage?: number;
+      review?: any;
+    } = {
+      status: payload.status || 'failed',
+      timeMs: payload.timeMs || 0,
+      testLogs: payload.testLogs || null,
+    };
+
+    if (lab.sandboxType === 'sql_worker' || lab.unitType === LearningUnitType.sql_practice) {
+      authoritativeResult = await this.sqlGradingService.grade({
+        submittedCode: payload.submittedCode || '',
+        solution: lab.solution,
+        config: this.getSqlLabConfig(lab.objective),
+      });
+    } else if (
+      lab.sandboxType === 'quizlet' ||
+      lab.unitType === LearningUnitType.quiz_checkpoint
+    ) {
+      const graded = this.quizGradingService.grade({
+        submittedCode: payload.submittedCode,
+        objective: lab.objective,
+      });
+      authoritativeResult = {
+        status: graded.status,
+        timeMs: graded.timeMs,
+        testLogs: graded.testLogs,
+        scorePercentage: graded.scorePercentage,
+        review: graded.review,
+      };
+    } else if (
+      (lab.sandboxType === 'automation_v3' ||
+        lab.sandboxType === 'js_worker' ||
+        lab.unitType === LearningUnitType.automation_lab) &&
+      lab.objective
+    ) {
+      try {
+        const parsed = JSON.parse(lab.objective);
+        const config = parsed.config && typeof parsed.config === 'object' ? { ...parsed, ...parsed.config } : parsed;
+        if (config.version === '3.0' || lab.sandboxType === 'automation_v3' || lab.unitType === LearningUnitType.automation_lab) {
+          authoritativeResult = validateV3AutomationSubmission(payload.submittedCode || '', config);
+        }
+      } catch (err: any) {
+        if (err instanceof BadRequestException) throw err;
+      }
+    }
 
     const submission = await this.prisma.labSubmission.create({
       data: {
@@ -196,6 +289,62 @@ export class LabsService {
       },
     });
 
+    // Synchronize common unit progress
+    if (this.prisma.learningUnitProgress) {
+      const isPassed = authoritativeResult.status === 'passed';
+      const scoreVal = authoritativeResult.scorePercentage ?? (isPassed ? 100 : 0);
+
+      if (isPassed) {
+        await this.prisma.learningUnitProgress.upsert({
+          where: {
+            userId_labId: {
+              userId,
+              labId: lab.id,
+            },
+          },
+          create: {
+            userId,
+            labId: lab.id,
+            status: LearningProgressStatus.COMPLETED,
+            score: scoreVal,
+            completedAt: new Date(),
+          },
+          update: {
+            status: LearningProgressStatus.COMPLETED,
+            score: scoreVal,
+            completedAt: new Date(),
+          },
+        });
+      } else {
+        const existing = await this.prisma.learningUnitProgress.findUnique({
+          where: {
+            userId_labId: {
+              userId,
+              labId: lab.id,
+            },
+          },
+        });
+        if (!existing) {
+          await this.prisma.learningUnitProgress.create({
+            data: {
+              userId,
+              labId: lab.id,
+              status: LearningProgressStatus.IN_PROGRESS,
+              score: scoreVal,
+            },
+          });
+        } else if (existing.status !== LearningProgressStatus.COMPLETED) {
+          await this.prisma.learningUnitProgress.update({
+            where: { id: existing.id },
+            data: {
+              status: LearningProgressStatus.IN_PROGRESS,
+              score: scoreVal,
+            },
+          });
+        }
+      }
+    }
+
     return {
       message: 'Lab attempt submitted successfully',
       id: submission.id,
@@ -203,6 +352,8 @@ export class LabsService {
       userId,
       status: submission.status,
       timeMs: submission.executionTimeMs,
+      testLogs: submission.testLogs,
+      review: authoritativeResult.review || null,
       createdAt: submission.createdAt.toISOString(),
     };
   }
@@ -238,6 +389,179 @@ export class LabsService {
     if (result.status !== 'passed') {
       throw new BadRequestException(`SQL lab preflight failed: ${result.testLogs}`);
     }
+  }
+
+  async validateAutomationLabForRelease(lab: { sandboxType: string; unitType?: LearningUnitType | null; objective: string | null }) {
+    const isAutomation =
+      lab.sandboxType === 'automation_v3' ||
+      lab.sandboxType === 'js_worker' ||
+      lab.unitType === LearningUnitType.automation_lab;
+    if (!isAutomation) return;
+    if (!lab.objective?.trim()) {
+      throw new BadRequestException('Automation lab requires configuration with grading rules or grading key.');
+    }
+    let config: Record<string, any>;
+    try {
+      const parsed = JSON.parse(lab.objective);
+      config = parsed?.config && typeof parsed.config === 'object' ? { ...parsed, ...parsed.config } : parsed;
+    } catch {
+      throw new BadRequestException('Automation lab configuration is invalid JSON.');
+    }
+    const hasGradingRules = Array.isArray(config.gradingRules) && config.gradingRules.length > 0;
+    const hasGradingKey =
+      config.gradingKey &&
+      typeof config.gradingKey === 'object' &&
+      ((Array.isArray(config.gradingKey.requiredSteps) && config.gradingKey.requiredSteps.length > 0) ||
+        (Array.isArray(config.gradingKey.forbiddenPatterns) && config.gradingKey.forbiddenPatterns.length > 0));
+    if (!hasGradingRules && !hasGradingKey) {
+      throw new BadRequestException('Automation lab requires grading rules or grading key before review or publication.');
+    }
+  }
+
+  async validateQuizLabForRelease(lab: { sandboxType: string; unitType?: LearningUnitType | null; objective: string | null }) {
+    const isQuiz =
+      lab.sandboxType === 'quizlet' ||
+      lab.unitType === LearningUnitType.quiz_checkpoint;
+    if (!isQuiz) return;
+    if (!lab.objective?.trim()) {
+      throw new BadRequestException('Quiz checkpoint requires configuration with questions.');
+    }
+    let parsed: any;
+    try {
+      parsed = JSON.parse(lab.objective);
+    } catch {
+      throw new BadRequestException('Quiz checkpoint configuration is invalid JSON.');
+    }
+    const questions =
+      parsed?.config?.questions ||
+      parsed?.questions ||
+      parsed?.quizQuestions ||
+      parsed?.quizList ||
+      (Array.isArray(parsed) ? parsed : []);
+    if (!Array.isArray(questions) || questions.length === 0) {
+      throw new BadRequestException('Quiz checkpoint requires at least one question before review or publication.');
+    }
+    for (const q of questions) {
+      if (typeof q.correctIndex !== 'number' || q.correctIndex < 0) {
+        throw new BadRequestException(
+          `Quiz question "${q.id || q.question || 'unknown'}" is missing a valid correctIndex.`,
+        );
+      }
+    }
+  }
+
+  private async findLabEntity(idOrSlug: string) {
+    const lab = await this.prisma.lab.findFirst({
+      where: {
+        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      },
+    });
+    if (!lab) {
+      throw new NotFoundException(`Lab "${idOrSlug}" not found`);
+    }
+    return lab;
+  }
+
+  async getLearningProgress(labIdOrSlug: string, userId: string) {
+    const lab = await this.findLabEntity(labIdOrSlug);
+    const progress = await this.prisma.learningUnitProgress.findUnique({
+      where: {
+        userId_labId: {
+          userId,
+          labId: lab.id,
+        },
+      },
+    });
+
+    if (!progress) {
+      return {
+        labId: lab.id,
+        userId,
+        status: LearningProgressStatus.NOT_STARTED,
+        lastPosition: null,
+        score: null,
+        completedAt: null,
+      };
+    }
+
+    return progress;
+  }
+
+  async startTheoryProgress(labIdOrSlug: string, userId: string) {
+    const lab = await this.findLabEntity(labIdOrSlug);
+    const existing = await this.prisma.learningUnitProgress.findUnique({
+      where: {
+        userId_labId: {
+          userId,
+          labId: lab.id,
+        },
+      },
+    });
+
+    if (existing) {
+      if (existing.status === LearningProgressStatus.NOT_STARTED) {
+        return this.prisma.learningUnitProgress.update({
+          where: { id: existing.id },
+          data: { status: LearningProgressStatus.IN_PROGRESS },
+        });
+      }
+      return existing;
+    }
+
+    return this.prisma.learningUnitProgress.create({
+      data: {
+        userId,
+        labId: lab.id,
+        status: LearningProgressStatus.IN_PROGRESS,
+      },
+    });
+  }
+
+  async updateTheoryPosition(labIdOrSlug: string, userId: string, dto: UpdatePositionDto) {
+    const lab = await this.findLabEntity(labIdOrSlug);
+    return this.prisma.learningUnitProgress.upsert({
+      where: {
+        userId_labId: {
+          userId,
+          labId: lab.id,
+        },
+      },
+      create: {
+        userId,
+        labId: lab.id,
+        status: LearningProgressStatus.IN_PROGRESS,
+        lastPosition: dto ? { ...dto } : undefined,
+      },
+      update: {
+        lastPosition: dto ? { ...dto } : undefined,
+      },
+    });
+  }
+
+  async completeTheoryProgress(labIdOrSlug: string, userId: string, dto?: CompleteTheoryDto) {
+    const lab = await this.findLabEntity(labIdOrSlug);
+    const score = dto?.score !== undefined ? dto.score : 100;
+
+    return this.prisma.learningUnitProgress.upsert({
+      where: {
+        userId_labId: {
+          userId,
+          labId: lab.id,
+        },
+      },
+      create: {
+        userId,
+        labId: lab.id,
+        status: LearningProgressStatus.COMPLETED,
+        score,
+        completedAt: new Date(),
+      },
+      update: {
+        status: LearningProgressStatus.COMPLETED,
+        score,
+        completedAt: new Date(),
+      },
+    });
   }
 
   private getSqlLabConfig(objective: string | null): SqlLabConfig {
@@ -492,6 +816,8 @@ export class LabsService {
     }
 
     await this.validateSqlLabForRelease(lab);
+    await this.validateAutomationLabForRelease(lab);
+    await this.validateQuizLabForRelease(lab);
 
     // Bump version if resubmitting
     let nextVersion = lab.version || 'v1.0';
@@ -557,6 +883,22 @@ export class LabsService {
         passedLabIds.add(sub.labId);
       }
     });
+
+    // Also include completed learning unit progress (theory lessons and completed units)
+    if (this.prisma.learningUnitProgress) {
+      const completedProgress = await this.prisma.learningUnitProgress.findMany({
+        where: {
+          userId,
+          status: LearningProgressStatus.COMPLETED,
+          lab: {
+            isActive: true,
+            status: ContentLifecycleStatus.published,
+          },
+        },
+        select: { labId: true },
+      });
+      completedProgress.forEach((p) => passedLabIds.add(p.labId));
+    }
 
     const totalCompleted = Math.min(passedLabIds.size, totalLabs);
 

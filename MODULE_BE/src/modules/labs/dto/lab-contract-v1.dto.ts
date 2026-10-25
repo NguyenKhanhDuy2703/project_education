@@ -307,3 +307,177 @@ export class AutomationExerciseV2Dto {
   cheatSheetVisible?: boolean;
 }
 
+export class AutomationBlockParamDto {
+  @ApiPropertyOptional()
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional({ enum: ['string', 'number', 'boolean', 'enum'] })
+  @IsString()
+  type: 'string' | 'number' | 'boolean' | 'enum';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  default?: any;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsOptional()
+  options?: string[];
+
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @IsOptional()
+  required?: boolean;
+}
+
+export class AutomationBlockDefinitionDto {
+  @ApiPropertyOptional()
+  @IsString()
+  id: string;
+
+  @ApiPropertyOptional({ enum: ['navigation', 'locator', 'action', 'assertion', 'data'] })
+  @IsString()
+  category: 'navigation' | 'locator' | 'action' | 'assertion' | 'data';
+
+  @ApiPropertyOptional()
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  label: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiPropertyOptional({ type: [AutomationBlockParamDto] })
+  @IsArray()
+  @IsOptional()
+  params?: AutomationBlockParamDto[];
+}
+
+export class AutomationStepDto {
+  @ApiPropertyOptional()
+  @IsString()
+  stepId: string;
+
+  @ApiPropertyOptional({ enum: ['navigation', 'action', 'assertion'] })
+  @IsString()
+  type: 'navigation' | 'action' | 'assertion';
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  action?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  locator?: Record<string, any>;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  assertion?: Record<string, any>;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  targetUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  value?: any;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  description?: string;
+}
+
+export class AutomationFixtureDto {
+  @ApiPropertyOptional()
+  @IsString()
+  fixtureId: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  fixtureVersion: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  initialRoute: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  initialState?: Record<string, any>;
+}
+
+export class AutomationGradingKeyV3Dto {
+  @ApiPropertyOptional()
+  @IsString()
+  exerciseRevision: string;
+
+  @ApiPropertyOptional()
+  @IsNumber()
+  @IsOptional()
+  expectedStepCount?: number;
+
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsOptional()
+  requiredSteps?: any[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsOptional()
+  forbiddenPatterns?: string[];
+
+  @ApiPropertyOptional()
+  @IsNumber()
+  @IsOptional()
+  minScore?: number;
+}
+
+export class AutomationExerciseV3Dto {
+  @ApiPropertyOptional({ default: '3.0' })
+  @IsString()
+  version: '3.0';
+
+  @ApiPropertyOptional({ enum: ['playwright'] })
+  @IsString()
+  framework: 'playwright';
+
+  @ApiPropertyOptional({ enum: ['block_builder', 'smart_cloze', 'guided_code', 'full_code'] })
+  @IsString()
+  interactionMode: 'block_builder' | 'smart_cloze' | 'guided_code' | 'full_code';
+
+  @ApiPropertyOptional()
+  @IsString()
+  contentRevision: string;
+
+  @ApiPropertyOptional({ type: AutomationFixtureDto })
+  fixture: AutomationFixtureDto;
+
+  @ApiPropertyOptional({ type: [AutomationBlockDefinitionDto] })
+  @IsArray()
+  allowedBlocks: AutomationBlockDefinitionDto[];
+
+  @ApiPropertyOptional({ type: [AutomationStepDto] })
+  @IsArray()
+  starterPlan: AutomationStepDto[];
+
+  @ApiPropertyOptional()
+  @IsArray()
+  publicChecks: any[];
+
+  @ApiPropertyOptional({ enum: ['typescript', 'javascript'] })
+  @IsString()
+  exportTemplate: 'typescript' | 'javascript';
+
+  @ApiPropertyOptional({ type: AutomationGradingKeyV3Dto })
+  @IsOptional()
+  gradingKey?: AutomationGradingKeyV3Dto;
+}
+

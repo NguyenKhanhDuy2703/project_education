@@ -88,4 +88,39 @@ export class SeriesController {
   async delete(@Param('id') id: string) {
     await this.seriesService.delete(id);
   }
+
+  @Post(':id/sections')
+  @UseGuards(AuthGuard('jwt'), ContributorGuard, ResourceOwnerGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add a section/module to a topic / series' })
+  async createSection(
+    @Param('id') seriesId: string,
+    @Body() dto: { title: string; description?: string; orderIndex?: number },
+  ) {
+    return this.seriesService.createSection(seriesId, dto);
+  }
+
+  @Put(':id/sections/:sectionId')
+  @UseGuards(AuthGuard('jwt'), ContributorGuard, ResourceOwnerGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a section in a topic / series' })
+  async updateSection(
+    @Param('id') seriesId: string,
+    @Param('sectionId') sectionId: string,
+    @Body() dto: { title?: string; description?: string; orderIndex?: number },
+  ) {
+    return this.seriesService.updateSection(seriesId, sectionId, dto);
+  }
+
+  @Delete(':id/sections/:sectionId')
+  @UseGuards(AuthGuard('jwt'), ContributorGuard, ResourceOwnerGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a section from a topic / series' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteSection(
+    @Param('id') seriesId: string,
+    @Param('sectionId') sectionId: string,
+  ) {
+    await this.seriesService.deleteSection(seriesId, sectionId);
+  }
 }

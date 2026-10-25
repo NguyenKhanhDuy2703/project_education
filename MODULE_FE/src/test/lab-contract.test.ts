@@ -11,6 +11,8 @@ describe('Lab Content Contract V1 Type Suite (Subtask 2.1)', () => {
           return `sql:${env.config.schemaSql.length}`;
         case 'quizlet':
           return `quiz:${env.config.questions.length}`;
+        case 'markdown_only':
+          return 'theory:markdown';
         default: {
           const _exhaustive: never = env;
           return _exhaustive;

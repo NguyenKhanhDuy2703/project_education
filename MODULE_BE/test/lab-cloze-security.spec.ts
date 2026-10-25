@@ -103,4 +103,88 @@ describe('Lab Cloze Security & Config Preservation (Task 4)', () => {
     assert.equal(result.config.schemaSql.includes('CREATE TABLE'), true);
     assert.equal(result.config.seedSql.includes('INSERT INTO'), true);
   });
+
+  it('strips V3 gradingKey and solutionPlan for regular learners while preserving public fixture and blocks', async () => {
+    const v3LabRecord = {
+      ...mockLabRecord,
+      id: 'lab-v3-sec-1',
+      slug: 'playwright-v3-login',
+      objective: JSON.stringify({
+        version: '3.0',
+        framework: 'playwright',
+        interactionMode: 'block_builder',
+        contentRevision: 'v3.0.1',
+        fixture: {
+          fixtureId: 'login-fixture',
+          fixtureVersion: '1.0.0',
+          initialRoute: '/auth/login',
+        },
+        allowedBlocks: [
+          { id: 'b1', category: 'action', name: 'click', label: 'click' },
+        ],
+        starterPlan: [
+          { stepId: 's1', type: 'navigation', action: 'goto', targetUrl: '/auth/login' },
+        ],
+        publicChecks: [
+          { id: 'c1', name: 'Check Navigation' },
+        ],
+        gradingKey: {
+          exerciseRevision: 'v3.0.1',
+          requiredSteps: [{ type: 'action', action: 'click' }],
+          minScore: 100,
+        },
+        solutionPlan: [{ type: 'action', action: 'click' }],
+      }),
+    };
+
+    const service = new LabsService(createMockPrisma(v3LabRecord) as any, mockEntitlements as any);
+    const learner = { userId: 'student-999', role: UserRole.user };
+    const result = await service.findBySlug('playwright-v3-login', learner);
+
+    assert.ok(result.config, 'config should be present');
+    assert.equal(result.config.version, '3.0');
+    assert.equal(result.config.framework, 'playwright');
+    assert.equal(result.config.gradingKey, undefined, 'gradingKey must be stripped for learner');
+    assert.equal(result.config.solutionPlan, undefined, 'solutionPlan must be stripped for learner');
+    assert.ok(result.config.fixture, 'fixture must be preserved');
+    assert.equal(result.config.fixture.initialRoute, '/auth/login');
+    assert.equal(result.config.allowedBlocks.length, 1);
+    assert.equal(result.config.starterPlan.length, 1);
+  });
+
+  it('preserves V3 gradingKey for admin or author', async () => {
+    const v3LabRecord = {
+      ...mockLabRecord,
+      id: 'lab-v3-sec-1',
+      slug: 'playwright-v3-login',
+      objective: JSON.stringify({
+        version: '3.0',
+        framework: 'playwright',
+        interactionMode: 'block_builder',
+        contentRevision: 'v3.0.1',
+        fixture: {
+          fixtureId: 'login-fixture',
+          fixtureVersion: '1.0.0',
+          initialRoute: '/auth/login',
+        },
+        allowedBlocks: [],
+        starterPlan: [],
+        publicChecks: [],
+        gradingKey: {
+          exerciseRevision: 'v3.0.1',
+          requiredSteps: [{ type: 'action', action: 'click' }],
+          minScore: 100,
+        },
+      }),
+    };
+
+    const service = new LabsService(createMockPrisma(v3LabRecord) as any, mockEntitlements as any);
+    const admin = { userId: 'admin-001', role: UserRole.admin };
+    const result = await service.findBySlug('playwright-v3-login', admin);
+
+    assert.ok(result.config, 'config should be present');
+    assert.ok(result.config.gradingKey, 'gradingKey must be preserved for admin');
+    assert.equal(result.config.gradingKey.exerciseRevision, 'v3.0.1');
+    assert.equal(result.config.gradingKey.minScore, 100);
+  });
 });

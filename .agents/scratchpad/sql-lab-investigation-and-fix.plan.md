@@ -1,5 +1,7 @@
 # SQL Lab Bug Investigation & Resolution Plan
 
+> **Status**: SUPERSEDED — replaced by the implemented PGlite sandbox plan, V3 curriculum, and current safe legacy-fixture audit.
+
 > **Yêu cầu người dùng**:
 > "kiểm tra lại lab SQL hiện tại code hiển thị sẵn trong ổ nhập và ko chạy query được"
 >
