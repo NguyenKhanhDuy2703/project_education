@@ -1,10 +1,10 @@
-/**
- * SeriesModal — Create / Edit Topic & Course Series Modal
- */
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { CreateSeriesInput, LabSeries } from '@/types/lab.types';
+import { Layers, Trash2, Plus, AlertCircle } from 'lucide-react';
+import type { CreateSeriesInput, LabSeries, SeriesSection } from '@/types/lab.types';
 import { getSystemTopicTags } from '@/services/topicTags.service';
+import { seriesApi } from '@/features/lab/api/series.api';
 
 interface SeriesModalProps {
   open: boolean;
@@ -25,6 +25,51 @@ export function SeriesModal({
   onSubmit,
   isPending,
 }: SeriesModalProps) {
+  const [sections, setSections] = useState<SeriesSection[]>([]);
+  const [newSectionTitle, setNewSectionTitle] = useState('');
+  const [sectionError, setSectionError] = useState<string | null>(null);
+  const [isAddingSection, setIsAddingSection] = useState(false);
+
+  useEffect(() => {
+    if (editingSeries?.sections) {
+      setSections(editingSeries.sections);
+    } else {
+      setSections([]);
+    }
+    setSectionError(null);
+  }, [editingSeries]);
+
+  const handleAddSection = async () => {
+    if (!editingSeries || !newSectionTitle.trim()) return;
+    setSectionError(null);
+    setIsAddingSection(true);
+    try {
+      const created = await seriesApi.createSection(editingSeries.id, {
+        title: newSectionTitle.trim(),
+        orderIndex: sections.length,
+      });
+      setSections([...sections, created]);
+      setNewSectionTitle('');
+    } catch (err: any) {
+      setSectionError(err?.response?.data?.message || 'Failed to create section.');
+    } finally {
+      setIsAddingSection(false);
+    }
+  };
+
+  const handleDeleteSection = async (secId: string, title: string) => {
+    if (!editingSeries) return;
+    setSectionError(null);
+    try {
+      await seriesApi.deleteSection(editingSeries.id, secId);
+      setSections(sections.filter((s) => s.id !== secId));
+    } catch (err: any) {
+      setSectionError(
+        err?.response?.data?.message || `Cannot delete section "${title}": units are still assigned.`,
+      );
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -147,6 +192,80 @@ export function SeriesModal({
               </Badge>
             </label>
           </div>
+
+          {/* Section Management for existing series */}
+          {editingSeries && (
+            <div className="pt-3 border-t border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Layers className="size-4 text-primary" />
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    Curriculum Sections (Modules)
+                  </span>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-semibold">
+                  {sections.length} sections
+                </Badge>
+              </div>
+
+              {sectionError && (
+                <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>{sectionError}</span>
+                </div>
+              )}
+
+              {sections.length > 0 ? (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  {sections.map((sec, idx) => (
+                    <div
+                      key={sec.id || idx}
+                      className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-muted-foreground text-[10px]">#{idx + 1}</span>
+                        <span className="font-semibold text-foreground truncate">{sec.title}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteSection(sec.id, sec.title)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        title="Delete section"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground italic">
+                  No custom sections yet. Units will appear in a default flat curriculum list.
+                </p>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newSectionTitle}
+                  onChange={(e) => setNewSectionTitle(e.target.value)}
+                  placeholder="New section title (e.g. Module 1: Foundations)"
+                  className="flex-1 bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isAddingSection || !newSectionTitle.trim()}
+                  onClick={handleAddSection}
+                  className="text-xs font-semibold h-8 gap-1"
+                >
+                  <Plus className="size-3.5" />
+                  <span>Add Section</span>
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
             <Button type="button" variant="ghost" size="sm" onClick={onClose} className="text-xs">
