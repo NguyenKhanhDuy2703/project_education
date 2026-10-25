@@ -1,6 +1,6 @@
 # Root README & Demo Video Preview Overhaul - Execution Plan & Working Memory
 
-> **Status**: IN_PROGRESS
+> **Status**: COMPLETED — checklist 18/18 closed
 > **Primary Objective**: Transform the project README into a world-class, English-language flagship documentation with a prominent Video Short / Video Preview showcase, comprehensive technical architecture, monorepo coverage (MODULE_BE, MODULE_FE, MODULE_ADMIN), and bilingual navigation (English primary + Vietnamese archive).
 
 ---

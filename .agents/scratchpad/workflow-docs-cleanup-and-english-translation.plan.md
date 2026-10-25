@@ -1,5 +1,7 @@
 # Plan: Workflow Documentation Cleanup, Sequential Ordering & Full English Translation
 
+> **Status**: COMPLETED — checklist 22/22 closed
+
 **Target Directory**: `d:\Projects\study-web\docs\workflows\`  
 **Date**: 2026-10-14  
 **Author**: Antigravity (Pair Programming Assistant)  

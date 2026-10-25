@@ -1,4 +1,4 @@
-  import type {
+import type {
   LabContentEnvelopeV1,
   PracticeLabV1,
   LabDetail,
@@ -6,8 +6,36 @@
   QuizLabConfig,
   AutomationTestConfig,
   AutomationExerciseV2,
+  AutomationExerciseV3,
+  TheoryLessonConfig,
+  LearningUnitType,
   SandboxType,
 } from '@/types/lab.types';
+
+export function inferLearningUnitType(
+  rawUnitType?: string | null,
+  sandboxType?: string | null,
+): LearningUnitType {
+  if (rawUnitType) {
+    if (['theory', 'sql_practice', 'quiz_checkpoint', 'automation_lab'].includes(rawUnitType)) {
+      return rawUnitType as LearningUnitType;
+    }
+  }
+
+  if (sandboxType === 'markdown_only') {
+    return 'theory';
+  }
+  if (sandboxType === 'sql_worker') {
+    return 'sql_practice';
+  }
+  if (sandboxType === 'quizlet') {
+    return 'quiz_checkpoint';
+  }
+  if (sandboxType === 'js_worker' || sandboxType === 'automation_v3') {
+    return 'automation_lab';
+  }
+  return 'theory';
+}
 
 /**
  * Self-healing helper: synthesizes basic PostgreSQL DDL and INSERT statements
@@ -163,18 +191,81 @@ export function normalizeLabDetail(
       solution,
       config: quizConfig,
     };
+  } else if (sandboxType === 'markdown_only') {
+    const rawFormative =
+      parsedObjectiveConfig.formativeQuestions ||
+      parsedObjectiveConfig.questions ||
+      raw.formativeQuestions ||
+      [];
+    const theoryConfig: TheoryLessonConfig = {
+      version: parsedObjectiveConfig.version === '3.0' ? '3.0' : '1.0',
+      readingTimeMinutes: parsedObjectiveConfig.readingTimeMinutes || raw.durationMinutes || 10,
+      objectives: parsedObjectiveConfig.objectives || [],
+      formativeQuestions: Array.isArray(rawFormative) ? rawFormative : [],
+    };
+
+    envelope = {
+      version: theoryConfig.version || '1.0',
+      sandboxType: 'markdown_only',
+      instructions,
+      initialSnippet,
+      testScript,
+      solution,
+      config: theoryConfig,
+    };
   } else {
     // Default to js_worker / automation test
-    const isV2 =
-      parsedObjectiveConfig._envelopeVersion === '2.0' ||
-      parsedObjectiveConfig.version === '2.0' ||
-      raw.version === '2.0' ||
-      parsedObjectiveConfig.interactionMode !== undefined ||
-      raw.interactionMode !== undefined ||
-      Boolean(parsedObjectiveConfig.blanks) ||
-      Boolean(raw.blanks);
+    const isV3 =
+      parsedObjectiveConfig._envelopeVersion === '3.0' ||
+      parsedObjectiveConfig.version === '3.0' ||
+      raw.version === '3.0' ||
+      Boolean(parsedObjectiveConfig.fixture) ||
+      Boolean(raw.fixture) ||
+      Boolean(parsedObjectiveConfig.allowedBlocks) ||
+      Boolean(raw.allowedBlocks);
 
-    if (isV2) {
+    const isV2 =
+      !isV3 &&
+      (parsedObjectiveConfig._envelopeVersion === '2.0' ||
+        parsedObjectiveConfig.version === '2.0' ||
+        raw.version === '2.0' ||
+        parsedObjectiveConfig.interactionMode !== undefined ||
+        raw.interactionMode !== undefined ||
+        Boolean(parsedObjectiveConfig.blanks) ||
+        Boolean(raw.blanks));
+
+    if (isV3) {
+      const v3Config: AutomationExerciseV3 = {
+        version: '3.0',
+        framework: 'playwright',
+        interactionMode: parsedObjectiveConfig.interactionMode || raw.interactionMode || 'block_builder',
+        contentRevision: parsedObjectiveConfig.contentRevision || raw.contentRevision || 'rev-1',
+        fixture: parsedObjectiveConfig.fixture || raw.fixture || {
+          fixtureId: 'default',
+          fixtureVersion: '1.0',
+          initialRoute: '/',
+        },
+        allowedBlocks: parsedObjectiveConfig.allowedBlocks || raw.allowedBlocks || [],
+        starterPlan: parsedObjectiveConfig.starterPlan || raw.starterPlan || [],
+        publicChecks: parsedObjectiveConfig.publicChecks || raw.publicChecks || [],
+        exportTemplate: parsedObjectiveConfig.exportTemplate || raw.exportTemplate || 'typescript',
+        gradingRules: parsedObjectiveConfig.gradingRules || raw.gradingRules || undefined,
+        gradingKey: parsedObjectiveConfig.gradingKey || raw.gradingKey || undefined,
+        targetFunction: parsedObjectiveConfig.targetFunction || raw.targetFunction,
+        title: parsedObjectiveConfig.title || raw.title,
+        scenarioDescription: parsedObjectiveConfig.scenarioDescription || raw.scenarioDescription,
+      };
+
+      envelope = {
+        version: '3.0',
+        sandboxType: 'js_worker',
+        instructions,
+        initialSnippet,
+        testScript,
+        solution,
+        config: v3Config,
+      };
+    } else if (isV2) {
       const v2Config: AutomationExerciseV2 = {
         version: '2.0',
         interactionMode: parsedObjectiveConfig.interactionMode || raw.interactionMode || 'smart_cloze',
@@ -216,6 +307,8 @@ export function normalizeLabDetail(
     }
   }
 
+  const unitType = inferLearningUnitType(raw.unitType, sandboxType);
+
   return {
     id: raw.id || '',
     slug: raw.slug || '',
@@ -224,6 +317,10 @@ export function normalizeLabDetail(
     order: raw.order || raw.orderIndex || 1,
     isProOnly: Boolean(raw.isProOnly),
     sandboxType,
+    unitType,
+    sectionId: raw.sectionId || undefined,
+    section: raw.section || undefined,
+    progress: raw.progress || undefined,
     estimatedMinutes: raw.estimatedMinutes || raw.durationMinutes || 15,
     authorId: raw.authorId,
     authorName: raw.authorName,

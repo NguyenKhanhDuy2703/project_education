@@ -43,4 +43,26 @@ export const seriesApi = {
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/series/${id}`);
   },
+
+  /** Sections management */
+  createSection: async (
+    seriesId: string,
+    data: { title: string; description?: string; orderIndex?: number },
+  ): Promise<any> => {
+    const res = await apiClient.post<any>(`/series/${seriesId}/sections`, data);
+    return res.data?.data ?? res.data;
+  },
+
+  updateSection: async (
+    seriesId: string,
+    sectionId: string,
+    data: { title?: string; description?: string; orderIndex?: number },
+  ): Promise<any> => {
+    const res = await apiClient.put<any>(`/series/${seriesId}/sections/${sectionId}`, data);
+    return res.data?.data ?? res.data;
+  },
+
+  deleteSection: async (seriesId: string, sectionId: string): Promise<void> => {
+    await apiClient.delete(`/series/${seriesId}/sections/${sectionId}`);
+  },
 };

@@ -26,6 +26,7 @@ import { FeatureEntitlementGuard } from '../entitlements/guards/feature-entitlem
 import { RequireFeature } from '../entitlements/decorators/require-feature.decorator';
 import { SubmitLabDto } from './dto/submit-lab.dto';
 import { SqlPreflightDto } from './dto/sql-preflight.dto';
+import { UpdatePositionDto, CompleteTheoryDto } from './dto/theory-progress.dto';
 
 @ApiTags('Labs (Practice & Blog)')
 @Controller('labs')
@@ -90,6 +91,52 @@ export class LabsController {
     @Body() body: SubmitLabDto,
   ) {
     return this.labsService.submit(labId, req.user.userId, body);
+  }
+
+  @Get(':id/progress')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user learning progress for a lab / unit' })
+  async getLearningProgress(
+    @Param('id') labId: string,
+    @Req() req: Request & { user: any },
+  ) {
+    return this.labsService.getLearningProgress(labId, req.user.userId);
+  }
+
+  @Post(':id/progress/start')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Start learning unit progress (transitions to IN_PROGRESS)' })
+  async startProgress(
+    @Param('id') labId: string,
+    @Req() req: Request & { user: any },
+  ) {
+    return this.labsService.startTheoryProgress(labId, req.user.userId);
+  }
+
+  @Post(':id/progress/position')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update learner reading position and formative checks' })
+  async updatePosition(
+    @Param('id') labId: string,
+    @Req() req: Request & { user: any },
+    @Body() body: UpdatePositionDto,
+  ) {
+    return this.labsService.updateTheoryPosition(labId, req.user.userId, body);
+  }
+
+  @Post(':id/progress/complete')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Mark theory / learning unit complete' })
+  async completeProgress(
+    @Param('id') labId: string,
+    @Req() req: Request & { user: any },
+    @Body() body: CompleteTheoryDto,
+  ) {
+    return this.labsService.completeTheoryProgress(labId, req.user.userId, body);
   }
 
   @Get(':id/submissions')

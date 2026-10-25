@@ -161,10 +161,11 @@ describe('QuizAssignmentWorkspace Suite (Subtasks 6.2 - 6.5)', () => {
       expect(onSubmit).toHaveBeenCalledTimes(1);
     });
 
-    // Verify incorrect choice has accessible screen reader text
-    expect(screen.getByText('(Your incorrect choice)')).toBeDefined();
-    // Verify correct answer is also marked
-    expect(screen.getAllByText('(Correct answer)').length).toBeGreaterThan(0);
+    // Verify incorrect choice has accessible screen reader text after async submit resolves
+    await waitFor(() => {
+      expect(screen.getByText('(Your incorrect choice)')).toBeDefined();
+      expect(screen.getAllByText('(Correct answer)').length).toBeGreaterThan(0);
+    });
   });
 
   it('opens and closes question palette modal', async () => {
@@ -223,5 +224,85 @@ describe('QuizAssignmentWorkspace Suite (Subtasks 6.2 - 6.5)', () => {
     expect(screen.getByText('(Correct answer)')).toBeDefined();
     expect(screen.getByText('Correct')).toBeDefined();
     expect(screen.getByText(/ACID guarantees database transaction reliability/i)).toBeDefined();
+  });
+
+  it('consumes server-authoritative review from onSubmit and displays concept review button', async () => {
+    // Simulate stripped question (anti-cheat: no correctIndex or explanation on client)
+    const secureLab: Partial<PracticeLabV1> = {
+      id: 'lab-secure-quiz',
+      slug: 'secure-quiz',
+      title: 'Module 1 Knowledge Check',
+      sandboxType: 'quizlet',
+      envelope: {
+        version: '1.0',
+        sandboxType: 'quizlet',
+        instructions: 'Test instructions',
+        config: {
+          version: '1.0',
+          passPercentage: 70,
+          questions: [
+            {
+              id: 'sec_q1',
+              question: 'Which HTTP status represents unauthorized access?',
+              options: ['200 OK', '401 Unauthorized', '500 Server Error'],
+              // Stripped on server: correctIndex omitted
+            } as any,
+          ],
+        },
+      },
+    };
+
+    const mockServerReview = {
+      scorePercentage: 100,
+      passed: true,
+      passedQuestionsCount: 1,
+      totalQuestions: 1,
+      details: [
+        {
+          questionId: 'sec_q1',
+          selectedOptionIndex: 1,
+          correctOptionIndex: 1,
+          isCorrect: true,
+          isAnswered: true,
+          explanation: '401 Unauthorized indicates the client must authenticate.',
+        },
+      ],
+    };
+
+    const onSubmit = vi.fn().mockResolvedValue({ review: mockServerReview });
+
+    render(
+      <QuizAssignmentWorkspace
+        lab={secureLab as PracticeLabV1}
+        code=""
+        onCodeChange={vi.fn()}
+        onSubmit={onSubmit}
+      />
+    );
+
+    // Initial state: Knowledge check intro banner visible
+    expect(screen.getByRole('heading', { name: /Module 1 Knowledge Check/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Review Concepts/i })).toBeDefined();
+
+    // Select option 1
+    fireEvent.click(screen.getByLabelText(/401 Unauthorized/i));
+
+    // Submit
+    const submitBtn = screen.getByRole('button', { name: /Submit Quiz/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    // Score badge should reflect 100% from server response
+    await waitFor(() => {
+      const scoreBadge = screen.getByRole('status');
+      expect(scoreBadge.textContent).toContain('Passed: 100%');
+    });
+
+    // Authoritative explanation returned by server should be displayed
+    expect(screen.getByText(/401 Unauthorized indicates the client must authenticate/i)).toBeDefined();
+    expect(screen.getAllByText('(Correct answer)').length).toBeGreaterThan(0);
   });
 });

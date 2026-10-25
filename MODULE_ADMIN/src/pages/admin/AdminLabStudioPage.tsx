@@ -53,7 +53,9 @@ export function AdminLabStudioPage() {
   // Form State
   const [form, setForm] = useState<CreateLabInput>({
     seriesId: seriesIdFromQuery,
+    sectionId: '',
     title: '',
+    unitType: 'sql_practice',
     sandboxType: 'sql_worker',
     objective: '',
     instructions: `# 1. Core Theory
@@ -112,9 +114,21 @@ Write queries or test assertions fulfilling the objectives in the exercise build
   useEffect(() => {
     if (existingLab) {
       const labAny = existingLab as any;
+      const inferredUnitType =
+        existingLab.unitType ||
+        (existingLab.sandboxType === 'markdown_only'
+          ? 'theory'
+          : existingLab.sandboxType === 'quizlet'
+          ? 'quiz_checkpoint'
+          : existingLab.sandboxType === 'sql_worker'
+          ? 'sql_practice'
+          : 'automation_lab');
+
       setForm({
         seriesId: existingLab.seriesId || '',
+        sectionId: existingLab.sectionId || '',
         title: existingLab.title || '',
+        unitType: inferredUnitType,
         sandboxType: existingLab.sandboxType || 'sql_worker',
         objective: labAny.objective || '',
         instructions: existingLab.instructions || '',
@@ -167,9 +181,19 @@ Write queries or test assertions fulfilling the objectives in the exercise build
           : parentTopic.slug.includes('quiz')
           ? 'quizlet'
           : 'js_worker');
+      const defaultUnit =
+        topicFormat === 'markdown_only'
+          ? 'theory'
+          : topicFormat === 'quizlet'
+          ? 'quiz_checkpoint'
+          : topicFormat === 'sql_worker'
+          ? 'sql_practice'
+          : 'automation_lab';
+
       setForm((prev) => ({
         ...prev,
         seriesId: parentTopic.id,
+        unitType: defaultUnit,
         sandboxType: topicFormat,
       }));
     }
@@ -234,7 +258,21 @@ Write queries or test assertions fulfilling the objectives in the exercise build
     let hasExerciseConfig = false;
     let exerciseReason = '';
 
-    if (form.sandboxType === 'sql_worker') {
+    const effectiveUnitType =
+      form.unitType ||
+      (form.sandboxType === 'markdown_only'
+        ? 'theory'
+        : form.sandboxType === 'sql_worker'
+        ? 'sql_practice'
+        : form.sandboxType === 'quizlet'
+        ? 'quiz_checkpoint'
+        : 'automation_lab');
+
+    if (effectiveUnitType === 'theory' || form.sandboxType === 'markdown_only') {
+      const hasContent = form.instructions.trim().length >= 100;
+      hasExerciseConfig = hasContent;
+      if (!hasContent) exerciseReason = 'Theory lesson requires at least 100 characters of readable content';
+    } else if (effectiveUnitType === 'sql_practice' || form.sandboxType === 'sql_worker') {
       const hasSchema = (form.sqlSchema || '').trim().length >= 20;
       const hasSolution = (form.solution || '').trim().length >= 10;
       const needsVerification = form.config?.statementPolicy === 'mutable';
@@ -244,15 +282,7 @@ Write queries or test assertions fulfilling the objectives in the exercise build
       else if (!hasSolution) exerciseReason = 'Missing model SQL solution query';
       else if (!hasVerification) exerciseReason = 'Mutable labs require a hidden verification query';
       else if (!sqlPreflightPassed) exerciseReason = 'Run and pass the PGlite solution preflight';
-    } else if (form.sandboxType === 'js_worker') {
-      const hasStarter = (form.initialSnippet || '').trim().length >= 10;
-      const hasSolution = (form.solution || '').trim().length >= 10;
-      const hasTestScript = (form.testScript || '').trim().length >= 10;
-      hasExerciseConfig = hasStarter && hasSolution && hasTestScript;
-      if (!hasStarter) exerciseReason = 'Missing starter code snippet';
-      else if (!hasSolution) exerciseReason = 'Missing reference solution';
-      else if (!hasTestScript) exerciseReason = 'Missing evaluation test assertions';
-    } else if (form.sandboxType === 'quizlet') {
+    } else if (effectiveUnitType === 'quiz_checkpoint' || form.sandboxType === 'quizlet') {
       const questions = form.quizQuestions || [];
       const allValid =
         questions.length > 0 &&
@@ -267,8 +297,15 @@ Write queries or test assertions fulfilling the objectives in the exercise build
       hasExerciseConfig = allValid;
       if (questions.length === 0) exerciseReason = 'No quiz questions defined';
       else if (!allValid) exerciseReason = 'Every question must have at least 2 options and a selected correct answer';
+    } else if (effectiveUnitType === 'automation_lab' || form.sandboxType === 'js_worker') {
+      const hasStarter = (form.initialSnippet || '').trim().length >= 10;
+      const hasSolution = (form.solution || '').trim().length >= 10;
+      const hasTestScript = (form.testScript || '').trim().length >= 10;
+      hasExerciseConfig = hasStarter && (hasSolution || hasTestScript);
+      if (!hasStarter) exerciseReason = 'Missing starter code or automation scenario';
+      else if (!hasSolution && !hasTestScript) exerciseReason = 'Missing reference solution or evaluation assertions';
     } else {
-      hasExerciseConfig = true; // article only
+      hasExerciseConfig = true;
     }
 
     const isAllValid = hasSeries && hasTitle && hasTheory && hasExerciseConfig;
@@ -361,12 +398,20 @@ Write queries or test assertions fulfilling the objectives in the exercise build
     setCurrentStep(2);
   };
 
-  const formatTypeName = {
-    sql_worker: 'SQL Database',
-    quizlet: 'Quizlet Multiple Choice',
-    js_worker: 'JavaScript Worker',
-    markdown_only: 'Theory Article',
-  }[form.sandboxType || 'sql_worker'];
+  const formatTypeName =
+    {
+      theory: 'Theory Lesson',
+      sql_practice: 'SQL Database Lab',
+      quiz_checkpoint: 'Quiz Checkpoint',
+      automation_lab: 'Automation Lab',
+    }[form.unitType || 'sql_practice'] ||
+    {
+      sql_worker: 'SQL Database',
+      quizlet: 'Quizlet Multiple Choice',
+      js_worker: 'JavaScript Worker',
+      markdown_only: 'Theory Article',
+    }[form.sandboxType || 'sql_worker'] ||
+    'Practice Lab';
 
   if (isEditing && isLoadingLab) {
     return (
@@ -567,10 +612,20 @@ Write queries or test assertions fulfilling the objectives in the exercise build
                           : nextTopic?.slug.includes('quiz')
                           ? 'quizlet'
                           : 'js_worker');
+                      const nextUnit =
+                        nextFormat === 'markdown_only'
+                          ? 'theory'
+                          : nextFormat === 'quizlet'
+                          ? 'quiz_checkpoint'
+                          : nextFormat === 'sql_worker'
+                          ? 'sql_practice'
+                          : 'automation_lab';
                       setForm({
                         ...form,
                         seriesId: e.target.value,
+                        unitType: nextUnit,
                         sandboxType: nextFormat || form.sandboxType,
+                        sectionId: '',
                       });
                     }}
                     className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
@@ -592,20 +647,63 @@ Write queries or test assertions fulfilling the objectives in the exercise build
                   )}
                 </div>
 
-                {/* Sandbox format */}
+                {/* Section / Module selector */}
+                {parentTopic?.sections && parentTopic.sections.length > 0 && (
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
+                      Curriculum Section
+                    </label>
+                    <select
+                      value={form.sectionId || ''}
+                      onChange={(e) => setForm({ ...form, sectionId: e.target.value || undefined })}
+                      className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                    >
+                      <option value="">-- Default / Flat Curriculum --</option>
+                      {parentTopic.sections.map((sec) => (
+                        <option key={sec.id} value={sec.id}>
+                          {sec.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Pedagogical Unit Type (Task 4.2) */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-foreground uppercase tracking-wider block">
-                    Exercise Type *
+                    Learning Unit Type *
                   </label>
                   <select
-                    value={form.sandboxType}
-                    onChange={(e) => setForm({ ...form, sandboxType: e.target.value as any })}
+                    value={
+                      form.unitType ||
+                      (form.sandboxType === 'markdown_only'
+                        ? 'theory'
+                        : form.sandboxType === 'sql_worker'
+                        ? 'sql_practice'
+                        : form.sandboxType === 'quizlet'
+                        ? 'quiz_checkpoint'
+                        : 'automation_lab')
+                    }
+                    onChange={(e) => {
+                      const uType = e.target.value as any;
+                      let sType = form.sandboxType;
+                      if (uType === 'theory') sType = 'markdown_only';
+                      else if (uType === 'sql_practice') sType = 'sql_worker';
+                      else if (uType === 'quiz_checkpoint') sType = 'quizlet';
+                      else if (uType === 'automation_lab') sType = 'js_worker';
+
+                      setForm({
+                        ...form,
+                        unitType: uType,
+                        sandboxType: sType,
+                      });
+                    }}
                     className="w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   >
-                    <option value="sql_worker">SQL Database</option>
-                    <option value="js_worker">JavaScript Worker</option>
-                    <option value="quizlet">Quizlet Multiple Choice</option>
-                    <option value="markdown_only">Theory Article</option>
+                    <option value="theory">Theory Lesson (Reading &amp; Mini-Checks)</option>
+                    <option value="sql_practice">SQL Practice Lab (Database Sandbox)</option>
+                    <option value="quiz_checkpoint">Quiz Checkpoint (Knowledge Assessment)</option>
+                    <option value="automation_lab">Automation Lab (Playwright Simulation)</option>
                   </select>
                 </div>
 
@@ -770,8 +868,8 @@ Write queries or test assertions fulfilling the objectives in the exercise build
             />
           )}
 
-          {/* FORMAT B: JAVASCRIPT WORKER BUILDER */}
-          {form.sandboxType === 'js_worker' && (
+          {/* FORMAT B: JAVASCRIPT WORKER / PLAYWRIGHT AUTOMATION BUILDER */}
+          {(form.unitType === 'automation_lab' || form.sandboxType === 'js_worker' || form.sandboxType === 'automation_v3') && (
             <JsWorkerExerciseBuilder
               initialSnippet={form.initialSnippet || ''}
               onInitialSnippetChange={(val) => setForm({ ...form, initialSnippet: val })}
@@ -790,13 +888,144 @@ Write queries or test assertions fulfilling the objectives in the exercise build
             />
           )}
 
-          {/* FORMAT D: MARKDOWN ONLY (BLOG / THEORY) */}
-          {form.sandboxType === 'markdown_only' && (
-            <div className="p-8 rounded-2xl border border-border bg-card text-center space-y-2">
-              <h3 className="text-sm font-bold text-foreground">Theory Reading Mode</h3>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                This mode does not require interactive sandbox execution. Learners complete the lesson by reviewing the theory and guidance in Step 1.
-              </p>
+          {/* FORMAT D: THEORY LESSON & FORMATIVE CHECKS BUILDER */}
+          {(form.unitType === 'theory' || form.sandboxType === 'markdown_only') && (
+            <div className="p-6 rounded-2xl border border-border bg-card space-y-6 shadow-xs">
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-foreground">Theory Lesson &amp; Formative Concept Checks</h3>
+                <p className="text-xs text-muted-foreground">
+                  Theory lessons focus on reading and comprehension. You can define estimated reading time and 1–3 interactive concept-check questions to verify learner understanding before they complete the lesson.
+                </p>
+              </div>
+
+              {/* Formative Questions List */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    Formative Mini-Checks ({((form.config as any)?.formativeQuestions || []).length})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const cur = (form.config as any)?.formativeQuestions || [];
+                      const newQ = {
+                        id: `fq-${Date.now()}`,
+                        question: 'Concept check: Which statement is correct?',
+                        options: ['Option A (Correct)', 'Option B', 'Option C'],
+                        correctIndex: 0,
+                        hint: 'Review key terms in section 1.',
+                        explanation: 'Option A explains the core mechanism accurately.',
+                      };
+                      setForm({
+                        ...form,
+                        config: {
+                          ...form.config,
+                          formativeQuestions: [...cur, newQ],
+                        },
+                      });
+                    }}
+                    className="text-xs h-7 gap-1"
+                  >
+                    + Add Concept Check
+                  </Button>
+                </div>
+
+                {((form.config as any)?.formativeQuestions || []).map((q: any, qIdx: number) => (
+                  <div key={q.id || qIdx} className="p-4 rounded-xl border border-border bg-muted/20 space-y-3 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-foreground">Question {qIdx + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const cur = (form.config as any)?.formativeQuestions || [];
+                          setForm({
+                            ...form,
+                            config: {
+                              ...form.config,
+                              formativeQuestions: cur.filter((_: any, i: number) => i !== qIdx),
+                            },
+                          });
+                        }}
+                        className="text-destructive h-6 px-2 text-[11px]"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+
+                    <input
+                      type="text"
+                      value={q.question}
+                      onChange={(e) => {
+                        const cur = [...((form.config as any)?.formativeQuestions || [])];
+                        cur[qIdx] = { ...cur[qIdx], question: e.target.value };
+                        setForm({ ...form, config: { ...form.config, formativeQuestions: cur } });
+                      }}
+                      placeholder="Question prompt..."
+                      className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground font-medium"
+                    />
+
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-semibold text-muted-foreground">Options (select radio for correct answer):</span>
+                      {q.options.map((opt: string, optIdx: number) => (
+                        <div key={optIdx} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`fq-correct-${qIdx}`}
+                            checked={q.correctIndex === optIdx}
+                            onChange={() => {
+                              const cur = [...((form.config as any)?.formativeQuestions || [])];
+                              cur[qIdx] = { ...cur[qIdx], correctIndex: optIdx };
+                              setForm({ ...form, config: { ...form.config, formativeQuestions: cur } });
+                            }}
+                            className="size-3.5 text-primary"
+                          />
+                          <input
+                            type="text"
+                            value={opt}
+                            onChange={(e) => {
+                              const cur = [...((form.config as any)?.formativeQuestions || [])];
+                              const opts = [...cur[qIdx].options];
+                              opts[optIdx] = e.target.value;
+                              cur[qIdx] = { ...cur[qIdx], options: opts };
+                              setForm({ ...form, config: { ...form.config, formativeQuestions: cur } });
+                            }}
+                            className="flex-1 bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground"
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        value={q.hint || ''}
+                        onChange={(e) => {
+                          const cur = [...((form.config as any)?.formativeQuestions || [])];
+                          cur[qIdx] = { ...cur[qIdx], hint: e.target.value };
+                          setForm({ ...form, config: { ...form.config, formativeQuestions: cur } });
+                        }}
+                        placeholder="Hint for learners..."
+                        className="bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground"
+                      />
+                      <input
+                        type="text"
+                        value={q.explanation || ''}
+                        onChange={(e) => {
+                          const cur = [...((form.config as any)?.formativeQuestions || [])];
+                          cur[qIdx] = { ...cur[qIdx], explanation: e.target.value };
+                          setForm({ ...form, config: { ...form.config, formativeQuestions: cur } });
+                        }}
+                        placeholder="Explanation when answered..."
+                        className="bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

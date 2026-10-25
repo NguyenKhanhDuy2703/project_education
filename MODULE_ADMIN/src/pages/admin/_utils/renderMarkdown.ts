@@ -9,16 +9,19 @@ markedInstance.use({
   renderer: {
     heading({ tokens, depth }) {
       const text = this.parser.parseInline(tokens);
+      const rawText = tokens.map((t: any) => t.raw || t.text || '').join('');
+      const id = rawText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const idAttr = id ? ` id="${id}"` : '';
       if (depth === 1) {
-        return `<h1 class="text-xl font-bold text-foreground mt-4 mb-2 tracking-tight">${text}</h1>`;
+        return `<h1${idAttr} class="text-xl font-bold text-foreground mt-4 mb-2 tracking-tight">${text}</h1>`;
       }
       if (depth === 2) {
-        return `<h2 class="text-lg font-bold text-foreground mt-4 mb-2 pb-1 border-b border-border tracking-tight">${text}</h2>`;
+        return `<h2${idAttr} class="text-lg font-bold text-foreground mt-4 mb-2 pb-1 border-b border-border tracking-tight">${text}</h2>`;
       }
       if (depth === 3) {
-        return `<h3 class="text-base font-semibold text-foreground mt-3 mb-1.5">${text}</h3>`;
+        return `<h3${idAttr} class="text-base font-semibold text-foreground mt-3 mb-1.5">${text}</h3>`;
       }
-      return `<h4 class="text-sm font-semibold text-foreground mt-2 mb-1">${text}</h4>`;
+      return `<h4${idAttr} class="text-sm font-semibold text-foreground mt-2 mb-1">${text}</h4>`;
     },
     table(token) {
       const header = token.header

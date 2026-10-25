@@ -1,5 +1,7 @@
 # Kiến Trúc Chi Tiết & Kế Hoạch Triển Khai 3 Phương Pháp Học: SQL, Quizlet & Low-Code Automation Test
 
+> **Status**: COMPLETED — checklist 8/8 closed; V3 contracts are the current authority.
+
 > **Tài liệu tham chiếu**: [W3Schools SQL Tutorial](https://www.w3schools.com/sql/default.asp) & Nghiên cứu Sư phạm EdTech ([edtech-pedagogy-and-user-friendly-lowcode-testing.md](file:///C:/Users/KhanhDuy/.gemini/antigravity/brain/5cc0e400-4113-495d-8bf3-cdc41bff58e6/edtech-pedagogy-and-user-friendly-lowcode-testing.md))  
 > **Giao thức tuân thủ**: Plan-and-Execute Pattern (`.agents/skills/plan-and-execute/SKILL.md`)  
 > **Nguyên tắc UI/UX**: UI/UX Pro Max Design System (Typographic clarity, Zero-drift Scaffolding, Instant Feedback Loops)  

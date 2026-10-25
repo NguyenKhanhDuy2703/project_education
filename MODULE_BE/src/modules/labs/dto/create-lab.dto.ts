@@ -22,6 +22,16 @@ export class CreateLabDto {
   @IsOptional()
   sandboxType?: string;
 
+  @ApiPropertyOptional({ example: 'theory', description: 'Loại bài học: theory | sql_practice | quiz_checkpoint | automation_lab' })
+  @IsString()
+  @IsOptional()
+  unitType?: string;
+
+  @ApiPropertyOptional({ description: 'ID của Section / Module cha trong Series' })
+  @IsUUID()
+  @IsOptional()
+  sectionId?: string;
+
   @ApiPropertyOptional({ example: 'Hiểu cấu trúc và viết test case kiểm thử email' })
   @IsString()
   @IsOptional()

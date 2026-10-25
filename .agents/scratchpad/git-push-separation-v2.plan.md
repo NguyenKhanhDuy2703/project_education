@@ -1,6 +1,6 @@
 # Git Push & Branch Separation Plan (V2)
 
-> **Status**: ⏸️ WAITING FOR HUMAN CONFIRMATION (Planning Phase Complete)  
+> **Status**: SUPERSEDED — DO NOT EXECUTE; branch and dirty-tree assumptions are historical.
 > **Repository**: `study-web`  
 > **Source Base**: `dev` (up to date with `origin/dev`)  
 > **Compliance**: Monorepo Scope Isolation (`MODULE_BE`, `MODULE_FE`, `MODULE_ADMIN`, `docs`), Conventional Commits, Path-Filter CI/CD Optimization  
@@ -39,7 +39,7 @@
   - *Verify*: 40/40 tests pass, build produces zero errors.
 
 ### Task 5: Docs & Infrastructure Branch (`feat/docs-lab-platform-upgrade-and-runbooks`)
-- [/] **Subtask 5.1**: Return to `dev`, create branch `feat/docs-lab-platform-upgrade-and-runbooks` from `dev`, stage `docs/`, `AGENTS.md`, `.agents/`, `.github/`, `.gitignore`, and commit with `docs: document lab platform upgrade, adrs, formal specs, and multi-agent runbooks`.
+- **CANCELLED (superseded)** — Subtask 5.1: Return to `dev`, create branch `feat/docs-lab-platform-upgrade-and-runbooks` from `dev`, stage `docs/`, `AGENTS.md`, `.agents/`, `.github/`, `.gitignore`, and commit with `docs: document lab platform upgrade, adrs, formal specs, and multi-agent runbooks`.
   - *Verify*: `git log -1` verifies clean commit scoped exclusively to docs and governance.
 
 ### Task 6: Push All Branches to Remote `origin`

@@ -13,7 +13,6 @@ language: en
 approved_by: ["Nguyen Khanh Duy"]
 related_docs:
   - 03-product-backlog.md
-  - 10-cleanup-refactoring-and-english-i18n.md
   - 12-lab-platform-upgrade-analysis.md
   - 13-lab-platform-upgrade-agent-execution-plan.md
   - workflows/03-lab-practice-webworker.md
@@ -191,14 +190,16 @@ All product decisions DEC-01 through DEC-10 are approved using the recommended d
 
 ### Task 5: Improve the Learner Footer
 
-- [ ] **Subtask 5.1 — Implement the approved responsive footer information architecture**
+- [x] **Subtask 5.1 — Implement the approved responsive footer information architecture**
   - **Files**: `MODULE_FE/src/components/layout/Footer.tsx`, translation catalogs, footer tests.
   - **Recommended structure**: concise brand/value statement; Learn links (Catalog, Practice Labs, Dashboard); Support/Legal links (Feedback action, Terms, Privacy); copyright.
   - **Verify**: every link resolves; 375/768/1440 layouts have no wrap collision; footer does not appear in full-screen lab layout; focus order is logical.
+  - **Evidence (2026-10-24)**: `footer-responsive.spec.ts` passes in Chromium at 375/768/1024/1440px, verifies zero horizontal overflow, 44px touch targets, focusability, and no footer under `/labs/*`.
 
-- [ ] **Subtask 5.2 — Remove stale hardcoded year/copy variants**
+- [x] **Subtask 5.2 — Remove stale hardcoded year/copy variants**
   - **Files**: `Footer.tsx`, `AuthLayout.tsx`, any duplicate footer text, locale catalogs.
   - **Verify**: repository search finds no stale fixed year or conflicting brand tagline in reachable footer surfaces.
+  - **Evidence (2026-10-24)**: learner footer and auth footer both derive the year from `new Date().getFullYear()`; focused footer/i18n tests pass 9/9 and the production FE build succeeds.
 
 ### Task 6: Audit and Refine the Existing Learner Dashboard
 

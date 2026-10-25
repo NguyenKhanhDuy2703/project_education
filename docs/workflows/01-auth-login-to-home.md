@@ -37,7 +37,7 @@ related_docs: [../01-proposal.md, ../05-database.md, 02-catalog-topic-discovery.
   - Processing: Bcrypt verification or Google OAuth ID token validation, dual-token issuance (15m in-memory Access Token + 7d HttpOnly Refresh Cookie).
   - Output: Automated routing: Learner $\to$ Homepage `/`; Contributor $\to$ User Dashboard `/user/dashboard`.
 - **Flow B: Platform Administrator Authentication & Hardening (`MODULE_ADMIN`)**:
-  - Input: Dedicated Admin portal login at `admin.studyweb.dev/login`. Local email/password credentials only (**Google OAuth is strictly disabled** to eliminate third-party OAuth compromise vectors).
+  - Input: Dedicated Admin portal login at `admin.studyit.dev/login`. Local email/password credentials only (**Google OAuth is strictly disabled** in the admin client).
   - Authorization Gate: Backend checks `user.role === 'admin'`. Non-admin accounts attempting login are immediately rejected with `403 Forbidden`.
   - Self-Service Password Update: Admin changes password in-app via Topbar dropdown modal (`POST /api/v1/auth/change-password` with current password verification).
   - Emergency Recovery: If the root admin password is lost, server administrators execute the root CLI script `node MODULE_BE/scripts/reset-admin-password.js <email> <newPassword>`.
@@ -116,7 +116,7 @@ sequenceDiagram
     participant CLI as Emergency CLI Script
     participant DB as PostgreSQL (users)
 
-    Note over Admin, DB: 1. Hardened Admin Login (admin.studyweb.dev)
+    Note over Admin, DB: 1. Hardened Admin Login (admin.studyit.dev)
     Admin->>AdminUI: Enter Admin Email & Password (no OAuth options)
     AdminUI->>BE: POST /api/v1/auth/login { email, password }
     BE->>DB: SELECT * FROM users WHERE email = $1
@@ -163,7 +163,7 @@ sequenceDiagram
    - `Access Token`: Short-lived (15 minutes), stored solely in memory (Redux State), never written to `localStorage` to eliminate XSS token theft vectors.
    - `Refresh Token`: Long-lived (7 days), persisted in secure `HttpOnly Cookie` configured with `SameSite=Lax; Path=/api/v1/auth/refresh; Secure`.
 2. **Administrative Isolation & Subdomain Guard**:
-   - `MODULE_ADMIN` is hosted on a separate origin (`admin.studyweb.dev` or port 5174/5175).
+   - `MODULE_ADMIN` is intended for a separate origin (`admin.studyit.dev` or its local development port); deployed-domain validation remains manual.
    - NestJS CORS whitelist specifically permits `http://localhost:5174` and `http://localhost:5175` alongside production admin domains.
    - OAuth login endpoints are unavailable on `MODULE_ADMIN`, enforcing strict credential stewardship.
 3. **Emergency Disaster Recovery**:

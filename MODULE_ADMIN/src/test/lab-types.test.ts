@@ -284,5 +284,33 @@ describe('Admin Lab Types & V2 Envelope Contract Suite', () => {
       expect(lab.sandboxType).toBe('js_worker');
       expect(lab.envelope?.version).toBe('2.0');
     });
+
+    it('supports LearningUnitType, SeriesSection, and TheoryLessonConfig contracts', () => {
+      const section = {
+        id: 'sec-1',
+        seriesId: 'series-1',
+        title: 'Module 1: Foundations',
+        orderIndex: 0,
+      };
+
+      const theoryLab: LabDetail = {
+        id: 'lab-theory-1',
+        seriesId: 'series-1',
+        title: 'Testing Principles',
+        slug: 'testing-principles',
+        order: 1,
+        isProOnly: false,
+        sandboxType: 'markdown_only',
+        unitType: 'theory',
+        sectionId: section.id,
+        instructions: '# Principles',
+        initialSnippet: '',
+        testScript: '',
+      };
+
+      expect(theoryLab.unitType).toBe('theory');
+      expect(theoryLab.sectionId).toBe('sec-1');
+      expect(section.title).toBe('Module 1: Foundations');
+    });
   });
 });

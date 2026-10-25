@@ -1,5 +1,7 @@
 # Kế Hoạch Triển Khai: Tối Ưu Giao Diện Quiz Dạng Danh Sách & Tinh Gọn 3 Khóa Học Đại Diện
 
+> **Status**: SUPERSEDED — replaced by the completed V3 triad curriculum and learning-series redesign plans; unchecked tasks below are historical, not active work.
+
 > **Yêu cầu người dùng**:
 > 1. **Task 1 (Format Quiz & Khóa học đại diện)**:
 >    - Trình bày tất cả câu hỏi Quizlet với 4 options ngay bên dưới để chọn luôn, thay vì lật từng flashcard.

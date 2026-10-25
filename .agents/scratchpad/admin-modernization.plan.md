@@ -2,7 +2,7 @@
 
 > **Status**: FULLY VERIFIED & COMPLETE (Review Passed 100%)
 > **Goal**: Modernize `MODULE_ADMIN` domain types, English localization, Admin Studio defaults, Review Queue V2 envelope preview, and testing infrastructure with 100% green verification.
-> **Source Plan**: `docs/admin/ADMIN_MODERNIZATION_PLAN.md`
+> **Source Plan**: removed as a redundant draft on 2026-10-24; this verified tracker retains the implementation evidence.
 
 ---
 

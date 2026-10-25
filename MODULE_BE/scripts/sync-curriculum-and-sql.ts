@@ -1,5 +1,11 @@
 import { PrismaClient, ContentLifecycleStatus } from '@prisma/client';
 
+if (!process.argv.includes('--allow-destructive-legacy-sync')) {
+  throw new Error(
+    'Blocked legacy sync: this script deletes submissions for selected series. Use audit-curriculum-state.ts and sync-legacy-sql-fixtures-safe.ts instead.',
+  );
+}
+
 const prisma = new PrismaClient();
 
 const customersSampleData = [

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Sheet,
@@ -12,8 +13,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronDown, Search, CheckCircle2, ChevronLeft, X } from 'lucide-react';
+import {
+  ChevronDown,
+  Search,
+  CheckCircle2,
+  ChevronLeft,
+  X,
+  BookOpen,
+  Database,
+  CheckSquare,
+  Play,
+  Layers,
+} from 'lucide-react';
 import type { LabSummary, LabSeries } from '@/types/lab.types';
+import { getUnitTypeInfo } from '@/services/formatBadge.service';
 
 export interface CurriculumDrawerSheetProps {
   series?: LabSeries;
@@ -36,7 +49,50 @@ export function CurriculumDrawerSheet({
   filteredSeriesLabs,
   onSwitchLab,
 }: CurriculumDrawerSheetProps) {
-  const seriesLabs = series?.labs || [];
+  const seriesLabs = useMemo(() => series?.labs || [], [series?.labs]);
+
+  const curriculumSummary = useMemo(() => {
+    let lessons = 0;
+    let practice = 0;
+    let checks = 0;
+
+    for (const l of seriesLabs) {
+      const uType = l.unitType || (
+        l.sandboxType === 'markdown_only'
+          ? 'theory'
+          : l.sandboxType === 'sql_worker'
+          ? 'sql_practice'
+          : l.sandboxType === 'quizlet'
+          ? 'quiz_checkpoint'
+          : 'automation_lab'
+      );
+      if (uType === 'theory') lessons++;
+      else if (uType === 'quiz_checkpoint') checks++;
+      else practice++;
+    }
+
+    const parts = [
+      lessons > 0 ? `${lessons} lessons` : null,
+      practice > 0 ? `${practice} labs` : null,
+      checks > 0 ? `${checks} checks` : null,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(' · ') : `${seriesLabs.length} units`;
+  }, [seriesLabs]);
+
+  const renderUnitIcon = (unitType: string) => {
+    switch (unitType) {
+      case 'theory':
+        return <BookOpen className="size-3.5 text-sky-500 shrink-0 mt-0.5" />;
+      case 'sql_practice':
+        return <Database className="size-3.5 text-blue-500 shrink-0 mt-0.5" />;
+      case 'quiz_checkpoint':
+        return <CheckSquare className="size-3.5 text-purple-500 shrink-0 mt-0.5" />;
+      case 'automation_lab':
+      default:
+        return <Play className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />;
+    }
+  };
 
   return (
     <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
@@ -45,9 +101,10 @@ export function CurriculumDrawerSheet({
           variant="ghost"
           size="sm"
           className="h-7 px-2.5 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground shrink-0 hover:bg-muted/60"
-          title="Curriculum & Lab List"
+          title="Curriculum & Unit List"
         >
-          <span>Lab List</span>
+          <Layers className="size-3.5 text-primary" />
+          <span>Curriculum</span>
           <ChevronDown className="size-3 text-muted-foreground opacity-60" />
         </Button>
       </SheetTrigger>
@@ -68,19 +125,19 @@ export function CurriculumDrawerSheet({
             </SheetClose>
           </div>
 
-          {/* Row 2: 'CURRICULUM DRAWER' + challenges badge */}
+          {/* Row 2: 'CURRICULUM' + summary badge */}
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Curriculum Drawer
+              Curriculum Units
             </span>
             {series && (
-              <Badge variant="outline" className="text-[10px] font-semibold">
-                {seriesLabs.length} Challenges
+              <Badge variant="outline" className="text-[10px] font-semibold text-primary">
+                {curriculumSummary}
               </Badge>
             )}
           </div>
 
-          {/* Row 3: Khối Info (Title + Description) */}
+          {/* Row 3: Series Title + Description */}
           <div className="space-y-1">
             <SheetTitle
               className="text-base font-bold text-foreground leading-snug break-words"
@@ -89,35 +146,106 @@ export function CurriculumDrawerSheet({
               {series?.title || 'Interactive Lab Series'}
             </SheetTitle>
             <SheetDescription
-              className="text-xs text-muted-foreground line-clamp-3 leading-relaxed"
+              className="text-xs text-muted-foreground line-clamp-2 leading-relaxed"
               title={series?.description}
             >
-              {series?.description || 'Browse challenges in this curriculum'}
+              {series?.description || 'Browse curriculum units and track progress'}
             </SheetDescription>
           </div>
 
-          {/* Row 4: Thanh Search */}
+          {/* Row 4: Search input */}
           <div className="relative pt-1">
             <Search className="size-3.5 absolute left-2.5 top-3.5 text-muted-foreground" />
             <Input
               value={labSearchQuery}
               onChange={(e) => setLabSearchQuery(e.target.value)}
-              placeholder="Search challenges by title, type..."
+              placeholder="Search lessons and labs..."
               className="h-8 pl-8 text-xs bg-muted/30 border-border"
             />
           </div>
         </SheetHeader>
 
         <ScrollArea className="flex-1 p-2">
-          <div className="space-y-1">
+          <div className="space-y-4">
             {filteredSeriesLabs.length === 0 ? (
               <div className="text-center py-8 text-xs text-muted-foreground">
-                No matching labs found
+                No matching units found
               </div>
+            ) : series?.sections && series.sections.length > 0 ? (
+              series.sections.map((sec, sIdx) => {
+                const sectionItems = filteredSeriesLabs.filter((l) => l.sectionId === sec.id);
+                if (sectionItems.length === 0) return null;
+
+                return (
+                  <div key={sec.id || sIdx} className="space-y-1.5">
+                    <div className="px-2 pt-1 flex items-center justify-between text-xs font-bold text-foreground">
+                      <span>{sec.title}</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        {sectionItems.length} units
+                      </span>
+                    </div>
+                    {sectionItems.map((item, index) => {
+                      const isActive = item.id === currentLabId || item.slug === currentLabId;
+                      const isPassed =
+                        item.progress?.status === 'COMPLETED' ||
+                        (item as any).userStatus === 'passed';
+                      const unitInfo = getUnitTypeInfo(item.unitType, item.sandboxType);
+
+                      return (
+                        <div
+                          key={item.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => onSwitchLab(item)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onSwitchLab(item);
+                            }
+                          }}
+                          title={item.title}
+                          aria-label={`Challenge ${index + 1}: ${item.title}`}
+                          className={`p-2 rounded-lg border text-xs cursor-pointer transition-all flex items-start justify-between gap-2 group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary ${
+                            isActive
+                              ? 'border-primary/60 bg-primary/5 font-semibold text-primary'
+                              : 'border-transparent hover:bg-muted/50 text-foreground'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2 min-w-0 flex-1">
+                            {renderUnitIcon(unitInfo.unitType)}
+                            <div className="min-w-0 flex-1">
+                              <span className="line-clamp-2 leading-snug break-words text-foreground group-hover:text-primary transition-colors">
+                                {item.title}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {unitInfo.label}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                            {isPassed && (
+                              <CheckCircle2 className="size-3.5 text-emerald-500" aria-label="Completed unit" />
+                            )}
+                            {item.isProOnly && (
+                              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-amber-500/10 text-amber-600 font-bold border-0">
+                                PRO
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
             ) : (
               filteredSeriesLabs.map((item, index) => {
                 const isActive = item.id === currentLabId || item.slug === currentLabId;
-                const isPassed = (item as any).userStatus === 'passed';
+                const isPassed =
+                  item.progress?.status === 'COMPLETED' ||
+                  (item as any).userStatus === 'passed';
+                const unitInfo = getUnitTypeInfo(item.unitType, item.sandboxType);
 
                 return (
                   <div
@@ -133,24 +261,27 @@ export function CurriculumDrawerSheet({
                     }}
                     title={item.title}
                     aria-label={`Challenge ${index + 1}: ${item.title}`}
-                    className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-start justify-between gap-2.5 group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary ${
+                    className={`p-2 rounded-lg border text-xs cursor-pointer transition-all flex items-start justify-between gap-2.5 group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary ${
                       isActive
                         ? 'border-primary/60 bg-primary/5 font-semibold text-primary'
                         : 'border-transparent hover:bg-muted/50 text-foreground'
                     }`}
                   >
                     <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                      <span className="size-5 rounded-md flex items-center justify-center text-[10px] font-mono bg-muted/60 text-muted-foreground shrink-0 mt-0.5">
-                        {index + 1}
-                      </span>
-                      <span className="line-clamp-2 leading-snug break-words text-foreground group-hover:text-primary transition-colors">
-                        {item.title}
-                      </span>
+                      {renderUnitIcon(unitInfo.unitType)}
+                      <div className="min-w-0 flex-1">
+                        <span className="line-clamp-2 leading-snug break-words text-foreground group-hover:text-primary transition-colors">
+                          {item.title}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {unitInfo.label}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                       {isPassed && (
-                        <CheckCircle2 className="size-3.5 text-emerald-500" aria-label="Passed challenge" />
+                        <CheckCircle2 className="size-3.5 text-emerald-500" aria-label="Completed unit" />
                       )}
                       {item.isProOnly && (
                         <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-amber-500/10 text-amber-600 font-bold border-0">

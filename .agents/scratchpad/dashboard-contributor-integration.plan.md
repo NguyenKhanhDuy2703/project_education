@@ -1,5 +1,7 @@
 # Kế Hoạch Tích Hợp Contributor Vào User Dashboard & Dọn Dẹp Mã Thừa
 
+> **Status**: COMPLETED — checklist 15/15 closed
+
 ## Bối Cảnh & Mục Tiêu Kiến Trúc
 1. **Mục tiêu**:
    - Tích hợp không gian làm việc của Contributor (quản lý Series, bài Lab, phản hồi kiểm duyệt) trực tiếp vào **User Dashboard** dưới dạng module mở rộng dựa trên quyền (PBAC: `user.isContributor === true`).

@@ -1,143 +1,138 @@
 ---
 doc_type: workflow
-title: Sequence Diagram - PRO Upgrade & VNPAY Payment Gateway Integration (Upgrade & Payment Flow)
+title: PRO Access, Pricing, Manual Upgrade, and Payment Boundary
 project: study-web
-version: "1.1"
-version_source: codebase
+version: "2.0"
+version_source: repository
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: VNPAY Payment Gateway Integration, Paywall Modal, Checksum Verification, and Automated PRO Entitlement Activation
-date: 2026-10-14
-source_file: "MODULE_FE/src/features/lab/components/UpgradeModal.tsx, MODULE_BE/src/modules/payment"
+scope: PRO paywall, pricing presentation, manual upgrade request, entitlement assignment, and unimplemented payment boundary
+date: 2026-10-24
+source_file: Current UpgradeModal, PricingPage, entitlement controllers/services, and Prisma schema
 status: final
 language: en
-related_docs: [02-catalog-topic-discovery.md, 04-lab-submission-progress.md, 09-admin-users-and-entitlements.md]
+approved_by: []
+related_docs: [02-catalog-topic-discovery.md, 09-admin-users-and-entitlements.md, 18-admin-content-plans-and-audit.md]
 ---
 
-# Sequence Diagram: PRO Upgrade & VNPAY Payment Gateway Integration (Upgrade & Payment Flow)
+# PRO Access, Pricing, Manual Upgrade, and Payment Boundary
 
 ## 1. Document Information
 
-| Attribute | Details |
+| Attribute | Detail |
 |---|---|
-| **Document Title** | PRO Upgrade & VNPAY Payment Gateway Integration Workflow |
-| **Version** | v1.1 |
-| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Scope** | Learner conversion lifecycle from paywall modal trigger / pricing catalog, plan selection (Monthly / Yearly), payment intent initialization, secure redirection through VNPAY Gateway, HMAC-SHA512 IPN webhook verification, and instant PRO entitlement activation |
-| **Date** | 2026-10-14 |
-| **Source Reference** | `MODULE_FE/src/features/lab/components/UpgradeModal.tsx`, `MODULE_BE/src/modules/payment/payment.controller.ts`, `MODULE_BE/src/modules/payment/vnpay.service.ts` |
+| Document | PRO Access, Pricing, Manual Upgrade, and Payment Boundary |
+| Version | 2.0 |
+| Owner | Nguyen Khanh Duy — Fullstack Lead & Architect |
+| Scope | Current PRO gating/pricing and the boundary where automated checkout is not implemented |
+| Date | 2026-10-24 |
+| Source | Current frontend pricing/paywall, backend entitlement management, and database schema |
 
----
+## 2. Content
 
-## 2. Core Content
+### 2.1. Truth summary
 
-### 2.1. Workflow Summary (TL;DR)
-- **Input**: Learner interacts with a lab with `requiresPro = true` or clicks the "Upgrade PRO" button in the application header.
-- **Plan Selection**: Displays Pricing modal, comparing Monthly (e.g. 199,000 VND) and Yearly (e.g. 1,490,000 VND) plans.
-- **VNPAY Checkout**:
-  - NestJS backend generates a signed payment URL with a cryptographic `vnp_SecureHash` (HMAC-SHA512).
-  - Browser navigates to the VNPAY Gateway to render dynamic QR code scanning (VNPAY-QR) or local ATM/credit card entry.
-- **Verification & Activation**:
-  - VNPAY triggers a background server-to-server Instant Payment Notification (IPN) webhook to the backend to verify cryptographic checksums and transaction status.
-  - Backend updates user role to `user_pro`, calculates expiration dates, and logs the transaction into `payment_orders`.
-  - Learner is returned to the success celebration page with immediate access to all locked labs.
-
----
-
-### 2.2. Roles & Responsibilities (Who Does What)
-
-| Entity | Type | Roles & Responsibilities |
+| Capability | Status | Current behavior |
 |---|---|---|
-| **Learner** | Actor | Chooses subscription plan, scans QR code or submits banking payment |
-| **UpgradeModal / Pricing UI** | Client UI | Highlights PRO benefits, renders pricing cards, initiates VNPAY checkout |
-| **Payment Controller & Service** | NestJS Backend | Generates signed VNPAY redirect URLs, computes HMAC-SHA512, handles IPN Webhook |
-| **VNPAY Gateway** | Payment Gateway | Processes banking transactions, manages redirects, dispatches IPN notifications |
-| **PostgreSQL Database** | Storage | Houses `payment_orders` and updates `users` (`role = 'user_pro'`, `pro_expires_at`) |
+| PRO lab/solution gate | `IMPLEMENTED` | Permission checks show an upgrade modal instead of protected content. |
+| Pricing comparison | `IMPLEMENTED` presentation | Monthly/yearly display and benefits are client-side content. |
+| Upgrade request | `PARTIAL` | CTA opens email to `pro@studyit.dev`; there is no checkout request. |
+| Plan/subscription data model | `IMPLEMENTED` | Admin can manage plans/features and assign a subscription to a user. |
+| Effective entitlement enforcement | `IMPLEMENTED` | Backend resolves access and `FeatureEntitlementGuard` protects capabilities such as `SUBMIT_LAB`. |
+| VNPAY/MoMo/VietQR/card processing | `EXTERNAL` / not implemented | No payment controller/service, order model, webhook, success route, or automated activation exists in this repository. |
 
----
-
-### 2.3. Sequence Diagram
+### 2.2. Current learner flow
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor User as Learner / Student
-    participant UI as UpgradeModal / Pricing UI
-    participant BE as NestJS Backend (PaymentModule)
-    participant VNPay as VNPAY Payment Gateway
-    participant DB as PostgreSQL
-    participant Bank as Mobile Banking App
-
-    Note over User, Bank: 1. Plan Selection & Payment Initialization
-    User->>UI: Click "Upgrade PRO" on locked lab
-    UI-->>User: Open Comparison Modal (Free vs PRO)
-    User->>UI: Select "1-Year PRO Plan" & click "Pay via VNPAY"
-    UI->>BE: POST /api/payment/create-order { planId: "plan-pro-yearly", paymentMethod: "VNPAY" }
-    BE->>DB: INSERT INTO payment_orders (user_id, plan_id, amount, status) VALUES (..., 'PENDING')
-    DB-->>BE: Order initialized (order_8829)
-    BE->>BE: Calculate HMAC-SHA512 vnp_SecureHash with server secret key
-    BE-->>UI: 200 OK { paymentUrl: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=..." }
-    UI-->>User: Redirect browser to VNPAY Gateway
-
-    Note over User, Bank: 2. Checkout via Banking App
-    User->>VNPay: Select "VNPAY-QR" payment method
-    VNPay-->>User: Render dynamic QR code
-    User->>Bank: Open Mobile Banking app, scan QR and confirm OTP
-    Bank->>VNPay: Debit account & confirm successful payment
-
-    Note over VNPay, DB: 3. Server-to-Server IPN Webhook Verification
-    VNPay->>BE: GET /api/payment/vnpay-ipn?vnp_TxnRef=order_8829&vnp_ResponseCode=00&vnp_SecureHash=...
-    BE->>BE: Compute and verify HMAC-SHA512 signature against incoming checksum
-    
-    alt Signature Mismatch or Tampered Amount
-        BE-->>VNPay: { RspCode: "97", Message: "Invalid Checksum" }
-    else Signature Valid & Response Code 00
-        BE->>DB: UPDATE payment_orders SET status = 'SUCCESS', paid_at = NOW() WHERE id = 'order_8829'
-        BE->>DB: UPDATE users SET role = 'user_pro', pro_expires_at = NOW() + INTERVAL '1 YEAR' WHERE id = :userId
-        DB-->>BE: PRO activation committed
-        BE-->>VNPay: { RspCode: "00", Message: "Confirm Success" }
-    end
-
-    Note over User, DB: 4. Learner Redirection & Immediate Content Unlocking
-    VNPay-->>UI: Redirect user to `/payment/success?orderId=order_8829`
-    UI->>BE: GET /api/users/me/profile (Update Redux Credentials)
-    BE-->>UI: 200 OK { user: { role: "user_pro", proExpiresAt: "2027-10-14" } }
-    UI-->>User: Celebration screen 🎉: "Welcome to PRO Membership!"
-    User->>UI: Click "Continue Lab" -> All exercise solutions unlocked
+  actor Learner
+  participant Lab as LabWorkspacePage
+  participant Modal as UpgradeModal
+  participant Pricing as /pricing
+  participant Mail as Email client
+  participant Admin as Admin entitlement UI
+  participant API as Entitlements API
+  Learner->>Lab: Open PRO-only lab without LAB_PRO
+  Lab-->>Learner: Block content and show upgrade action
+  Learner->>Modal: Open PRO information
+  Modal->>Pricing: Navigate to /pricing
+  Learner->>Pricing: Choose monthly/yearly presentation
+  Pricing->>Mail: mailto pro@studyit.dev
+  Note over Learner,Mail: Manual external coordination
+  Admin->>API: Assign subscription/feature access
+  API-->>Admin: Updated effective entitlements
+  Learner->>Lab: Retry after account refresh
+  Lab-->>Learner: Grant access if permission now resolves true
 ```
 
----
+1. A `403` or local permission check for a PRO-only lab renders the gated state.
+2. Upgrade modal explains benefits and routes to `/pricing`.
+3. Pricing page toggles displayed monthly/yearly amounts locally; it does not load plans from the backend.
+4. PRO CTA opens an email request. Activation, payment verification, and timing are operational/manual outside the application.
+5. An administrator can assign a plan or direct feature override through the entitlement UI/API.
+6. After user/session data is refreshed, feature access is resolved from the backend and protected features unlock accordingly.
 
-### 2.4. Technical Specifications & Architecture Details
+### 2.3. Admin activation flow (`IMPLEMENTED`)
 
-1. **Dual Verification Architecture (Return URL vs IPN Webhook)**:
-   - **Return URL (Client-Side)**: Provides seamless UI transition without forcing the user to wait.
-   - **IPN Webhook (Server-to-Server)**: Authoritative channel for granting entitlements. Even if the user terminates their browser after completing the mobile bank transfer, the account is reliably activated by the IPN.
-2. **Cryptographic Integrity via HMAC-SHA512**:
-   - All query parameters are alphabetically ordered and hashed alongside the server secret `VNPAY_HASH_SECRET`. Any parameter tampering (`vnp_Amount`, `orderId`) causes checksum verification to fail immediately.
-3. **Dynamic Subscription Stacking**:
-   - For active PRO members renewing their subscriptions, additional duration is added to the existing `pro_expires_at` timestamp rather than overwriting from current time.
+1. Admin opens the target user's entitlement details.
+2. `GET /admin/users/:id/entitlements` returns current subscription, direct overrides, and effective features with provenance.
+3. Admin selects a plan and optional duration/reason.
+4. `POST /admin/users/:id/subscription` writes the subscription and records an audit event.
+5. For exceptions, admin may set an expiring `ALLOW` or `DENY` override, or remove it to restore plan defaults.
+6. `GET /entitlements/me` lets the authenticated client retrieve effective access; backend feature guards remain authoritative.
 
----
+### 2.4. Data and authorization boundaries
 
-### 2.5. Edge Cases & Exception Handling
-
-| Edge Case | System Response | User Experience |
+| Area | Present model/API | Not present |
 |---|---|---|
-| **User Cancels on VNPAY Gateway** | VNPAY redirects back with `vnp_ResponseCode = 24` | Displays friendly cancellation message with option to retry |
-| **Network Loss During QR Scan** | VNPAY times out pending transaction after 15 minutes | Order transitions automatically to `EXPIRED` status |
-| **Delayed IPN Due to Banking Congestion** | Frontend performs lightweight polling check | Displays spinner: *"Confirming your transaction with the bank..."* and auto-resolves when IPN lands |
+| Plans | `SubscriptionPlan`, feature mapping, admin CRUD | Dynamic pricing-page integration |
+| User access | `UserSubscription`, group plans, direct feature overrides | Self-service purchase/renew/cancel |
+| Enforcement | Effective feature resolver and feature guards | Payment-state-driven activation |
+| Audit | Subscription/override administrative events | Payment/order/refund ledger |
+| Payment | None | Payment order, gateway signature, return URL, IPN/webhook, reconciliation |
 
----
+### 2.5. UI and failure states
 
-## 3. References & Source Links
+- Paywall offers “Unlock with PRO” and “Browse Free Labs”.
+- Pricing toggle is presentation-only; selecting it cannot fail because it makes no request.
+- Email CTA depends on a configured mail client and manual response.
+- Admin subscription/override failures are surfaced by entitlement UI feedback and must leave prior access unchanged.
+- A learner must never be granted access based solely on client role text or the pricing selection; backend effective entitlements decide.
 
-- **Frontend Codebase**:
-  - Upgrade Modal: [UpgradeModal.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/components/UpgradeModal.tsx)
-- **Backend Codebase**:
-  - Payment Controller: [payment.controller.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/payment/payment.controller.ts)
-  - VNPAY Service: [vnpay.service.ts](file:///d:/Projects/study-web/MODULE_BE/src/modules/payment/vnpay.service.ts)
-- **Related Workflows**:
-  - Course Discovery & Paywall: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
-  - Submission & Progress: [04-lab-submission-progress.md](file:///d:/Projects/study-web/docs/workflows/04-lab-submission-progress.md)
-  - Admin Users Governance: [09-admin-users-and-entitlements.md](file:///d:/Projects/study-web/docs/workflows/09-admin-users-and-entitlements.md)
+### 2.6. Future automated payment flow (`EXTERNAL`, not a current claim)
+
+A production payment implementation would require a separately approved design and at least:
+
+1. Server-created immutable payment order with user, plan, amount, currency, status, and idempotency key.
+2. Provider redirect/session creation with secrets held only by the backend.
+3. Signed webhook verification, replay prevention, amount/order validation, and transactional subscription activation.
+4. Return/status page that reads server state rather than trusting query parameters.
+5. Pending/paid/failed/expired/refunded lifecycle, reconciliation, audit, monitoring, and support tooling.
+6. Legal, tax/invoice, refund, privacy, and deployment-secret decisions.
+
+No provider, including VNPAY, should be described as selected or implemented until these artifacts exist.
+
+### 2.7. Revision history and open issues
+
+| Version | Date | Author | Note |
+|---|---|---|---|
+| 1.1 | 2026-10-14 | Nguyen Khanh Duy | Earlier design described a proposed VNPAY integration as implemented. |
+| 2.0 | 2026-10-24 | StudyWeb engineering team | Corrected to current code: manual email/admin activation; payment gateway remains external. |
+
+Open issues:
+
+1. Decide whether automated payments are in scope and select a provider through a security/compliance review.
+2. Connect pricing cards to backend plan data or clearly treat displayed amounts as marketing configuration.
+3. The pricing page currently claims saved-series and multiple payment/support capabilities that are not backed by implemented flows; product copy should be reconciled.
+
+## 3. References
+
+- [Catalog and access discovery](02-catalog-topic-discovery.md)
+- [Admin users and entitlements](09-admin-users-and-entitlements.md)
+- [Admin plans, entitlements, and audit](18-admin-content-plans-and-audit.md)
+- [`MODULE_FE/src/features/lab/components/UpgradeModal.tsx`](../../MODULE_FE/src/features/lab/components/UpgradeModal.tsx)
+- [`MODULE_FE/src/pages/PricingPage.tsx`](../../MODULE_FE/src/pages/PricingPage.tsx)
+- [`MODULE_FE/src/features/entitlements/api/entitlements.api.ts`](../../MODULE_FE/src/features/entitlements/api/entitlements.api.ts)
+- [`MODULE_BE/src/modules/entitlements/entitlements.controller.ts`](../../MODULE_BE/src/modules/entitlements/entitlements.controller.ts)
+- [`MODULE_BE/src/modules/entitlements/entitlements.service.ts`](../../MODULE_BE/src/modules/entitlements/entitlements.service.ts)
+- [`MODULE_BE/prisma/schema.prisma`](../../MODULE_BE/prisma/schema.prisma)

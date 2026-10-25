@@ -2,7 +2,7 @@
 
 > **Dự án**: StudyWeb Platform  
 > **Tuân thủ quy chuẩn**: [`.agents/rules/git-workflow.md`](../rules/git-workflow.md) & [`.agents/rules/plan-and-execute.md`](../rules/plan-and-execute.md)  
-> **Trạng thái**: ⏸️ **Chờ Người Dùng Xác Nhận (Human User Confirmation Gate)**  
+> **Trạng thái**: **SUPERSEDED — DO NOT EXECUTE**. Branch/commit assumptions predate the current 2026-10-24 working tree.
 
 ---
 

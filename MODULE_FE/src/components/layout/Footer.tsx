@@ -14,12 +14,12 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-card/60 backdrop-blur-sm text-foreground">
       <div className="container mx-auto px-4 sm:px-6 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 pb-8 border-b border-border/50">
+        <div className="grid grid-cols-1 gap-8 border-b border-border/50 pb-8 md:grid-cols-3">
           {/* Column 1: Brand & Value Statement */}
           <div className="space-y-3">
             <Link
               to="/"
-              className="flex items-center gap-2.5 inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
+              className="inline-flex min-h-11 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <div className="size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
                 <BookOpen className="size-3.5" />
@@ -28,7 +28,7 @@ export function Footer() {
                 StudyIT<span className="text-primary">.dev</span>
               </span>
             </Link>
-            <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+            <p className="max-w-sm text-base leading-relaxed text-muted-foreground sm:text-sm">
               {t('footer.tagline')}
             </p>
           </div>
@@ -38,11 +38,11 @@ export function Footer() {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
               {t('footer.learn')}
             </h4>
-            <ul className="space-y-2 text-xs text-muted-foreground">
+            <ul className="space-y-1 text-base text-muted-foreground sm:text-sm">
               <li>
                 <Link
                   to="/series"
-                  className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
+                  className="inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   {t('footer.seriesCatalog')}
                 </Link>
@@ -50,7 +50,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/series?tab=labs"
-                  className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
+                  className="inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   {t('footer.practiceLabs')}
                 </Link>
@@ -58,7 +58,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/user/dashboard"
-                  className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
+                  className="inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   {t('footer.dashboard')}
                 </Link>
@@ -71,12 +71,12 @@ export function Footer() {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
               {t('footer.support')}
             </h4>
-            <ul className="space-y-2 text-xs text-muted-foreground">
+            <ul className="space-y-1 text-base text-muted-foreground sm:text-sm">
               <li>
                 <button
                   type="button"
                   onClick={handleOpenFeedback}
-                  className="hover:text-foreground transition-colors text-left focus-visible:outline-none focus-visible:underline cursor-pointer"
+                  className="inline-flex min-h-11 cursor-pointer items-center rounded-sm text-left transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   {t('footer.feedback')}
                 </button>
@@ -84,7 +84,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/terms"
-                  className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
+                  className="inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   {t('footer.terms')}
                 </Link>
@@ -92,7 +92,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/privacy"
-                  className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
+                  className="inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   {t('footer.privacy')}
                 </Link>
@@ -102,17 +102,8 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar: Dynamic Copyright */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center justify-center pt-6 text-center text-sm text-muted-foreground">
           <span>{t('footer.copyright', { year: currentYear })}</span>
-          <div className="flex items-center gap-4">
-            <Link to="/terms" className="hover:text-foreground transition-colors">
-              {t('footer.terms')}
-            </Link>
-            <span>·</span>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">
-              {t('footer.privacy')}
-            </Link>
-          </div>
         </div>
       </div>
     </footer>
