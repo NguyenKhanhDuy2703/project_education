@@ -69,7 +69,7 @@ describe('V3 Curriculum 24-Lab Preflight Verification Suite (Subtask 5.1)', () =
       assert.ok(lab.instructions.includes('Thử Thách Mở Rộng'), `${lab.slug} missing extension challenge`);
       assert.ok(lab.solution, `SQL lab ${lab.slug} missing gold solution`);
       assert.ok(lab.config?.schemaSql, `SQL lab ${lab.slug} missing schemaSql`);
-      assert.ok(lab.config?.seedSql || lab.config?.sampleDataSql, `SQL lab ${lab.slug} missing seedSql/sampleDataSql`);
+      assert.ok(lab.config?.seedSql, `SQL lab ${lab.slug} missing seedSql`);
       assert.equal(lab.sandboxType, 'sql_worker');
     }
   });
