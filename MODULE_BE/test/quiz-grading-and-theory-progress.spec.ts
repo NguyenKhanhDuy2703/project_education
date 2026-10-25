@@ -139,7 +139,7 @@ describe('Task 2: Quiz Server-Grading, Security, and Theory Progress Lifecycle',
       // Call as ordinary student
       const learnerResult = await labsService.findBySlug('testing-principles-quiz', {
         userId: 'student-123',
-        role: UserRole.learner,
+        role: UserRole.user,
       });
 
       assert.ok(learnerResult.quizQuestions, 'Must return questions list');

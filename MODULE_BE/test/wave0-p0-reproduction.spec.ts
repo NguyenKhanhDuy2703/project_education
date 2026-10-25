@@ -129,7 +129,7 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
     assert.equal(V3_AUTO_LABS.length, 8);
     for (const lab of V3_AUTO_LABS) {
       assert.ok(lab.config, `Lab ${lab.slug} must have config`);
-      const config = lab.config;
+      const config = lab.config as Record<string, unknown>;
 
       const hasGradingRules = Boolean(Array.isArray(config.gradingRules) && config.gradingRules.length > 0);
       const hasGradingKey = Boolean(config.gradingKey && typeof config.gradingKey === 'object');
@@ -153,27 +153,9 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
       const starterBlockTypes = new Set(starterPlan.map((s: any) => s.blockType));
 
       const publicChecks = Array.isArray(config.publicChecks) ? config.publicChecks : [];
-      // Collect block types from public checks
-      const checkedBlockTypes = new Set<string>();
-      for (const check of publicChecks) {
-        if (check.blockType) checkedBlockTypes.add(check.blockType);
-        if (check.type && check.action) {
-          const typeActionMap: Record<string, string> = {
-            'navigation.goto': 'nav_goto',
-            'action.click': 'act_click',
-            'action.fill': 'act_fill',
-            'action.check': 'act_check',
-            'action.selectOption': 'act_select_option',
-            'assertion.toBeVisible': 'assert_visible',
-            'assertion.toHaveText': 'assert_text',
-            'assertion.toHaveValue': 'assert_value',
-            'assertion.toHaveCount': 'assert_count',
-            'assertion.toHaveURL': 'assert_url',
-          };
-          const mapped = typeActionMap[`${check.type}.${check.action}`];
-          if (mapped) checkedBlockTypes.add(mapped);
-        }
-      }
+      const checkedBlockTypes = new Set(
+        publicChecks.map((check) => check.targetBlockType),
+      );
 
       // Proves that every checked block type is already in starterBlockTypes
       for (const reqBlock of checkedBlockTypes) {
