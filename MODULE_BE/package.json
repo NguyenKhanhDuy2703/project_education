@@ -56,7 +56,9 @@
     "typescript": "^6.0.2"
   },
   "overrides": {
-    "deepmerge-ts": "^8.0.0"
+    "body-parser": "2.4.0",
+    "deepmerge-ts": "^8.0.0",
+    "multer": "2.5.0"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
