@@ -1,8 +1,8 @@
 # Lab Platform Upgrade — Release Readiness Audit Report
 
-**Date**: 2026-10-17  
+**Date**: 2026-10-24
 **Project**: study-web  
-**Status**: APPROVED & PRODUCTION READY  
+**Status**: CONDITIONAL — SQL RUNTIME ASSET BUDGET FAILED
 **Lead Auditor**: Antigravity Platform Upgrade Agent  
 **Stakeholder Sign-Off**: Nguyen Khanh Duy (Fullstack Lead & Architect)  
 
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-This document certifies that the **Lab Platform Upgrade** across all 9 workstreams, 10 Task sections, and 70 granular subtasks defined in `docs/13-lab-platform-upgrade-agent-execution-plan.md` and the Agent Runbook Hub (`docs/agent-guides/00` to `09`) has been **100% executed, verified, and benchmarked**.
+The **Lab Platform Upgrade** across all 9 workstreams, 10 Task sections, and 70 granular subtasks defined in `docs/13-lab-platform-upgrade-agent-execution-plan.md` and the Agent Runbook Hub (`docs/agent-guides/00` to `09`) is functionally implemented and covered by automated tests. A reproducible browser benchmark now exists, but the SQL runtime asset budget is not satisfied.
 
 Every architectural milestone—from token rotation security (ADR-001) to in-browser PGlite SQL execution, accessible continuous-scroll quiz workspaces, and the Markdown-first Contributor Studio—is fully implemented and accompanied by automated tests.
 
@@ -20,9 +20,9 @@ Every architectural milestone—from token rotation security (ADR-001) to in-bro
 
 ### 2.1. Backend (`MODULE_BE`)
 - **Framework**: Node.js `tsx --test`
-- **Suites**: 2 suites, 6 tests
-- **Result**: **6 / 6 PASSED (100%)**
-- **Duration**: ~151 ms
+- **Suites**: 16 suites, 51 tests
+- **Result**: **51 / 51 PASSED (100%)**
+- **Production Build**: `nest build` completed with 0 errors.
 - **Coverage Highlights**:
   - `auth-session.service.ts`: SHA-256 session token hashing and revocation.
   - `auth.service.ts`: Atomic token rotation with 30s grace window.
@@ -30,10 +30,15 @@ Every architectural milestone—from token rotation security (ADR-001) to in-bro
 
 ### 2.2. Frontend (`MODULE_FE`)
 - **Framework**: Vitest 5.0.5 + happy-dom
-- **Test Files**: 33 test suites
-- **Total Tests**: **139 / 139 PASSED (100%)**
-- **Duration**: ~13.06 s
-- **Production Build**: `tsc -b && vite build` completed in **1.12s** with 0 errors.
+- **Test Files**: 55 test files
+- **Total Tests**: **280 / 280 PASSED (100%)**
+- **Production Build**: `tsc -b && vite build` completed with 0 errors. PGlite `eval` and large-chunk diagnostics remain warnings, while the explicit runtime-asset budget is tracked as a release failure below.
+
+### 2.3. Admin (`MODULE_ADMIN`)
+- **Framework**: Vitest 5.0.5 + happy-dom
+- **Test Files**: 8 test files
+- **Total Tests**: **49 / 49 PASSED (100%)**
+- **Production Build**: `tsc -b && vite build` completed with 0 errors and a non-blocking large-chunk warning.
 
 ---
 
@@ -41,7 +46,7 @@ Every architectural milestone—from token rotation security (ADR-001) to in-bro
 
 | Task Section | Workstream / Focus Area | Subtasks | Status | Verification Evidence |
 |---|---|:---:|:---:|---|
-| **Task 0** | Baseline & Safety Gates | 5 / 5 | 100% | `docs/reports/baseline-dirty-files.md`, `docs/reports/sql-engine-spike-benchmark.md`, ADR-001 |
+| **Task 0** | Baseline & Safety Gates | 5 / 5 | 100% | `docs/reports/sql-engine-spike-benchmark.md`, ADR-001 |
 | **Task 1A** | Backend Auth & Token Rotation | 7 / 7 | 100% | `AuthSession` model, SHA-256 hashing, 30s grace window, `auth-refresh.integration.spec.ts` |
 | **Task 1B** | Frontend Auth Resilience | 6 / 6 | 100% | `RefreshCoordinator`, `CrossTabAuth`, `SessionExpiredModal`, clean storage |
 | **Task 2** | Lab Content Contract & DTO Codecs | 6 / 6 | 100% | `LabContentEnvelopeV1`, `labContentCodec.ts`, `seed-compatibility.test.ts` |
@@ -76,18 +81,20 @@ Every architectural milestone—from token rotation security (ADR-001) to in-bro
    - 30-second token rotation grace window prevents multi-tab race failures.
    - Read-only AST query guard prevents stacked SQL injection and DML execution.
 
-5. **Performance Compliance**:
+5. **Performance Status**:
    - SQL WASM engine isolated into lazy-loaded worker chunk (`sql-runner.worker.js`), keeping non-SQL lab load fast (< 600 kB gzip).
-   - In-memory database reset takes **< 5ms** via schema cascade drop.
+   - Chrome 156 measured cold initialization at 1,565.3 ms and query p95 at 2.3 ms.
+   - Reset p95 measured 937.3 ms across 20 successful close/recreate cycles.
+   - The largest encoded runtime asset measured 10.01 MiB and therefore **fails** the <= 4 MiB budget.
 
 ---
 
 ## 5. Release Authorization
 
-All acceptance criteria, safety gates, and regression tests have verified clean:
+Functional, security, and regression gates have verified clean, with one performance exception:
 - Monorepo baseline dirty files: **Preserved without unintended modifications**.
 - Backend & Frontend test suites: **100% Passing**.
-- Production build: **100% Passing**.
+- Production build: **Passing**, with the SQL runtime asset budget failing.
 - Docs-as-Code: **Fully synchronized**.
 
-**Final Recommendation**: **PROCEED TO PRODUCTION RELEASE**
+**Final Recommendation**: **HOLD UNCONDITIONAL PRODUCTION APPROVAL** until the 10.01 MiB first-use asset is optimized below the declared budget or the product owner explicitly accepts a revised budget.

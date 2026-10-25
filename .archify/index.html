@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyWeb — Architecture & Feature Workflows Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #090d16;
+      --bg-secondary: #0f172a;
+      --bg-card: #131d36;
+      --bg-card-hover: #1a2748;
+      --border: #1e293b;
+      --border-focus: #3b82f6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.25);
+      --badge-system: #06b6d4;
+      --badge-workflow: #10b981;
+      --badge-security: #f59e0b;
+      --badge-erd: #8b5cf6;
+      --sidebar-width: 360px;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+      --border: #e2e8f0;
+      --border-focus: #3b82f6;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #94a3b8;
+      --accent: #2563eb;
+      --accent-glow: rgba(37, 99, 235, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      z-index: 20;
+      transition: transform 0.25s ease, margin 0.25s ease;
+    }
+
+    .sidebar.collapsed {
+      margin-left: calc(-1 * var(--sidebar-width));
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.4);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .brand-info h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+    }
+
+    .brand-info p {
+      font-size: 12px;
+      color: var(--text-subtle);
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .stat-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background: rgba(59, 130, 246, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .stat-pill.success {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    /* Search & Filter */
+    .filter-section {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 9px 12px 9px 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-main);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: var(--text-subtle);
+      pointer-events: none;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .filter-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .tab-btn:hover {
+      background: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      background: var(--bg-card);
+      color: var(--accent);
+      border-color: var(--border);
+    }
+
+    /* Diagram List */
+    .diagram-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .group-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-subtle);
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .group-items {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .item-card {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .item-card:hover {
+      background: var(--bg-card);
+      border-color: var(--border);
+      transform: translateX(2px);
+    }
+
+    .item-card.active {
+      background: var(--bg-card);
+      border-color: var(--accent);
+      box-shadow: 0 2px 10px var(--accent-glow);
+    }
+
+    .item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .item-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+
+    .item-card.active .item-title {
+      color: var(--accent);
+    }
+
+    .type-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .badge-architecture { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+    .badge-erd { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+    .badge-sequence { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .badge-lifecycle { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
+    .badge-tree { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
+    .badge-workflow { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+
+    .item-desc {
+      font-size: 11px;
+      color: var(--text-subtle);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--bg-primary);
+      position: relative;
+    }
+
+    .top-bar {
+      height: 60px;
+      min-height: 60px;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .toggle-sidebar-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .toggle-sidebar-btn:hover {
+      color: var(--text-main);
+      border-color: var(--border-focus);
+    }
+
+    .current-diagram-info {
+      min-width: 0;
+    }
+
+    .current-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .current-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-subtle);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+      border-color: var(--border-focus);
+    }
+
+    .action-btn.primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: transparent;
+    }
+
+    .action-btn.primary:hover {
+      background: #2563eb;
+    }
+
+    /* Viewer Stage */
+    .viewer-stage {
+      flex: 1;
+      width: 100%;
+      height: calc(100% - 60px);
+      position: relative;
+      background: #000;
+    }
+
+    .viewer-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      display: block;
+    }
+
+    .empty-state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-subtle);
+      background: var(--bg-primary);
+    }
+
+    .empty-icon {
+      font-size: 48px;
+    }
+
+    /* Shortcut toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      background: #10b981;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      z-index: 9999;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-icon">S</div>
+        <div class="brand-info">
+          <h1>StudyWeb Architecture</h1>
+          <p>System & Feature Workflows</p>
+        </div>
+      </div>
+      <div class="stats-row">
+        <span class="stat-pill">14 Sơ đồ</span>
+        <span class="stat-pill success">Showcase Quality</span>
+      </div>
+    </div>
+
+    <!-- Search & Filter section -->
+    <div class="filter-section">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm sơ đồ, tính năng... (Ctrl+K)">
+      </div>
+      <div class="filter-tabs">
+        <button class="tab-btn active" data-filter="all">Tất cả (14)</button>
+        <button class="tab-btn" data-filter="system">Kiến trúc (6)</button>
+        <button class="tab-btn" data-filter="workflow">Quy trình (8)</button>
+      </div>
+    </div>
+
+    <!-- Navigation List -->
+    <div class="diagram-list" id="diagramList">
+      <!-- Injected via JS -->
+    </div>
+  </aside>
+
+  <!-- Main Viewer Content -->
+  <main class="main-content">
+    <header class="top-bar">
+      <div class="top-left">
+        <button class="toggle-sidebar-btn" id="toggleSidebar" title="Đóng/Mở Sidebar (Ctrl+B)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="current-diagram-info">
+          <div class="current-title" id="currentTitle">Đang tải sơ đồ...</div>
+          <div class="current-path" id="currentPath">.archify/...</div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button class="action-btn" id="copyPathBtn" title="Copy đường dẫn tệp">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy Path
+        </button>
+
+        <a class="action-btn" id="openExternalBtn" target="_blank" href="#" title="Mở trong tab mới">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+          Mở tab riêng
+        </a>
+
+        <button class="action-btn primary" id="fullscreenBtn" title="Toàn màn hình">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+          Toàn màn hình
+        </button>
+      </div>
+    </header>
+
+    <div class="viewer-stage" id="viewerStage">
+      <iframe id="diagramFrame" class="viewer-iframe" src=""></iframe>
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="empty-icon">🔍</div>
+        <h3>Không tìm thấy sơ đồ phù hợp</h3>
+        <p>Vui lòng thử từ khóa tìm kiếm khác</p>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast">Đã copy đường dẫn vào bộ nhớ tạm!</div>
+
+  <script>
+    const diagrams = [
+      // Nhóm 1: Kiến trúc cốt lõi & CSDL
+      {
+        id: "system-architecture",
+        group: "system",
+        title: "Kiến trúc Tổng quan Hệ thống",
+        type: "architecture",
+        desc: "Phân tầng Frontend (FE/Admin), NestJS BE, PostgreSQL, Docker Sandbox & External APIs.",
+        path: "./architecture-system-overview-20261024-143500/system-architecture.html",
+        badgeClass: "badge-architecture"
+      },
+      {
+        id: "database-erd",
+        group: "system",
+        title: "Sơ đồ Thực thể CSDL (ERD)",
+        type: "erd",
+        desc: "Toàn bộ 18 models trong Prisma: Users, Sessions, Labs, Entitlements, Groups, Review, Audit.",
+        path: "./erd-database-schema-20261024-145200/database-erd.html",
+        badgeClass: "badge-erd"
+      },
+      {
+        id: "sequence-lab-execution",
+        group: "system",
+        title: "Sequence: Lab WASM Sandbox Execution",
+        type: "sequence",
+        desc: "Luồng khởi tạo in-browser PGlite, nạp seed, thực thi SQL truy vấn và đối soát test case.",
+        path: "./sequence-lab-execution-20261024-145400/lab-execution-sequence.html",
+        badgeClass: "badge-sequence"
+      },
+      {
+        id: "sequence-dynamic-iam",
+        group: "system",
+        title: "Sequence: Dynamic IAM 5-Tier Entitlements",
+        type: "sequence",
+        desc: "Thứ tự phân giải quyền 5 bậc: User DENY > Direct ALLOW > Plan > IAM Groups > Free Plan.",
+        path: "./sequence-dynamic-iam-20261024-145700/dynamic-iam-sequence.html",
+        badgeClass: "badge-sequence"
+      },
+      {
+        id: "lifecycle-content-review",
+        group: "system",
+        title: "Lifecycle: Content Review State Machine",
+        type: "lifecycle",
+        desc: "Vòng đời 8 trạng thái duyệt bài từ draft -> submitted -> changes_requested / approved -> published.",
+        path: "./lifecycle-content-review-20261024-145900/content-review-lifecycle.html",
+        badgeClass: "badge-lifecycle"
+      },
+      {
+        id: "tree-monorepo-structure",
+        group: "system",
+        title: "Topology: Monorepo Topology & Services",
+        type: "tree",
+        desc: "Cấu trúc tổ chức thư mục của 3 module: MODULE_FE, MODULE_ADMIN, MODULE_BE.",
+        path: "./tree-monorepo-structure-20261024-150100/monorepo-tree.html",
+        badgeClass: "badge-tree"
+      },
+
+      // Nhóm 2: Feature Workflows
+      {
+        id: "workflow-auth-session",
+        group: "workflow",
+        title: "Workflow: Auth & Session Token Rotation",
+        type: "workflow",
+        desc: "Luồng Login, bcrypt verify, cấp phát Access Token (15m) & Refresh Token (7d), Sliding Window.",
+        path: "./workflow-auth-session-20261024-152500/auth-session-workflow.html",
+        badgeClass: "badge-workflow"
+      },
+      {
+        id: "workflow-catalog-discovery",
+        group: "workflow",
+        title: "Workflow: Catalog & Lab Discovery",
+        type: "workflow",
+        desc: "Học viên duyệt Series/Labs, lọc độ khó, kiểm tra Feature Entitlement Gate và hiển thị Upgrade Modal.",
+        path: "./workflow-catalog-discovery-20261024-152800/catalog-discovery-workflow.html",
+        badgeClass: "badge-workflow"
+      },
+      {
+        id: "workflow-sql-lab",
+        group: "workflow",
+        title: "Workflow: Interactive SQL Lab & WASM Engine",
+        type: "workflow",
+        desc: "Monaco Editor gõ SQL, In-Browser WASM PGlite Sandbox chấm test cases và đồng bộ tiến độ học.",
+        path: "./workflow-sql-lab-20261024-153000/sql-lab-workflow.html",
+        badgeClass: "badge-workflow"
+      },
+      {
+        id: "workflow-automation-v3",
+        group: "workflow",
+        title: "Workflow: Automation V3 Low-Code Sandbox",
+        type: "workflow",
+        desc: "Builder cấu hình steps, AST static analyzer kiểm tra cú pháp, Mock Execution Engine và báo cáo.",
+        path: "./workflow-automation-v3-20261024-153200/automation-v3-workflow.html",
+        badgeClass: "badge-workflow"
+      },
+      {
+        id: "workflow-contributor-studio",
+        group: "workflow",
+        title: "Workflow: Contributor Studio & Preflight Gate",
+        type: "workflow",
+        desc: "Soạn thảo giáo trình Lab, kiểm thử Dry-Run Sandbox bắt buộc trước khi gửi đơn duyệt.",
+        path: "./workflow-contributor-studio-20261024-153300/contributor-studio-workflow.html",
+        badgeClass: "badge-workflow"
+      },
+      {
+        id: "workflow-content-review",
+        group: "workflow",
+        title: "Workflow: Review Queue & Publishing",
+        type: "workflow",
+        desc: "Admin tiếp nhận bài, claim queue, yêu cầu sửa đổi hoặc phê duyệt xuất bản trực tiếp kèm Audit Log.",
+        path: "./workflow-content-review-20261024-153400/content-review-workflow.html",
+        badgeClass: "badge-workflow"
+      },
+      {
+        id: "workflow-dynamic-iam",
+        group: "workflow",
+        title: "Workflow: Dynamic IAM Governance",
+        type: "workflow",
+        desc: "Guard chặn truy cập, phân giải 5 bậc quyền hạn, cấp phép hành động và ghi nhận nhật ký quản trị.",
+        path: "./workflow-dynamic-iam-20261024-153700/dynamic-iam-workflow.html",
+        badgeClass: "badge-workflow"
+      },
+      {
+        id: "workflow-contributor-onboarding",
+        group: "workflow",
+        title: "Workflow: Contributor Onboarding Gate",
+        type: "workflow",
+        desc: "Nộp đơn đăng ký Contributor (Bio, Portfolio, Sample Topic), Admin thẩm định và nâng cấp role.",
+        path: "./workflow-contributor-onboarding-20261024-153900/contributor-onboarding-workflow.html",
+        badgeClass: "badge-workflow"
+      }
+    ];
+
+    let currentDiagramId = diagrams[0].id;
+    let currentFilter = "all";
+    let searchQuery = "";
+
+    const diagramListEl = document.getElementById("diagramList");
+    const diagramFrameEl = document.getElementById("diagramFrame");
+    const currentTitleEl = document.getElementById("currentTitle");
+    const currentPathEl = document.getElementById("currentPath");
+    const openExternalBtn = document.getElementById("openExternalBtn");
+    const copyPathBtn = document.getElementById("copyPathBtn");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const searchInput = document.getElementById("searchInput");
+    const toggleSidebarBtn = document.getElementById("toggleSidebar");
+    const sidebarEl = document.getElementById("sidebar");
+    const emptyStateEl = document.getElementById("emptyState");
+    const toastEl = document.getElementById("toast");
+
+    function renderList() {
+      diagramListEl.innerHTML = "";
+
+      const filtered = diagrams.filter(d => {
+        const matchesFilter = (currentFilter === "all") || (d.group === currentFilter);
+        const matchesSearch = !searchQuery ||
+          d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.type.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesFilter && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        emptyStateEl.style.display = "flex";
+        diagramFrameEl.style.display = "none";
+        return;
+      } else {
+        emptyStateEl.style.display = "none";
+        diagramFrameEl.style.display = "block";
+      }
+
+      // Group filtered items
+      const systemItems = filtered.filter(d => d.group === "system");
+      const workflowItems = filtered.filter(d => d.group === "workflow");
+
+      if (systemItems.length > 0) {
+        const groupEl = document.createElement("div");
+        groupEl.innerHTML = `
+          <div class="group-title">
+            <span>Kiến trúc & Dữ liệu</span>
+            <span>${systemItems.length}</span>
+          </div>
+          <div class="group-items" id="systemGroupItems"></div>
+        `;
+        diagramListEl.appendChild(groupEl);
+        const container = groupEl.querySelector("#systemGroupItems");
+        systemItems.forEach(item => container.appendChild(createItemCard(item)));
+      }
+
+      if (workflowItems.length > 0) {
+        const groupEl = document.createElement("div");
+        groupEl.innerHTML = `
+          <div class="group-title">
+            <span>Feature Workflows</span>
+            <span>${workflowItems.length}</span>
+          </div>
+          <div class="group-items" id="workflowGroupItems"></div>
+        `;
+        diagramListEl.appendChild(groupEl);
+        const container = groupEl.querySelector("#workflowGroupItems");
+        workflowItems.forEach(item => container.appendChild(createItemCard(item)));
+      }
+    }
+
+    function createItemCard(item) {
+      const a = document.createElement("a");
+      a.className = `item-card ${item.id === currentDiagramId ? 'active' : ''}`;
+      a.href = `#${item.id}`;
+      a.innerHTML = `
+        <div class="item-header">
+          <span class="item-title">${item.title}</span>
+          <span class="type-badge ${item.badgeClass}">${item.type}</span>
+        </div>
+        <div class="item-desc">${item.desc}</div>
+      `;
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        loadDiagram(item.id);
+      });
+      return a;
+    }
+
+    function loadDiagram(id) {
+      const target = diagrams.find(d => d.id === id);
+      if (!target) return;
+
+      currentDiagramId = id;
+      window.location.hash = id;
+
+      // Update frame and metadata
+      diagramFrameEl.src = target.path;
+      currentTitleEl.textContent = target.title;
+      currentPathEl.textContent = target.path;
+      openExternalBtn.href = target.path;
+
+      // Update active states
+      document.querySelectorAll(".item-card").forEach(el => {
+        if (el.getAttribute("href") === `#${id}`) {
+          el.classList.add("active");
+          el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        } else {
+          el.classList.remove("active");
+        }
+      });
+    }
+
+    // Search events
+    searchInput.addEventListener("input", (e) => {
+      searchQuery = e.target.value.trim();
+      renderList();
+    });
+
+    // Filter tab events
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentFilter = btn.dataset.filter;
+        renderList();
+      });
+    });
+
+    // Toggle sidebar
+    toggleSidebarBtn.addEventListener("click", () => {
+      sidebarEl.classList.toggle("collapsed");
+    });
+
+    // Fullscreen toggle
+    fullscreenBtn.addEventListener("click", () => {
+      const stage = document.getElementById("viewerStage");
+      if (!document.fullscreenElement) {
+        stage.requestFullscreen().catch(err => alert("Không thể mở toàn màn hình: " + err.message));
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    // Copy path
+    copyPathBtn.addEventListener("click", () => {
+      const target = diagrams.find(d => d.id === currentDiagramId);
+      if (!target) return;
+      navigator.clipboard.writeText(target.path).then(() => {
+        showToast("Đã copy đường dẫn sơ đồ!");
+      });
+    });
+
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add("show");
+      setTimeout(() => toastEl.classList.remove("show"), 2500);
+    }
+
+    // Keyboard shortcuts
+    window.addEventListener("keydown", (e) => {
+      // Ctrl+K for search
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        searchInput.focus();
+      }
+      // Ctrl+B for toggle sidebar
+      if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+        e.preventDefault();
+        sidebarEl.classList.toggle("collapsed");
+      }
+      // Arrow navigation
+      if (document.activeElement !== searchInput) {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          const currentIndex = diagrams.findIndex(d => d.id === currentDiagramId);
+          if (currentIndex === -1) return;
+          const nextIndex = e.key === "ArrowDown"
+            ? (currentIndex + 1) % diagrams.length
+            : (currentIndex - 1 + diagrams.length) % diagrams.length;
+          loadDiagram(diagrams[nextIndex].id);
+        }
+      }
+    });
+
+    // Init from URL hash or default
+    const initialHash = window.location.hash.replace("#", "");
+    const initialDiagram = diagrams.find(d => d.id === initialHash) || diagrams[0];
+
+    renderList();
+    loadDiagram(initialDiagram.id);
+  </script>
+</body>
+</html>

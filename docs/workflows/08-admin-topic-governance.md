@@ -1,149 +1,102 @@
 ---
 doc_type: workflow
-title: Sequence Diagram - System-Wide Topic Tag Governance (Admin Topic Governance Flow)
+title: Browser-Local Topic Tag Governance
 project: study-web
-version: "1.0"
-version_source: codebase
+version: "2.0"
+version_source: repository
 authors:
   - {name: Nguyen Khanh Duy, alias: Duy, role: Fullstack Lead & Architect}
-scope: Admin Subsystem, Centralized Topic Tag Taxonomy, Quality Control, and Cross-Platform Tag Synchronization
-date: 2026-10-14
-source_file: "MODULE_ADMIN/src/services/topicTags.service.ts, MODULE_ADMIN/src/pages/admin/_components/AdminTopicTagsModal.tsx, MODULE_BE/src/modules/catalog"
+scope: Admin topic-tag editor and browser-local taxonomy consumed by catalog/authoring UIs
+date: 2026-10-24
+source_file: MODULE_ADMIN and MODULE_FE topicTags.service.ts plus AdminTopicTagsModal.tsx
 status: final
 language: en
-related_docs: [02-catalog-topic-discovery.md, 05-create-series.md, 07-content-review-and-publish.md]
+approved_by: []
+related_docs: [02-catalog-topic-discovery.md, 05-create-series.md]
 ---
 
-# Sequence Diagram: System-Wide Topic Tag Governance (Admin Topic Governance Flow)
+# Browser-Local Topic Tag Governance
 
 ## 1. Document Information
 
-| Attribute | Details |
+| Attribute | Detail |
 |---|---|
-| **Document Title** | System-Wide Topic Tag Governance Workflow |
-| **Version** | v1.1 |
-| **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Scope** | Centralized administration of the platform-wide Topic Tags taxonomy by Administrators within the standalone `MODULE_ADMIN` app: Tag creation, slug auto-generation, hex color tagging, unused tag deprecation, tag pollution prevention, and real-time custom event synchronization across Contributor authoring studios and Public Catalog filters |
-| **Date** | 2026-10-15 |
-| **Source Reference** | `MODULE_ADMIN/src/pages/admin/_components/AdminTopicTagsModal.tsx`, `MODULE_ADMIN/src/services/topicTags.service.ts` |
+| Document | Browser-Local Topic Tag Governance |
+| Version | 2.0 |
+| Owner | Nguyen Khanh Duy — Fullstack Lead & Architect |
+| Scope | Topic tag defaults, create/edit/delete/reset UI, local persistence and consumers |
+| Date | 2026-10-24 |
+| Source | Current Admin modal and duplicated FE/Admin topic-tag services |
 
----
+## 2. Content
 
-## 2. Core Content
+### 2.1. Truth summary
 
-### 2.1. Workflow Summary (TL;DR)
-- **Problem Addressed**: Unrestricted freeform user tagging previously caused severe tag pollution and duplicates (e.g. `#javascript`, `#js`, `#Javascript`), degrading search and filter usability.
-- **Centralized Governance Rules**:
-  - **Admin Exclusive Mutation**: Only Administrators possess privileges to Create, Update, or Delete official system Topic Tags.
-  - **Contributor Role as Tag Consumer**: Authors and Contributors select from approved standardized tags when publishing Series and Labs.
-  - **Learner Filter Hub**: Learners utilize canonical tags on the Homepage/Catalog to discover targeted learning paths.
-- **Real-Time Synchronization**:
-  - Whenever an Admin modifies tags in the `AdminTopicTagsModal`, the system fires a browser event `topic-tags-updated`.
-  - Active components (Catalog Filters, Create Series Modal, Lab Studio) automatically refresh their tag lists in real-time without requiring a page reload.
+The current feature is a browser-local taxonomy editor, not centralized platform governance. It is `PARTIAL`: Admin UI supports useful CRUD and reacts within its origin, but there is no backend topic controller/table workflow, no cross-device synchronization, and no automatic propagation between the separate learner and admin origins.
 
----
-
-### 2.2. Roles & Responsibilities (Who Does What)
-
-| Entity | Type | Roles & Responsibilities |
-|---|---|---|
-| **Administrator** | Actor | Accesses Admin Studio, launches "Manage Topic Tags", and curates taxonomy |
-| **Contributor** | Actor | Tag Consumer: Assigns curated tags to courses and exercises |
-| **AdminTopicTagsModal** | Client UI | Modal UI for tag CRUD: Name, slug, hex color picker, usage metrics, and deletion |
-| **TopicTagsService** | Client Service | In-memory tag cache, CRUD methods, and `topic-tags-updated` event dispatching |
-| **Topics Controller & Service** | NestJS Backend | Enforces `@Roles('admin')` authorization and validates foreign key integrity |
-| **PostgreSQL Database** | Storage | Houses `topics` entity and relations `series_topics`, `lab_topics` |
-
----
-
-### 2.3. Sequence Diagram
+### 2.2. Current flow
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor Admin as Administrator
-    participant AUI as Admin Overview Page
-    participant Modal as AdminTopicTagsModal
-    participant TagSvc as TopicTagsService (FE)
-    participant BE as NestJS Backend (Topics/Catalog)
-    participant DB as PostgreSQL
-    participant Catalog as Public Catalog / Contributor Forms
-
-    Note over Admin, Catalog: 1. Launching Topic Tag Management
-    Admin->>AUI: Access Admin Dashboard
-    Admin->>AUI: Click "Manage Topic Tags" button
-    AUI->>Modal: Open management modal dialog (isOpen = true)
-    Modal->>TagSvc: Retrieve current tag catalog
-    TagSvc->>BE: GET /api/topics
-    BE->>DB: SELECT t.*, COUNT(st.series_id) as series_count FROM topics t LEFT JOIN series_topics st ... GROUP BY t.id
-    DB-->>BE: Return tags with associated series usage counts
-    BE-->>TagSvc: 200 OK [ { id, name, slug, color, seriesCount } ]
-    TagSvc-->>Modal: Render structured tag taxonomy table
-
-    Note over Admin, Catalog: 2. Creating a Canonical Topic Tag
-    Admin->>Modal: Enter Name: "System Design", Color: "Purple", Description: "Large-scale systems"
-    Modal->>Modal: Auto-generate slug: "system-design"
-    Admin->>Modal: Click "Create Tag" button
-    Modal->>BE: POST /api/topics { name, slug, color, description }
-    BE->>BE: Verify admin role from JWT
-    BE->>DB: INSERT INTO topics (name, slug, color, description) VALUES (...)
-    DB-->>BE: Tag record created successfully
-    BE-->>Modal: 201 Created { id: "topic-sys-des", name: "System Design", ... }
-    
-    Note over Modal, Catalog: 3. Real-Time Broadcast Synchronization
-    Modal->>TagSvc: Update internal tag cache
-    TagSvc->>Catalog: Dispatch Window CustomEvent('topic-tags-updated')
-    Catalog->>Catalog: Re-render Tag Pills bar & Contributor tag dropdowns
-    Modal-->>Admin: Display Toast: "Tag 'System Design' created successfully!"
-
-    Note over Admin, Catalog: 4. Deleting a Tag (Referential Integrity Check)
-    Admin->>Modal: Click Delete icon on tag "Legacy JS"
-    alt Tag is currently utilized by Series or Labs (seriesCount > 0)
-        Modal-->>Admin: Warning Dialog: "This tag is assigned to 3 courses. Confirm deletion?"
-        Admin->>Modal: Confirm Deletion
-        Modal->>BE: DELETE /api/topics/:id
-        BE->>DB: Remove associations in series_topics and delete topic
-        DB-->>BE: Deletion committed
-        BE-->>Modal: 200 OK
-        Modal->>TagSvc: Dispatch CustomEvent('topic-tags-updated')
-        Modal-->>Admin: Toast: "Tag removed from system"
-    end
+  actor Admin
+  participant Modal as AdminTopicTagsModal
+  participant Service as topicTags.service
+  participant Storage as localStorage
+  participant UI as Same-origin consumers
+  Admin->>Modal: Open Manage Topic Tags
+  Modal->>Service: getSystemTopicTags()
+  Service->>Storage: Read studyweb_system_topic_tags
+  Storage-->>Modal: Saved tags or five defaults
+  Admin->>Modal: Create, edit, delete, or restore defaults
+  Modal->>Service: saveSystemTopicTags(updated list)
+  Service->>Storage: Persist JSON
+  Service->>UI: Dispatch studyweb:topic-tags-updated
+  UI-->>Admin: Same-origin consumers may refresh
 ```
 
----
+### 2.3. Operations and validation
 
-### 2.4. Technical Specifications & Architecture Details
-
-1. **Taxonomy Normalization**:
-   - Each topic tag carries a valid `color` attribute (hex code: `#3B82F6`, `#10B981`, etc.) ensuring consistent visual styling across badges on Catalog cards, Drawer roadmaps, and Practice Workspaces.
-2. **Lightweight CustomEvent Architecture**:
-   - Utilizes `window.dispatchEvent(new CustomEvent('topic-tags-updated'))` instead of heavy WebSocket channels for internal UI synchronization.
-   - Any listening component (such as `HomePage` or `CreateSeriesModal`) automatically triggers background re-fetching upon receipt.
-3. **Strict Authorization**:
-   - Mutating endpoints (Create, Update, Delete) are locked behind `@UseGuards(JwtAuthGuard, RolesGuard)` requiring `@Roles(UserRole.ADMIN)`.
-   - General learners and contributors possess read-only access via `GET /api/topics`.
-
----
-
-### 2.5. Edge Cases & Exception Handling
-
-| Edge Case | System Response | User Experience |
+| Operation | Validation | Result |
 |---|---|---|
-| **Duplicate Tag Name or Slug** | Database raises unique constraint violation | Modal highlights field: *"This tag name or slug already exists"* |
-| **Invalid Hex Color String** | RegEx validation `/^#([0-9A-F]{3}){1,2}$/i` | Highlights color input in red with formatting hint |
-| **Tag Deletion with Active Courses** | Cascade removal with safety check | Two-step confirmation dialog prevents accidental taxonomy loss |
+| Create | Title/key required; duplicate key rejected | Appends tag with selected preset class. |
+| Edit | Key is normalized to lowercase-safe characters | Replaces matching item and saves list. |
+| Delete | Confirmation required; at least one tag must remain | Removes tag from local list only. |
+| Restore defaults | Confirmation required | Restores testing, database, backend, devops and security. |
+| Resolve alias | Known aliases such as `sql`, `qa`, `docker`, `auth` | Maps catalog category to canonical local key. |
 
----
+UI feedback includes a transient success message, duplicate/minimum-tag alert, edit cancellation, and storage error logging. There is no server loading state because no request occurs.
 
-## 3. References & Source Links
+### 2.4. Persistence and isolation limits
 
-- **Frontend Codebase (MODULE_ADMIN)**:
-  - Admin Topic Tags Modal: [AdminTopicTagsModal.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/_components/AdminTopicTagsModal.tsx)
-  - Topic Tags Service: [topicTags.service.ts](file:///d:/Projects/study-web/MODULE_ADMIN/src/services/topicTags.service.ts)
-  - Admin Topic Hierarchy: [AdminTopicHierarchy.tsx](file:///d:/Projects/study-web/MODULE_ADMIN/src/pages/admin/_components/AdminTopicHierarchy.tsx)
-- **Backend Codebase (MODULE_BE)**:
-  - Database Schema: [schema.prisma](file:///d:/Projects/study-web/MODULE_BE/prisma/schema.prisma)
-- **Related Workflows**:
-  - Course Discovery by Tag: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
-  - Create Series with Tags: [05-create-series.md](file:///d:/Projects/study-web/docs/workflows/05-create-series.md)
-  - Review & Publishing: [07-content-review-and-publish.md](file:///d:/Projects/study-web/docs/workflows/07-content-review-and-publish.md)
+- Storage key: `studyweb_system_topic_tags`.
+- `MODULE_ADMIN` and `MODULE_FE` each contain their own service copy.
+- `localStorage` is origin-scoped; `admin.studyit.dev` and `studyit.dev` do not share it.
+- A `CustomEvent` only reaches listeners in the same document/origin runtime.
+- Tags are presentation metadata; deleting one does not alter series rows or enforce referential integrity.
+
+Therefore this feature must not be described as PostgreSQL-backed, real-time system-wide taxonomy governance.
+
+### 2.5. Security and authorization
+
+The modal is reachable through the protected Admin content route, but local storage itself is not an authorization mechanism. A user with browser/devtools access can modify local tag JSON; backend series/category integrity cannot trust it. If taxonomy becomes authoritative, the backend must validate admin role, keys and references.
+
+### 2.6. Revision history and open issues
+
+| Version | Date | Author | Note |
+|---|---|---|---|
+| 1.0 | 2026-10-14 | Nguyen Khanh Duy | Earlier document described nonexistent topic APIs/database relations. |
+| 2.0 | 2026-10-24 | StudyWeb engineering team | Corrected to current local-storage implementation and isolation limits. |
+
+Open issues:
+
+1. Implement a backend taxonomy API/model if tags must be shared across users, devices, or domains.
+2. Remove duplicated FE/Admin service logic or generate both clients from one contract.
+3. Add migration/validation for series categories before deleting or renaming an authoritative tag.
+
+## 3. References
+
+- [Catalog and topic discovery](02-catalog-topic-discovery.md)
+- [Contributor series creation](05-create-series.md)
+- [`MODULE_ADMIN/src/pages/admin/_components/AdminTopicTagsModal.tsx`](../../MODULE_ADMIN/src/pages/admin/_components/AdminTopicTagsModal.tsx)
+- [`MODULE_ADMIN/src/services/topicTags.service.ts`](../../MODULE_ADMIN/src/services/topicTags.service.ts)
+- [`MODULE_FE/src/services/topicTags.service.ts`](../../MODULE_FE/src/services/topicTags.service.ts)

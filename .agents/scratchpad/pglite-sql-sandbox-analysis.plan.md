@@ -1,6 +1,6 @@
 # PGlite SQL Learning Sandbox - Analysis & Execution Plan
 
-> **Status**: IMPLEMENTED — reproducible real-browser benchmark remains an explicit follow-up
+> **Status**: IMPLEMENTED — browser benchmark measured; release asset budget failed; legacy database authoring remains externally gated
 > **Goal**: Use isolated PGlite/WebAssembly databases for SQL learning without executing learner SQL against the platform PostgreSQL database.
 > **Scope rule**: Implementation was authorized by the user's explicit command on 2026-10-18. Preserve unrelated working-tree changes.
 
@@ -100,7 +100,7 @@
 - [x] **5.2 Add explicit initialization/progress/recovery UI**
   - Files: SQL workspace and schema preview.
   - Verify: slow initialization, offline cache miss, unsupported browser, worker crash, timeout, and retry are understandable and keyboard accessible.
-- [ ] **5.3 Create reproducible browser benchmarks**
+- [x] **5.3 Create reproducible browser benchmarks**
   - Files: benchmark harness and generated report.
   - Verify: cold/warm init, p50/p95 query, reset, memory proxy, downloaded bytes, and target-device results are measured rather than hard-coded.
 - [x] **5.4 Add privacy-safe telemetry**
@@ -115,7 +115,7 @@
 - [x] **6.2 Correct architecture, security, and benchmark documentation**
   - Files: SQL runbook, security report, performance report, ADR.
   - Verify: every claim links to a real test or generated measurement.
-- [ ] **6.3 Run complete release gates** — automated gates complete; real-browser benchmark pending
+- [ ] **6.3 Run complete release gates** — automated gates complete; runtime asset budget and database state audit remain open
   - Files: no new functional files beyond planned scope.
   - Verify: FE, Admin, and BE tests/builds pass; real-browser SQL journeys pass; production assets meet budgets; diff contains no unrelated changes.
 
@@ -131,5 +131,5 @@ Satisfied: the user explicitly requested implementation after the architecture r
 - [x] Prisma seed TypeScript compilation passes without executing the seed.
 - [x] Compiled backend grading worker executes real PGlite SELECT and aggregate queries successfully.
 - [x] Main FE bundle is 288.53 kB gzip; SQL workspace is a separate 7.47 kB gzip chunk; PGlite WASM is 3,746.65 kB gzip.
-- [ ] Cold/warm real-browser timing and memory measurements on named target hardware remain unmeasured; fabricated historical values were removed from reports.
+- [x] Cold/warm real-browser timing, query percentiles, reset cycles, resource sizes, and an informational memory delta were measured on Chrome 156 / Windows / 12 logical CPUs / 16 GB reported device memory on 2026-10-24. The largest encoded runtime asset was 10.01 MiB, so the <= 4 MiB budget failed.
 - [ ] Updated V2 fixtures have not been applied to an existing database automatically because the project seed performs broader content upserts.

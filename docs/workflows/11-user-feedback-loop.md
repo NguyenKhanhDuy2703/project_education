@@ -74,7 +74,7 @@ sequenceDiagram
     User->>FWidget: Click "Feedback" button in practice workspace
     FWidget-->>User: Open feedback dialog (Category, Message)
     User->>FWidget: Select Category = "content_lab", Enter: "Test case No.2 in SQL lab has syntax error"
-    FWidget->>BE: POST /api/feedback { category: "content_lab", message: "...", pageUrl: "/practice/lab-sql-02" }
+    FWidget->>BE: POST /api/feedback { category: "content_lab", message: "...", pageUrl: "/labs/lab-sql-02" }
     BE->>DB: INSERT INTO feedbacks (user_id, category, message, page_url, status) VALUES (...)
     DB-->>BE: Persisted successfully
     BE-->>FWidget: 201 Created { id: "fb-102" }
@@ -94,7 +94,7 @@ sequenceDiagram
     AUI->>AUI: Filter list to matching 6 items
     Admin->>AUI: Click on row submitted by "John Doe"
     AUI->>Modal: Open Detail Inspection Modal
-    Modal-->>Admin: Render full message + Clickable URL: `/practice/lab-sql-02`
+    Modal-->>Admin: Render full message + Clickable URL: `/labs/lab-sql-02`
     Admin->>Modal: Update status to "In Progress" and open link to verify
     Modal->>BE: PATCH /api/feedback/admin/:id { status: "in_progress" }
     BE->>DB: UPDATE feedbacks SET status = 'in_progress' WHERE id = :id

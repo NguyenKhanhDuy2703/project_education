@@ -1,93 +1,75 @@
 ---
-title: "Runbook 05 — Automation Workspace"
+title: "Runbook 05 — Automation Workspace & Low-Code V3 Engine"
 document_id: "DOC-15-R05"
-version: "1.0"
-status: "Ready for Assignment"
-owner_role: "Agent-AUTO"
-task_scope: "Task 4"
-updated: "2026-10-17"
+version: "3.0"
+status: "Authoritative"
+owner_role: "Agent-AUTO & QA Architecture"
+task_scope: "Automation V3 Low-Code & Playwright Runner"
+updated: "2026-10-22"
 ---
 
-# Runbook 05 — Automation Workspace
+# Runbook 05 — Automation Workspace & Low-Code V3 Engine
 
 ## 1. Thông tin guide
 
-**Mục tiêu:** xây matcher core, versioned worker protocol, capability limits và Automation workspace có thể render/test độc lập.
+**Mục tiêu:** Xây dựng và duy trì hệ thống thực thi kiểm thử tự động Automation V3 kết hợp hai môi trường:
+1. **Legacy V1/V2**: Monaco Editor + Smart Cloze Parameterized (`AutomationTestWorkspace.tsx`).
+2. **Modern V3 Low-Code**: Visual Block Palette + AST Compiler sang Playwright TypeScript + Iframe Micro-App Sandbox Runner (`AutomationV3Workspace.tsx`).
 
-**Đọc bắt buộc:** [analysis](../12-lab-platform-upgrade-analysis.md), [master plan — Task 4](../13-lab-platform-upgrade-agent-execution-plan.md#task-4-automation-test-guided-workspace), Lab contract 2.6 và `WorkspaceProps` 3.4.
+**Tài liệu liên quan bắt buộc:**
+- Sequence Workflow: [14-automation-v3-client-sandbox-flow.md](../workflows/14-automation-v3-client-sandbox-flow.md)
+- Quyết định kiến trúc: [ADR-003: Client-Side Fixture Runner & Zero-Browser Automation V3](../adr/003-client-automation-v3-sandbox-runner.md)
+- Đặc tả Contract: [lab-content-contract-v3.md](../specs/lab-content-contract-v3.md)
 
-**Dependencies:** 2.6 và interface 3.4 đã sẵn sàng. **Branch:** `codex/automation-guided-workspace`.
+---
 
-### 1.1. File ownership và nhiệm vụ
+## 2. File Ownership & Kiến trúc Hệ thống
 
-| Subtask | Nhiệm vụ | File chính |
+| Subsystem | Trách nhiệm | File chính |
 |---|---|---|
-| 4.1 | Matcher core | `MODULE_FE/src/features/lab/runtime/matchers/**` |
-| 4.2 | Version worker protocol | `lab-runner.worker.ts`, `useLabWorker.ts`, protocol types |
-| 4.3 | Runtime capability policy | worker bootstrap/policy tests |
-| 4.4 | Testing cheat sheet | `TestingCheatSheet.tsx`, fixtures/tests |
-| 4.5 | Guided workspace | `AutomationTestWorkspace.tsx`, tests |
-| 4.6 | Strategy handoff | exports, addon factory, independent harness |
+| **V3 Workspace Strategy** | Layout 3 vùng (Desktop) / Tabs (Mobile), điều phối timeline, toolbar, và feedback error diff | `MODULE_FE/src/features/lab/strategies/AutomationV3Workspace.tsx` |
+| **Strategy Dispatcher** | Đọc lab type + version, kiểm tra feature flag `AUTOMATION_V3_ENABLED`, định tuyến V2 vs V3 | `MODULE_FE/src/features/lab/strategies/workspaceRegistry.ts` |
+| **Feature Configuration** | Quản lý flag cấu hình tập trung và hỗ trợ dynamic test override | `MODULE_FE/src/config/features.ts` |
+| **Block Palette & Editor** | Bảng chọn block theo danh mục (`navigation`, `locator`, `action`, `assertion`, `data`), keyboard reorder, step lock | `MODULE_FE/src/features/lab/components/v3/BlockPalette.tsx`, `VisualStepPlanEditor.tsx` |
+| **AST Compiler** | Chuyển đổi declarative plan thành Playwright `.spec.ts` chuẩn web-first locators và assertions | `MODULE_FE/src/features/lab/runtime/v3/playwrightCompiler.ts` |
+| **Iframe Sandbox Runner** | Host web fixture nội bộ, giao tiếp qua `postMessage`, highlight DOM element với visual ring | `MODULE_FE/src/features/lab/components/v3/MiniAppPreview.tsx` |
+| **Submission Codec** | Encode và decode payload Base64 phiên bản hóa cho submission audit | `MODULE_FE/src/features/lab/runtime/v3/automationV3SubmissionCodec.ts` |
+| **Backend Validator** | Thẩm định cấu trúc plan, kiểm tra revision, chấm điểm theo private `gradingKey` (0 browser on server) | `MODULE_BE/src/modules/labs/automation-v3-validator.ts` |
 
-Không sửa `LabWorkspacePage.tsx`, SQL/Quiz/Studio. Chỉ thay shared contract qua review với Agent-CONTRACT/SHELL. Không hiển thị solution trong cheat sheet hoặc runtime output.
+---
 
-## 2. Hướng dẫn thực thi
+## 3. Quy tắc Triển khai & An toàn (Safety Invariants)
 
-### 2.1. Trình tự
+1. **Client-Side RAM Isolation**:
+   - Toàn bộ mini-app fixture chạy trong `<iframe>` sandbox trên RAM/CPU của learner.
+   - Cấm hoàn toàn `fetch`, XHR, WebSocket, và dynamic import trong runtime runner.
+   - Giới hạn cứng: **2000ms Timeout**, **tối đa 50 steps**, **tối đa 100 log lines**.
+2. **Server Zero-Browser Invariant**:
+   - Backend `MODULE_BE` **không bao giờ khởi chạy Playwright hay Chromium thật**.
+   - Việc chấm điểm tiến hành dựa trên việc so khớp declarative step plan với `gradingKey` ẩn.
+3. **Phân quyền & Ẩn Solution**:
+   - `gradingKey`, `requiredSteps`, và `solutionPlan` bắt buộc phải bị strip bởi `labContentCodec` trước khi gửi cho learner.
+   - Chỉ role `Admin` hoặc `Author` mới nhận được `gradingKey` đầy đủ.
+4. **UX Ergonomics**:
+   - Mọi nút bấm, tab switch, và block palette item phải đảm bảo target tối thiểu $44\times 44$px trên màn hình cảm ứng.
+   - Hỗ trợ keyboard navigation (`Tab`, `Enter`, `Space`) và `prefers-reduced-motion`.
 
-1. Viết pure matcher tests cho `toBe`, `toEqual`, `toBeDefined`, `toContain` và failure messages.
-2. Version protocol output gồm step id, matcher, pass/fail, expected, actual, diff, duration, logs.
-3. Đặt timeout, reset, log/output limits và policy cho network/unneeded APIs.
-4. Tạo accessible cheat sheet theo scenario/config.
-5. Tạo workspace với Monaco, guided steps, granular results, retry/reset/submission mapping.
-6. Export component/addon factory và chứng minh render độc lập trước handoff cho Shell.
+---
 
-### 2.2. Acceptance và verify
-
-- Matchers xử lý primitives/arrays/objects/undefined/circular hoặc unsupported values có diagnostics.
-- Infinite loop terminate; log flood bị giới hạn; reset không leak logs/test cases.
-- Login-response sample có cả pass/fail/diff/retry/reset; payload theo contract.
-- Component harness không phụ thuộc page monolith.
+## 4. Quy trình Kiểm thử & Xác minh (Verification Runbook)
 
 ```powershell
-Set-Location MODULE_FE
-npm test -- --run
-npm run build
+# 1. Kiểm tra unit test và component tests cho Frontend
+npm --prefix MODULE_FE test -- --run src/test/automation-v3-workspace.test.tsx src/test/automation-v3-runtime-safety.test.ts src/test/automation-v3-gold-samples.test.ts
 
-Set-Location ..
+# 2. Kiểm tra validator và preflight curriculum Backend
+npm --prefix MODULE_BE test -- test/automation-v3-validator.spec.ts test/v3-curriculum-preflight.spec.ts
+
+# 3. Kiểm tra TypeScript build trên cả 3 modules
+npm --prefix MODULE_FE run build
+npm --prefix MODULE_BE run build
+npm --prefix MODULE_ADMIN run build
+
+# 4. Kiểm tra định dạng git diff
 git diff --check
 ```
-
-### 2.3. Handoff bắt buộc
-
-- Matcher/protocol version và supported capabilities.
-- Public component props, exports và contextual addon factory.
-- Independent harness/test results; timeout/log/network policy evidence.
-- Submission mapping, known limitations, risk và rollback.
-- Yêu cầu Agent-SHELL tích hợp; không tự sửa page shell.
-
-### 2.4. Prompt mẫu để giao Agent
-
-```text
-Bạn là Agent-AUTO của study-web. Thực thi duy nhất Task 4 theo
-docs/agent-guides/05-automation-workspace.md và master checklist.
-
-Chỉ bắt đầu khi contract 2.6 và WorkspaceProps/interface 3.4 đã được công bố. Đọc AGENTS.md,
-analysis, master plan và hai contract; chụp git status --short, giữ file dirty. Claim từng
-subtask [ ] -> [/], verify rồi -> [x].
-
-Xây matcher core, versioned worker protocol, runtime policy, TestingCheatSheet và
-AutomationTestWorkspace độc lập. Không sửa LabWorkspacePage.tsx; không sửa SQL/Quiz/Studio;
-không đổi shared contract nếu chưa có review. Runtime phải timeout/reset được, giới hạn logs
-và không lộ solution.
-
-Chạy unit/component/protocol tests và FE build. Bàn giao public exports + addon factory cho
-Agent-SHELL cùng test harness, command/result, capability policy, risk và rollback. Nếu interface
-3.4 chưa ổn định, dừng integration và báo PM thay vì tự tạo contract khác.
-```
-
-## 3. Tài liệu tham khảo
-
-- [Runbook hub](README.md)
-- [Master plan](../13-lab-platform-upgrade-agent-execution-plan.md)
-- [Architecture analysis](../12-lab-platform-upgrade-analysis.md)

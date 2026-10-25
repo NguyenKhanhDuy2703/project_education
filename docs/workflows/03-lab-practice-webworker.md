@@ -23,16 +23,16 @@ related_docs: [02-catalog-topic-discovery.md, 04-lab-submission-progress.md, 06-
 | **Document Title** | Lab Practice & Web Worker Execution Sandbox Workflow |
 | **Version** | v1.1 |
 | **Author** | Nguyen Khanh Duy (Fullstack Lead & Architect) |
-| **Scope** | Learner experience in the Interactive Lab Workspace (`/practice/:labId`): Markdown theory rendering, Monaco Code Editor setup, background thread code execution (JavaScript / SQL / Quiz) inside an isolated Web Worker, and tab freeze protection via a 2-second Timeout Guard |
+| **Scope** | Learner experience in the Interactive Lab Workspace (`/labs/:labId`): Markdown theory, Monaco-based SQL/automation editing, dedicated JavaScript and PGlite workers, quiz interaction, and timeout isolation |
 | **Date** | 2026-10-14 |
-| **Source Reference** | `MODULE_FE/src/pages/PracticeLabPage.tsx`, `MODULE_FE/src/features/lab/components/LabWorkspace.tsx`, `MODULE_FE/src/features/lab/workers/lab-runner.worker.ts` |
+| **Source Reference** | `MODULE_FE/src/pages/lab/LabWorkspacePage.tsx`, `MODULE_FE/src/features/lab/strategies/`, `MODULE_FE/src/features/lab/workers/lab-runner.worker.ts`, `MODULE_FE/src/features/lab/sql-engine/sql-runner.worker.ts` |
 
 ---
 
 ## 2. Core Content
 
 ### 2.1. Workflow Summary (TL;DR)
-- **Input**: Learner accesses a lab page (`/practice/:labId`), reviews Markdown instructions on the left panel, and writes code solutions in the Monaco Code Editor on the right panel.
+- **Input**: Learner accesses a protected lab page (`/labs/:labId`); the shell normalizes the content contract and selects the theory, quiz, SQL, automation, or fallback strategy.
 - **Execution**:
   - Learner clicks **"Run Code"** or triggers shortcut `Ctrl + Enter`.
   - Frontend spawns an isolated OS background `Web Worker`, transmitting the learner solution alongside automated test case suites.
@@ -71,7 +71,7 @@ sequenceDiagram
     participant Console as Test Output Console
 
     Note over User, Console: 1. Workspace Initialization
-    User->>UI: Navigate to `/practice/:labId`
+    User->>UI: Navigate to `/labs/:labId`
     UI->>UI: Populate starterCode in Editor and render Markdown instructions
     UI-->>User: Interactive workspace ready
     
@@ -140,7 +140,8 @@ sequenceDiagram
   - SQL Practice Workspace: [SqlPracticeWorkspace.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/strategies/SqlPracticeWorkspace.tsx)
   - Quiz Assignment Workspace: [QuizAssignmentWorkspace.tsx](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/strategies/QuizAssignmentWorkspace.tsx)
   - Automation Web Worker: [lab-runner.worker.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/workers/lab-runner.worker.ts)
-  - SQL PGlite Web Worker: [sql-runner.worker.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/workers/sql-runner.worker.ts)
+  - SQL PGlite Web Worker: [sql-runner.worker.ts](file:///d:/Projects/study-web/MODULE_FE/src/features/lab/sql-engine/sql-runner.worker.ts)
+  - Canonical strategy-by-strategy flow: [17-learning-unit-strategies.md](17-learning-unit-strategies.md)
 - **Related Workflows**:
   - Course Discovery & Lab Access: [02-catalog-topic-discovery.md](file:///d:/Projects/study-web/docs/workflows/02-catalog-topic-discovery.md)
   - Submission & Progress Tracking: [04-lab-submission-progress.md](file:///d:/Projects/study-web/docs/workflows/04-lab-submission-progress.md)

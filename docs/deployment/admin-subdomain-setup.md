@@ -163,6 +163,8 @@ Mọi endpoint quản trị (`/api/v1/admin/*`, `/api/v1/users/*`, `/api/v1/revi
 
 ## 6. Checklist Kiểm Thử Triển Khai (Post-Deployment Verification)
 
+> **Manual release gate — chưa được xác minh trong môi trường local.** Bốn kiểm tra dưới đây chỉ thực hiện sau khi có deployment thật cho cả `studyit.dev` và `admin.studyit.dev`, cùng tài khoản admin/non-admin phù hợp. Chúng không phải phần việc còn thiếu của implementation local và không được xem là đã production-verified cho tới khi có bằng chứng từ môi trường triển khai.
+
 - [ ] Truy cập `studyit.dev`: Giao diện học viên và Contributor hoạt động bình thường, DevTools không có dấu vết chunk admin hay route `/admin`.
 - [ ] Truy cập `admin.studyit.dev`: Màn hình `AdminLoginPage` hiển thị, đăng nhập bằng tài khoản non-admin bị từ chối với thông báo `"Tài khoản không có quyền quản trị viên"`.
 - [ ] Đăng nhập tài khoản admin trên `admin.studyit.dev`: Vào được Admin Studio, quản lý bài viết, duyệt đơn Contributor, phân quyền IAM đầy đủ.
