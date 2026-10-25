@@ -25,6 +25,19 @@ enum ContentLifecycleStatus {
   rejected
 }
 
+enum LearningUnitType {
+  theory
+  sql_practice
+  quiz_checkpoint
+  automation_lab
+}
+
+enum LearningProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
 model User {
   id             String   @id @default(uuid())
   name           String
@@ -55,6 +68,7 @@ model User {
   contributorApplications ContributorApplication[] @relation("UserApplications")
   reviewedApplications   ContributorApplication[] @relation("ReviewedApplications")
   sessions                AuthSession[]
+  learningProgress        LearningUnitProgress[]
 
   @@map("users")
 }
@@ -81,6 +95,7 @@ model LabSeries {
 
   author           User?                  @relation("AuthoredSeries", fields: [authorId], references: [id], onDelete: SetNull)
   labs             Lab[]
+  sections         SeriesSection[]
 
   @@map("lab_series")
 }
@@ -97,6 +112,8 @@ model Lab {
   testScript       String?                @db.Text
   solution         String?                @db.Text
   durationMinutes  Int                    @default(20)
+  sectionId        String?
+  unitType         LearningUnitType?
   isFreePreview    Boolean                @default(true)
   isProOnly        Boolean                @default(false)
   orderIndex       Int                    @default(0)
@@ -109,10 +126,48 @@ model Lab {
   updatedAt        DateTime               @updatedAt
 
   series           LabSeries              @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  section          SeriesSection?         @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   author           User?                  @relation("AuthoredLabs", fields: [authorId], references: [id], onDelete: SetNull)
   submissions      LabSubmission[]
+  progressRecords  LearningUnitProgress[]
 
   @@map("labs")
+}
+
+model SeriesSection {
+  id          String    @id @default(uuid())
+  seriesId    String
+  title       String
+  description String?   @db.Text
+  orderIndex  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  series      LabSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  labs        Lab[]
+
+  @@index([seriesId, orderIndex])
+  @@map("series_sections")
+}
+
+model LearningUnitProgress {
+  id           String                 @id @default(uuid())
+  userId       String
+  labId        String
+  status       LearningProgressStatus @default(NOT_STARTED)
+  lastPosition Json?
+  score        Int?
+  completedAt  DateTime?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab          Lab                    @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, labId])
+  @@index([userId, status])
+  @@index([labId])
+  @@map("learning_unit_progress")
 }
 
 model LabSubmission {

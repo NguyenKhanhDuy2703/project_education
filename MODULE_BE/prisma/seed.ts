@@ -1,5 +1,17 @@
 import { PrismaClient, UserRole, ContentLifecycleStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import {
+  V3_SQL_SERIES,
+  V3_SQL_SECTIONS,
+  V3_SQL_LABS,
+  V3_QUIZ_SERIES,
+  V3_QUIZ_SECTIONS,
+  V3_QUIZ_LABS,
+  V3_AUTO_SERIES,
+  V3_AUTO_SECTIONS,
+  V3_AUTO_LABS,
+} from './v3-curriculum-data';
+import { LearningUnitType } from '@prisma/client';
 
 const prisma = new PrismaClient({
   log: ['info', 'warn', 'error'],
@@ -414,12 +426,7 @@ async function main() {
     create: { userId: freeStudent.id, groupId: grpStandard.id },
   });
 
-  // 7. CLEANUP & PURGE OLD MOCK SERIES/LABS
-  console.log('🧹 Purging old sample courses, labs, and submissions...');
-  await prisma.labSubmission.deleteMany({});
-  await prisma.lab.deleteMany({});
-  await prisma.labSeries.deleteMany({});
-
+  // 7. SEEDING CURATED COURSES & MVP V3 CURRICULUM (NON-DESTRUCTIVE UPSERT)
   console.log('🚀 Seeding curated courses: SQL, Testing Quizel & Automation Test Syntax...');
 
   // ── Series 1: W3Schools SQL Fundamentals ──────────────────────────────
@@ -432,7 +439,6 @@ async function main() {
       orderIndex: 1,
     },
     create: {
-      id: 'a0000000-0000-0000-0000-000000000001',
       title: 'W3Schools SQL Fundamentals',
       slug: 'w3schools-sql-fundamentals',
       category: 'database',
@@ -706,7 +712,6 @@ async function main() {
       orderIndex: 2,
     },
     create: {
-      id: 'a0000000-0000-0000-0000-000000000002',
       title: 'SQL E-Commerce Analytics & Business Queries',
       slug: 'sql-ecommerce-analytics-mastery',
       category: 'database',
@@ -882,7 +887,6 @@ async function main() {
       orderIndex: 3,
     },
     create: {
-      id: 'a0000000-0000-0000-0000-000000000003',
       title: 'Testing Theory & ISTQB Foundation Quizel',
       slug: 'testing-theory-istqb-quizel',
       category: 'testing',
@@ -1131,7 +1135,6 @@ async function main() {
       orderIndex: 4,
     },
     create: {
-      id: 'a0000000-0000-0000-0000-000000000004',
       title: 'Automation Test Syntax & Matchers Masterclass',
       slug: 'automation-test-syntax-masterclass',
       category: 'testing',
@@ -1552,7 +1555,350 @@ function runParameterizedAuthSuite() {
     },
   });
 
-  console.log('✅ Seed completed successfully with 4 Curated Series and 18 Labs into PostgreSQL!');
+  // ── MVP V3 Series 1: PostgreSQL Business Scenarios ──────────────────
+  console.log('📦 Seeding V3 Series 1: PostgreSQL Business Scenarios (8 Labs)...');
+  const seriesV3Sql = await prisma.labSeries.upsert({
+    where: { slug: V3_SQL_SERIES.slug },
+    update: {
+      title: V3_SQL_SERIES.title,
+      category: V3_SQL_SERIES.category,
+      description: V3_SQL_SERIES.description,
+      level: V3_SQL_SERIES.level,
+      coverEmoji: V3_SQL_SERIES.coverEmoji,
+      orderIndex: V3_SQL_SERIES.orderIndex,
+      isProOnly: V3_SQL_SERIES.isProOnly,
+      authorId: contributorUser.id,
+      status: ContentLifecycleStatus.published,
+      isActive: true,
+      version: 'v3.0',
+    },
+    create: {
+      id: V3_SQL_SERIES.id,
+      title: V3_SQL_SERIES.title,
+      slug: V3_SQL_SERIES.slug,
+      category: V3_SQL_SERIES.category,
+      description: V3_SQL_SERIES.description,
+      level: V3_SQL_SERIES.level,
+      coverEmoji: V3_SQL_SERIES.coverEmoji,
+      orderIndex: V3_SQL_SERIES.orderIndex,
+      isProOnly: V3_SQL_SERIES.isProOnly,
+      isActive: true,
+      status: ContentLifecycleStatus.published,
+      authorId: contributorUser.id,
+      version: 'v3.0',
+    },
+  });
+
+  for (const sec of V3_SQL_SECTIONS) {
+    await prisma.seriesSection.upsert({
+      where: { id: sec.id },
+      update: {
+        seriesId: seriesV3Sql.id,
+        title: sec.title,
+        orderIndex: sec.orderIndex,
+      },
+      create: {
+        id: sec.id,
+        seriesId: seriesV3Sql.id,
+        title: sec.title,
+        orderIndex: sec.orderIndex,
+      },
+    });
+  }
+
+  for (const lab of V3_SQL_LABS) {
+    const objectiveData = JSON.stringify({
+      summary: lab.title,
+      ...lab.config,
+    });
+    const sqlSectionId =
+      lab.orderIndex <= 2
+        ? 'sec-sql-01'
+        : lab.orderIndex <= 4
+        ? 'sec-sql-02'
+        : lab.orderIndex <= 6
+        ? 'sec-sql-03'
+        : 'sec-sql-04';
+
+    await prisma.lab.upsert({
+      where: { slug: lab.slug },
+      update: {
+        seriesId: seriesV3Sql.id,
+        sectionId: sqlSectionId,
+        unitType: LearningUnitType.sql_practice,
+        title: lab.title,
+        sandboxType: lab.sandboxType,
+        objective: objectiveData,
+        instructions: lab.instructions,
+        initialSnippet: lab.initialSnippet,
+        testScript: `assert('${lab.title}', true);`,
+        solution: lab.solution,
+        durationMinutes: lab.durationMinutes,
+        isFreePreview: lab.isFreePreview,
+        isProOnly: lab.isProOnly,
+        orderIndex: lab.orderIndex,
+        version: 'v3.0',
+        status: ContentLifecycleStatus.published,
+        authorId: contributorUser.id,
+        isActive: true,
+      },
+      create: {
+        id: lab.id,
+        seriesId: seriesV3Sql.id,
+        sectionId: sqlSectionId,
+        unitType: LearningUnitType.sql_practice,
+        title: lab.title,
+        slug: lab.slug,
+        sandboxType: lab.sandboxType,
+        objective: objectiveData,
+        instructions: lab.instructions,
+        initialSnippet: lab.initialSnippet,
+        testScript: `assert('${lab.title}', true);`,
+        solution: lab.solution,
+        durationMinutes: lab.durationMinutes,
+        isFreePreview: lab.isFreePreview,
+        isProOnly: lab.isProOnly,
+        orderIndex: lab.orderIndex,
+        version: 'v3.0',
+        isActive: true,
+        status: ContentLifecycleStatus.published,
+        authorId: contributorUser.id,
+      },
+    });
+  }
+
+  // ── MVP V3 Series 2: Testing Theory Scenario Quizzes ───────────────
+  console.log('📦 Seeding V3 Series 2: Testing Theory Scenarios (8 Labs x 5 Questions)...');
+  const seriesV3Quiz = await prisma.labSeries.upsert({
+    where: { slug: V3_QUIZ_SERIES.slug },
+    update: {
+      title: V3_QUIZ_SERIES.title,
+      category: V3_QUIZ_SERIES.category,
+      description: V3_QUIZ_SERIES.description,
+      level: V3_QUIZ_SERIES.level,
+      coverEmoji: V3_QUIZ_SERIES.coverEmoji,
+      orderIndex: V3_QUIZ_SERIES.orderIndex,
+      isProOnly: V3_QUIZ_SERIES.isProOnly,
+      authorId: contributorUser.id,
+      status: ContentLifecycleStatus.published,
+      isActive: true,
+      version: 'v3.0',
+    },
+    create: {
+      id: V3_QUIZ_SERIES.id,
+      title: V3_QUIZ_SERIES.title,
+      slug: V3_QUIZ_SERIES.slug,
+      category: V3_QUIZ_SERIES.category,
+      description: V3_QUIZ_SERIES.description,
+      level: V3_QUIZ_SERIES.level,
+      coverEmoji: V3_QUIZ_SERIES.coverEmoji,
+      orderIndex: V3_QUIZ_SERIES.orderIndex,
+      isProOnly: V3_QUIZ_SERIES.isProOnly,
+      isActive: true,
+      status: ContentLifecycleStatus.published,
+      authorId: contributorUser.id,
+      version: 'v3.0',
+    },
+  });
+
+  for (const sec of V3_QUIZ_SECTIONS) {
+    await prisma.seriesSection.upsert({
+      where: { id: sec.id },
+      update: {
+        seriesId: seriesV3Quiz.id,
+        title: sec.title,
+        orderIndex: sec.orderIndex,
+      },
+      create: {
+        id: sec.id,
+        seriesId: seriesV3Quiz.id,
+        title: sec.title,
+        orderIndex: sec.orderIndex,
+      },
+    });
+  }
+
+  for (const lab of V3_QUIZ_LABS) {
+    const objectiveData = JSON.stringify({
+      summary: lab.title,
+      ...lab.config,
+    });
+    const quizSolution = lab.config?.questions
+      ? lab.config.questions
+          .map((q: any, i: number) => `${i + 1}. ${['A', 'B', 'C', 'D'][q.correctIndex] ?? q.correctIndex}`)
+          .join(' | ')
+      : null;
+
+    const quizSectionId =
+      lab.orderIndex <= 2
+        ? 'sec-quiz-01'
+        : lab.orderIndex <= 4
+        ? 'sec-quiz-02'
+        : lab.orderIndex <= 6
+        ? 'sec-quiz-03'
+        : 'sec-quiz-04';
+
+    await prisma.lab.upsert({
+      where: { slug: lab.slug },
+      update: {
+        seriesId: seriesV3Quiz.id,
+        sectionId: quizSectionId,
+        unitType: LearningUnitType.quiz_checkpoint,
+        title: lab.title,
+        sandboxType: lab.sandboxType,
+        objective: objectiveData,
+        instructions: lab.instructions,
+        initialSnippet: '// Trắc nghiệm tương tác Quizlet - Chọn đáp án bên phải',
+        testScript: `assert('${lab.title}', true);`,
+        solution: quizSolution,
+        durationMinutes: lab.durationMinutes,
+        isFreePreview: lab.isFreePreview,
+        isProOnly: lab.isProOnly,
+        orderIndex: lab.orderIndex,
+        version: 'v3.0',
+        status: ContentLifecycleStatus.published,
+        authorId: contributorUser.id,
+        isActive: true,
+      },
+      create: {
+        id: lab.id,
+        seriesId: seriesV3Quiz.id,
+        sectionId: quizSectionId,
+        unitType: LearningUnitType.quiz_checkpoint,
+        title: lab.title,
+        slug: lab.slug,
+        sandboxType: lab.sandboxType,
+        objective: objectiveData,
+        instructions: lab.instructions,
+        initialSnippet: '// Trắc nghiệm tương tác Quizlet - Chọn đáp án bên phải',
+        testScript: `assert('${lab.title}', true);`,
+        solution: quizSolution,
+        durationMinutes: lab.durationMinutes,
+        isFreePreview: lab.isFreePreview,
+        isProOnly: lab.isProOnly,
+        orderIndex: lab.orderIndex,
+        version: 'v3.0',
+        isActive: true,
+        status: ContentLifecycleStatus.published,
+        authorId: contributorUser.id,
+      },
+    });
+  }
+
+  // ── MVP V3 Series 3: Playwright Low-Code Automation ────────────────
+  console.log('📦 Seeding V3 Series 3: Playwright Low-Code Automation (8 Labs)...');
+  const seriesV3Auto = await prisma.labSeries.upsert({
+    where: { slug: V3_AUTO_SERIES.slug },
+    update: {
+      title: V3_AUTO_SERIES.title,
+      category: V3_AUTO_SERIES.category,
+      description: V3_AUTO_SERIES.description,
+      level: V3_AUTO_SERIES.level,
+      coverEmoji: V3_AUTO_SERIES.coverEmoji,
+      orderIndex: V3_AUTO_SERIES.orderIndex,
+      isProOnly: V3_AUTO_SERIES.isProOnly,
+      authorId: contributorUser.id,
+      status: ContentLifecycleStatus.published,
+      isActive: true,
+      version: 'v3.0',
+    },
+    create: {
+      id: V3_AUTO_SERIES.id,
+      title: V3_AUTO_SERIES.title,
+      slug: V3_AUTO_SERIES.slug,
+      category: V3_AUTO_SERIES.category,
+      description: V3_AUTO_SERIES.description,
+      level: V3_AUTO_SERIES.level,
+      coverEmoji: V3_AUTO_SERIES.coverEmoji,
+      orderIndex: V3_AUTO_SERIES.orderIndex,
+      isProOnly: V3_AUTO_SERIES.isProOnly,
+      isActive: true,
+      status: ContentLifecycleStatus.published,
+      authorId: contributorUser.id,
+      version: 'v3.0',
+    },
+  });
+
+  for (const sec of V3_AUTO_SECTIONS) {
+    await prisma.seriesSection.upsert({
+      where: { id: sec.id },
+      update: {
+        seriesId: seriesV3Auto.id,
+        title: sec.title,
+        orderIndex: sec.orderIndex,
+      },
+      create: {
+        id: sec.id,
+        seriesId: seriesV3Auto.id,
+        title: sec.title,
+        orderIndex: sec.orderIndex,
+      },
+    });
+  }
+
+  for (const lab of V3_AUTO_LABS) {
+    const objectiveData = JSON.stringify({
+      summary: lab.title,
+      ...lab.config,
+    });
+
+    const autoSectionId =
+      lab.orderIndex <= 2
+        ? 'sec-auto-01'
+        : lab.orderIndex <= 4
+        ? 'sec-auto-02'
+        : lab.orderIndex <= 6
+        ? 'sec-auto-03'
+        : 'sec-auto-04';
+
+    await prisma.lab.upsert({
+      where: { slug: lab.slug },
+      update: {
+        seriesId: seriesV3Auto.id,
+        sectionId: autoSectionId,
+        unitType: LearningUnitType.automation_lab,
+        title: lab.title,
+        sandboxType: lab.sandboxType,
+        objective: objectiveData,
+        instructions: lab.instructions,
+        initialSnippet: lab.initialSnippet || '',
+        testScript: `assert('${lab.title}', true);`,
+        solution: lab.solution,
+        durationMinutes: lab.durationMinutes,
+        isFreePreview: lab.isFreePreview,
+        isProOnly: lab.isProOnly,
+        orderIndex: lab.orderIndex,
+        version: 'v3.0',
+        status: ContentLifecycleStatus.published,
+        authorId: contributorUser.id,
+        isActive: true,
+      },
+      create: {
+        id: lab.id,
+        seriesId: seriesV3Auto.id,
+        sectionId: autoSectionId,
+        unitType: LearningUnitType.automation_lab,
+        title: lab.title,
+        slug: lab.slug,
+        sandboxType: lab.sandboxType,
+        objective: objectiveData,
+        instructions: lab.instructions,
+        initialSnippet: lab.initialSnippet || '',
+        testScript: `assert('${lab.title}', true);`,
+        solution: lab.solution,
+        durationMinutes: lab.durationMinutes,
+        isFreePreview: lab.isFreePreview,
+        isProOnly: lab.isProOnly,
+        orderIndex: lab.orderIndex,
+        version: 'v3.0',
+        isActive: true,
+        status: ContentLifecycleStatus.published,
+        authorId: contributorUser.id,
+      },
+    });
+  }
+
+  console.log('✅ Seed completed successfully with all 7 curated series and 42 Labs into PostgreSQL!');
 }
 
 main()
