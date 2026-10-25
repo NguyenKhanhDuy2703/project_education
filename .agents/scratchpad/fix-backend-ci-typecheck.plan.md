@@ -18,5 +18,5 @@
 
 ## Task 4 — Publish the fix
 
-- [ ] Commit with a conventional commit message.
-- [ ] Push the feature branch and verify the remote SHA.
+- [x] Commit with a conventional commit message.
+- [x] Push the feature branch and verify the remote SHA.
