@@ -2,7 +2,48 @@
 // Aligned with DB schema: lab_series, labs, lab_submissions, user_progress
 
 export type SandboxType = 'js_worker' | 'sql_worker' | 'quizlet' | 'ui_mock' | 'api_mock' | 'markdown_only';
+export type LearningUnitType = 'theory' | 'sql_practice' | 'quiz_checkpoint' | 'automation_lab';
+export type LearningProgressStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 export type LabStatus = 'passed' | 'failed' | 'in_progress' | 'not_started';
+
+export interface FormativeQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex?: number;
+  explanation?: string;
+  hint?: string;
+}
+
+export interface TheoryLessonConfig {
+  version?: '1.0' | '3.0';
+  readingTimeMinutes?: number;
+  objectives?: string[];
+  formativeQuestions?: FormativeQuestion[];
+}
+
+export interface SeriesSection {
+  id: string;
+  seriesId: string;
+  title: string;
+  description?: string;
+  orderIndex: number;
+  labs?: LabSummary[] | PracticeLabV1[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LearningUnitProgress {
+  id: string;
+  userId: string;
+  labId: string;
+  status: LearningProgressStatus;
+  lastPosition?: Record<string, any> | null;
+  score?: number | null;
+  completedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface QuizQuestion {
   id: string;
@@ -56,6 +97,7 @@ export interface LabSeries {
   updatedAt: string;
   // FE-joined fields
   labs?: LabSummary[];
+  sections?: SeriesSection[];
   userProgress?: SeriesProgress;
   _count?: { labs: number };
 }
@@ -80,6 +122,8 @@ export interface CreateLabInput {
   title: string;
   slug?: string;
   sandboxType?: string;
+  unitType?: LearningUnitType;
+  sectionId?: string;
   objective?: string;
   instructions: string;
   initialSnippet?: string;
@@ -105,6 +149,10 @@ export interface LabSummary {
   isProOnly: boolean;
   isFreePreview?: boolean;
   sandboxType: SandboxType;
+  unitType?: LearningUnitType;
+  sectionId?: string;
+  section?: SeriesSection;
+  progress?: LearningUnitProgress;
   estimatedMinutes?: number;
   durationMinutes?: number;
   authorId?: string;
@@ -159,8 +207,14 @@ export interface AutomationTestConfig {
   cheatSheetVisible?: boolean;
 }
 
-// ─── Lab Content Contract V2 (Smart Cloze / Smart Cloaked Code) ──────────────
-export type AutomationInteractionMode = 'smart_cloze' | 'guided_code' | 'full_code';
+// ─── Lab Content Contract V2 & V3 (Smart Cloze / Low-Code Block Builder) ──────
+export type AutomationMode =
+  | 'block_builder'
+  | 'smart_cloze'
+  | 'guided_code'
+  | 'full_code';
+
+export type AutomationInteractionMode = AutomationMode;
 
 export type BlankKind =
   | 'http_status'
@@ -214,6 +268,9 @@ export interface AutomationPublicCheck {
   description?: string;
   blankId?: string;
   conceptTag?: string;
+  ruleType?: string;
+  targetBlockType?: string;
+  expectedParamValue?: Record<string, any>;
   hint?: string;
 }
 
@@ -234,6 +291,123 @@ export interface AutomationExerciseV2 {
   gradingRules?: AutomationGradingRule[];
   targetFunction?: string;
   cheatSheetVisible?: boolean;
+}
+
+// ─── Playwright Automation V3 Contract (Task 1 / Contract V3) ─────────────────
+export type BlockCategory = 'navigation' | 'locator' | 'action' | 'assertion' | 'data';
+
+export type AllowedLocatorKind =
+  | 'getByRole'
+  | 'getByLabel'
+  | 'getByText'
+  | 'getByTestId'
+  | 'filter';
+
+export type AllowedActionKind =
+  | 'goto'
+  | 'fill'
+  | 'click'
+  | 'check'
+  | 'selectOption';
+
+export type AllowedAssertionKind =
+  | 'toBeVisible'
+  | 'toHaveText'
+  | 'toHaveValue'
+  | 'toHaveCount'
+  | 'toHaveURL';
+
+export interface AutomationBlockParameter {
+  id: string;
+  name: string;
+  label: string;
+  type: 'string' | 'number' | 'boolean' | 'enum' | 'role';
+  required?: boolean;
+  defaultValue?: any;
+  options?: Array<{ value: string; label: string }>;
+  placeholder?: string;
+}
+
+export interface AutomationBlockDefinition {
+  blockType: string;
+  category: BlockCategory;
+  name: string;
+  description: string;
+  codePattern: string;
+  parameters: AutomationBlockParameter[];
+  maxCountPerTest?: number;
+}
+
+export interface AutomationStep {
+  id: string;
+  blockType: string;
+  category: BlockCategory;
+  params: Record<string, any>;
+  comment?: string;
+  isLocked?: boolean;
+}
+
+export interface AutomationGradingRuleV3 {
+  checkId: string;
+  requiredSteps?: Array<{
+    blockType: string;
+    paramsMatch?: Record<string, any>;
+  }>;
+  forbiddenPatterns?: string[];
+  feedback?: string;
+}
+
+export interface AutomationGradingKeyV3 {
+  exerciseRevision: string;
+  expectedStepCount?: number;
+  requiredSteps?: Array<{
+    type?: string;
+    action?: string;
+    matcher?: string;
+    locatorType?: string;
+    target?: string;
+    expected?: any;
+    paramsMatch?: Record<string, any>;
+  }>;
+  forbiddenPatterns?: string[];
+  minScore?: number;
+}
+
+export interface AutomationSubmissionPayloadV3 {
+  version: '3.0';
+  exerciseRevision: string;
+  stepPlan: AutomationStep[];
+  answers?: Record<string, any>;
+  generatedPlaywrightCode: string;
+  resultSummary: {
+    passed: boolean;
+    passedChecks: string[];
+    totalChecks: number;
+    durationMs: number;
+  };
+  durationMs: number;
+}
+
+export interface AutomationExerciseV3 {
+  version: '3.0';
+  framework: 'playwright';
+  interactionMode: AutomationMode;
+  contentRevision: string;
+  fixture: {
+    fixtureId: string;
+    fixtureVersion: string;
+    initialRoute: string;
+    initialState?: Record<string, unknown>;
+  };
+  allowedBlocks: AutomationBlockDefinition[];
+  starterPlan: AutomationStep[];
+  publicChecks: AutomationPublicCheck[];
+  gradingRules?: AutomationGradingRuleV3[];
+  gradingKey?: AutomationGradingKeyV3;
+  exportTemplate: 'typescript' | 'javascript';
+  targetFunction?: string;
+  title?: string;
+  scenarioDescription?: string;
 }
 
 // ─── Playwright Parameterized Scenario Contract (Subtask 4.1 / DEC-08) ────────
@@ -305,13 +479,13 @@ export interface QuizLabConfig {
 
 export type LabContentEnvelopeV1 =
   | {
-      version: '1.0' | '2.0';
+      version: '1.0' | '2.0' | '3.0';
       sandboxType: 'js_worker';
       instructions: string;
       initialSnippet: string;
       testScript: string;
       solution?: string;
-      config?: AutomationTestConfig | AutomationExerciseV2;
+      config?: AutomationTestConfig | AutomationExerciseV2 | AutomationExerciseV3;
     }
   | {
       version: '1.0' | '2.0';
@@ -330,6 +504,15 @@ export type LabContentEnvelopeV1 =
       testScript?: string;
       solution?: string;
       config: QuizLabConfig;
+    }
+  | {
+      version?: '1.0' | '3.0';
+      sandboxType: 'markdown_only';
+      instructions: string;
+      initialSnippet?: string;
+      testScript?: string;
+      solution?: string;
+      config?: TheoryLessonConfig;
     };
 
 export type LabContentEnvelope = LabContentEnvelopeV1;
@@ -349,6 +532,7 @@ export interface SubmitLabPayload {
   testLogs?: string;
   answers?: Record<string, any>;
   templateVersion?: string;
+  payloadV3?: AutomationSubmissionPayloadV3;
 }
 
 export interface SubmitLabResult {
@@ -359,6 +543,21 @@ export interface SubmitLabResult {
   status: 'passed' | 'failed';
   timeMs: number;
   createdAt: string;
+  review?: {
+    isPassed?: boolean;
+    passed?: boolean;
+    scorePercentage?: number;
+    correctCount?: number;
+    passedQuestionsCount?: number;
+    totalQuestions?: number;
+    details?: Array<{
+      questionId: string;
+      selectedOptionIndex: number | null;
+      correctOptionIndex: number;
+      isCorrect: boolean;
+      explanation?: string;
+    }>;
+  };
 }
 
 export interface LabSubmissionRecord {

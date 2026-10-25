@@ -1,10 +1,10 @@
 /**
  * SeriesDetailPage — /series/:slug
  *
- * Shows labs within a series; respects dynamic IAM permissions.
- * Workflow ref: Docs/workflows/02-lab-access-rbac.md
+ * Shows curriculum sections and pedagogical learning units within a series;
+ * respects dynamic IAM permissions and server-synchronized progress.
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { seriesApi } from '@/features/lab/api/series.api';
@@ -15,15 +15,26 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UpgradeModal } from '@/features/lab/components/UpgradeModal';
 import { StatusBadge } from '@/components/domain/StatusBadge';
-import { Crown } from 'lucide-react';
+import {
+  Crown,
+  BookOpen,
+  Database,
+  CheckSquare,
+  Play,
+  Layers,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   normalizeTopicKey,
   getTopicTitle,
   getTopicBadgeClass,
 } from '@/services/topicTags.service';
-import { getFormatInfo, getSeriesFormat } from '@/services/formatBadge.service';
-import type { LabSummary } from '@/types/lab.types';
+import {
+  getFormatInfo,
+  getSeriesFormat,
+  getUnitTypeInfo,
+} from '@/services/formatBadge.service';
+import type { LabSummary, SeriesSection } from '@/types/lab.types';
 
 export function SeriesDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -38,6 +49,56 @@ export function SeriesDetailPage() {
   });
 
   const hasProAccess = can(user, 'LAB_PRO');
+
+  const topicKey = normalizeTopicKey(series?.category || series?.topic);
+  const topicTitle = getTopicTitle(topicKey, 'Series');
+  const topicBadgeClass = getTopicBadgeClass(topicKey);
+  const seriesFormat = series ? getSeriesFormat(series) : 'js_worker';
+  const seriesFormatInfo = getFormatInfo(seriesFormat);
+
+  // Curriculum pedagogical summary breakdown
+  const curriculumSummary = useMemo(() => {
+    if (!series) return '';
+    const labs = series.labs || [];
+    let lessons = 0;
+    let practice = 0;
+    let checks = 0;
+
+    for (const l of labs) {
+      const uType = l.unitType || (
+        l.sandboxType === 'markdown_only'
+          ? 'theory'
+          : l.sandboxType === 'sql_worker'
+          ? 'sql_practice'
+          : l.sandboxType === 'quizlet'
+          ? 'quiz_checkpoint'
+          : 'automation_lab'
+      );
+      if (uType === 'theory') lessons++;
+      else if (uType === 'quiz_checkpoint') checks++;
+      else practice++;
+    }
+
+    const parts = [
+      lessons > 0 ? `${lessons} lessons` : null,
+      practice > 0 ? `${practice} labs` : null,
+      checks > 0 ? `${checks} checks` : null,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(' · ') : `${labs.length} learning units`;
+  }, [series]);
+
+  const totalMinutes = useMemo(() => {
+    if (!series) return 60;
+    if (series.estimatedMinutes) return series.estimatedMinutes;
+    if (series.labs && series.labs.length > 0) {
+      return series.labs.reduce(
+        (acc, l) => acc + (l.durationMinutes || l.estimatedMinutes || 20),
+        0
+      );
+    }
+    return 60;
+  }, [series]);
 
   if (isLoading) {
     return (
@@ -63,22 +124,22 @@ export function SeriesDetailPage() {
     );
   }
 
-  const topicKey = normalizeTopicKey(series.category || series.topic);
-  const topicTitle = getTopicTitle(topicKey, 'Series');
-  const topicBadgeClass = getTopicBadgeClass(topicKey);
-  const seriesFormat = getSeriesFormat(series);
-  const seriesFormatInfo = getFormatInfo(seriesFormat);
-
   const handleOpenUpgrade = (labTitle: string) => {
     setSelectedLabTitle(labTitle);
     setUpgradeModalOpen(true);
   };
 
-  const totalMinutes =
-    series.estimatedMinutes ||
-    (series.labs && series.labs.length > 0
-      ? series.labs.reduce((acc, l) => acc + (l.durationMinutes || l.estimatedMinutes || 20), 0)
-      : 60);
+  const sections: SeriesSection[] = series.sections && series.sections.length > 0
+    ? series.sections
+    : [
+        {
+          id: 'default',
+          seriesId: series.id,
+          title: 'Curriculum Units',
+          orderIndex: 0,
+          labs: series.labs || [],
+        },
+      ];
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 max-w-3xl space-y-7">
@@ -115,7 +176,7 @@ export function SeriesDetailPage() {
         <p className="text-sm text-muted-foreground leading-relaxed">{series.description}</p>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border/50">
-          <span>{series.totalLabs || series.labs?.length || 0} practice labs</span>
+          <span className="font-semibold text-foreground">{curriculumSummary}</span>
           <span>•</span>
           <span>~{totalMinutes} mins to complete</span>
           {series.authorName && (
@@ -127,28 +188,60 @@ export function SeriesDetailPage() {
         </div>
       </div>
 
-      {/* ── Lab list ────────────────────────────────────────────────────── */}
-      <div className="space-y-3">
+      {/* ── Curriculum Modules & Sections ───────────────────────────────── */}
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-            Lab Curriculum
-          </h2>
+          <div className="flex items-center gap-2">
+            <Layers className="size-4 text-primary" />
+            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              Curriculum Modules
+            </h2>
+          </div>
           <span className="text-xs text-muted-foreground">
-            {series.labs?.length || 0} labs
+            {series.labs?.length || 0} units
           </span>
         </div>
 
-        <div className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
-          {series.labs?.map((lab, index) => (
-            <LabRowItem
-              key={lab.id}
-              lab={lab}
-              index={index}
-              hasProAccess={hasProAccess}
-              seriesIsProOnly={Boolean(series.isProOnly)}
-              onUpgradeClick={() => handleOpenUpgrade(lab.title)}
-            />
-          ))}
+        <div className="space-y-6">
+          {sections.map((section, sIdx) => {
+            const sectionLabs = (section.labs as LabSummary[]) || [];
+            if (sectionLabs.length === 0 && sections.length > 1) return null;
+
+            return (
+              <div key={section.id || sIdx} className="space-y-2">
+                {sections.length > 1 && (
+                  <div className="flex items-center justify-between px-1">
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground">
+                        {section.title}
+                      </h3>
+                      {section.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {section.description}
+                        </p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                      {sectionLabs.length} units
+                    </Badge>
+                  </div>
+                )}
+
+                <div className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
+                  {sectionLabs.map((lab, index) => (
+                    <LabRowItem
+                      key={lab.id}
+                      lab={lab}
+                      index={index}
+                      hasProAccess={hasProAccess}
+                      seriesIsProOnly={Boolean(series.isProOnly)}
+                      onUpgradeClick={() => handleOpenUpgrade(lab.title)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -162,7 +255,7 @@ export function SeriesDetailPage() {
   );
 }
 
-// ─── Lab Row Item ────────────────────────────────────────────────────────
+// ─── Learning Unit Row Item ──────────────────────────────────────────────
 function LabRowItem({
   lab,
   index,
@@ -178,13 +271,37 @@ function LabRowItem({
 }) {
   const isLabPro = Boolean(lab.isProOnly || (seriesIsProOnly && !lab.isFreePreview));
   const locked = isLabPro && !hasProAccess;
-  const formatInfo = getFormatInfo(lab.sandboxType);
+  const unitInfo = getUnitTypeInfo(lab.unitType, lab.sandboxType);
+
+  const isCompleted = lab.progress?.status === 'COMPLETED' || lab.userStatus === 'passed';
+  const isInProgress = lab.progress?.status === 'IN_PROGRESS';
+
+  const renderIcon = () => {
+    switch (unitInfo.unitType) {
+      case 'theory':
+        return <BookOpen className="size-4 text-sky-500 shrink-0" />;
+      case 'sql_practice':
+        return <Database className="size-4 text-blue-500 shrink-0" />;
+      case 'quiz_checkpoint':
+        return <CheckSquare className="size-4 text-purple-500 shrink-0" />;
+      case 'automation_lab':
+      default:
+        return <Play className="size-4 text-emerald-500 shrink-0" />;
+    }
+  };
 
   const renderStatus = () => {
-    if (lab.userStatus === 'passed') {
+    if (isCompleted) {
       return (
         <Badge variant="outline" className="text-[10px] h-4.5 px-1.5 font-bold text-emerald-600 border-emerald-500/30 bg-emerald-500/10">
-          PASSED
+          COMPLETED
+        </Badge>
+      );
+    }
+    if (isInProgress) {
+      return (
+        <Badge variant="outline" className="text-[10px] h-4.5 px-1.5 font-bold text-blue-600 border-blue-500/30 bg-blue-500/10">
+          IN PROGRESS
         </Badge>
       );
     }
@@ -197,14 +314,18 @@ function LabRowItem({
 
   const content = (
     <div
-      className={`flex items-center gap-4 px-4 py-3 bg-card transition-colors ${
+      className={`flex items-center gap-3.5 px-4 py-3 bg-card transition-colors ${
         locked ? 'opacity-70 cursor-pointer bg-muted/10' : 'hover:bg-muted/40 cursor-pointer'
       }`}
       onClick={locked ? onUpgradeClick : undefined}
     >
-      <span className="text-xs font-mono text-muted-foreground w-6 shrink-0 text-center font-bold">
+      <span className="text-xs font-mono text-muted-foreground w-5 shrink-0 text-center font-bold">
         {String(index + 1).padStart(2, '0')}
       </span>
+
+      <div className="shrink-0">
+        {renderIcon()}
+      </div>
 
       {renderStatus()}
 
@@ -213,13 +334,13 @@ function LabRowItem({
           <p className="text-sm font-semibold text-foreground truncate">{lab.title}</p>
           <Badge
             variant="outline"
-            className={cn('text-[10px] h-4.5 px-1.5 font-bold border shrink-0', formatInfo.badgeClass)}
+            className={cn('text-[10px] h-4.5 px-1.5 font-bold border shrink-0', unitInfo.badgeClass)}
           >
-            {formatInfo.label}
+            {unitInfo.label}
           </Badge>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          {lab.durationMinutes || lab.estimatedMinutes || 20} mins
+          {lab.durationMinutes || lab.estimatedMinutes || 15} mins
         </p>
       </div>
 
@@ -243,7 +364,7 @@ function LabRowItem({
           </Button>
         ) : (
           <Button size="sm" variant="ghost" className="h-7 text-xs font-semibold text-primary">
-            Start Lab
+            {unitInfo.ctaText}
           </Button>
         )}
       </div>

@@ -17,6 +17,14 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        app: path.resolve(import.meta.dirname, 'index.html'),
+        sqlBenchmark: path.resolve(import.meta.dirname, 'sql-benchmark.html'),
+      },
+    },
+  },
   // @ts-expect-error vitest config
   test: {
     environment: 'happy-dom',

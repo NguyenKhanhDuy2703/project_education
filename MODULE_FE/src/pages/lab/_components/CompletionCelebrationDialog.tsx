@@ -17,7 +17,11 @@ export interface CompletionCelebrationDialogProps {
   nextLab: LabSummary | null;
   series?: LabSeries;
   runtimeMs?: number;
+  unitType?: string;
+  unitTitle?: string;
 }
+
+import { getUnitTypeInfo } from '@/services/formatBadge.service';
 
 export function CompletionCelebrationDialog({
   open,
@@ -25,8 +29,21 @@ export function CompletionCelebrationDialog({
   nextLab,
   series,
   runtimeMs = 35,
+  unitType,
+  unitTitle: customUnitTitle,
 }: CompletionCelebrationDialogProps) {
   const navigate = useNavigate();
+  const nextUnitInfo = nextLab ? getUnitTypeInfo(nextLab.unitType, nextLab.sandboxType) : null;
+
+  const celebrationTitle =
+    customUnitTitle ||
+    (unitType === 'theory'
+      ? 'Lesson Completed!'
+      : unitType === 'quiz_checkpoint'
+      ? 'Knowledge Check Completed!'
+      : unitType === 'automation_lab'
+      ? 'Automation Lab Completed!'
+      : 'Lab Challenge Completed!');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -38,11 +55,11 @@ export function CompletionCelebrationDialog({
           >
             100% COMPLETED
           </Badge>
-          <DialogTitle className="text-lg font-bold">Lab Challenge Completed!</DialogTitle>
+          <DialogTitle className="text-lg font-bold">{celebrationTitle}</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground mt-1">
             {nextLab
               ? `Next up: "${nextLab.title}". Keep up the great momentum!`
-              : 'Congratulations! You have completed all labs in this series!'}
+              : 'Congratulations! You have completed all units in this series!'}
           </DialogDescription>
         </DialogHeader>
 
@@ -65,7 +82,7 @@ export function CompletionCelebrationDialog({
             onClick={() => onOpenChange(false)}
             className="flex-1 text-xs"
           >
-            Review Lab
+            Review Attempt
           </Button>
           <Button
             size="sm"
@@ -81,7 +98,7 @@ export function CompletionCelebrationDialog({
             }}
             className="flex-1 text-xs font-bold"
           >
-            {nextLab ? 'Continue to Next Lab' : 'Return to Series'}
+            {nextLab ? `Next: ${nextUnitInfo?.label || 'Unit'}` : 'Return to Series'}
           </Button>
         </DialogFooter>
       </DialogContent>

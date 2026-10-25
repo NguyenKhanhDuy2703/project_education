@@ -3,6 +3,9 @@ import type { WorkspaceStrategyComponent, StrategyRegistryMap } from './workspac
 import { FallbackWorkspace } from './FallbackWorkspace';
 import { AutomationTestWorkspace } from './AutomationTestWorkspace';
 import { QuizAssignmentWorkspace } from './QuizAssignmentWorkspace';
+import { AutomationV3Workspace } from './AutomationV3Workspace';
+import { TheoryLessonView } from './TheoryLessonView';
+import { isFeatureEnabled } from '@/config/features';
 
 const SqlPracticeWorkspace = lazy(() =>
   import('./SqlPracticeWorkspace').then((module) => ({ default: module.SqlPracticeWorkspace })),
@@ -12,6 +15,8 @@ const registry: StrategyRegistryMap = {
   js_worker: AutomationTestWorkspace,
   sql_worker: SqlPracticeWorkspace,
   quizlet: QuizAssignmentWorkspace,
+  automation_v3: AutomationV3Workspace,
+  markdown_only: TheoryLessonView,
 };
 
 export function registerWorkspaceStrategy(
@@ -21,7 +26,13 @@ export function registerWorkspaceStrategy(
   registry[sandboxType] = component;
 }
 
-export function getWorkspaceStrategy(sandboxType: string): WorkspaceStrategyComponent {
+export function getWorkspaceStrategy(
+  sandboxType: string,
+  envelopeVersion?: string,
+): WorkspaceStrategyComponent {
+  if (envelopeVersion === '3.0' && isFeatureEnabled('AUTOMATION_V3_ENABLED')) {
+    return AutomationV3Workspace;
+  }
   return registry[sandboxType] || FallbackWorkspace;
 }
 
@@ -36,6 +47,8 @@ export function resetDefaultStrategies(): void {
   registry['js_worker'] = AutomationTestWorkspace;
   registry['sql_worker'] = SqlPracticeWorkspace;
   registry['quizlet'] = QuizAssignmentWorkspace;
+  registry['automation_v3'] = AutomationV3Workspace;
+  registry['markdown_only'] = TheoryLessonView;
 }
 
 export function clearWorkspaceRegistry(): void {

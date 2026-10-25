@@ -79,4 +79,31 @@ export const labApi = {
       return res.data?.data ?? res.data;
     }
   },
+
+  /** Learning Unit Progress Lifecycle */
+  getLearningProgress: async (labId: string): Promise<any> => {
+    const res = await apiClient.get<any>(`/labs/${labId}/progress`);
+    return res.data?.data ?? res.data;
+  },
+
+  startTheoryProgress: async (labId: string): Promise<any> => {
+    const res = await apiClient.post<any>(`/labs/${labId}/progress/start`);
+    return res.data?.data ?? res.data;
+  },
+
+  updateTheoryPosition: async (
+    labId: string,
+    data: { scrollPercent?: number; position?: any; formativeAnswers?: any },
+  ): Promise<any> => {
+    const res = await apiClient.post<any>(`/labs/${labId}/progress/position`, data);
+    return res.data?.data ?? res.data;
+  },
+
+  completeTheoryProgress: async (
+    labId: string,
+    data?: { score?: number },
+  ): Promise<any> => {
+    const res = await apiClient.post<any>(`/labs/${labId}/progress/complete`, data || {});
+    return res.data?.data ?? res.data;
+  },
 };
