@@ -65,3 +65,20 @@ export class ChangePasswordDto {
   @MinLength(8)
   newPassword: string;
 }
+
+export class UpdateProfileDto {
+  @ApiPropertyOptional({ example: 'John Doe', description: 'Full name' })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg', description: 'Avatar URL' })
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
+
+  @ApiPropertyOptional({ example: '123 Main St, Hanoi', description: 'Default address' })
+  @IsString()
+  @IsOptional()
+  defaultAddress?: string;
+}

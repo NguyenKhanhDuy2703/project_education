@@ -13,13 +13,133 @@ import { ContentLifecycleStatus, UserRole } from '@prisma/client';
 
 import { inferLearningUnitType } from '../labs/domain/labContentCodec';
 
+export const TOPIC_KEY_ALIASES: Record<string, string> = {
+  sql: 'database',
+  db: 'database',
+  docker: 'devops',
+  qa: 'testing',
+  tester: 'testing',
+  test: 'testing',
+  auth: 'security',
+  sec: 'security',
+};
+
+export const CANONICAL_TOPICS = [
+  {
+    key: 'testing',
+    title: 'Tester & QA',
+    description: 'Manual testing, automated API testing, regression suites, and unit assertions.',
+    tagColor: 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10',
+  },
+  {
+    key: 'database',
+    title: 'Database & SQL',
+    description: 'Relational data modeling, SQL queries, indexing, transactions, and performance tuning.',
+    tagColor: 'border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10',
+  },
+  {
+    key: 'backend',
+    title: 'Backend API',
+    description: 'RESTful API architecture, JWT authentication, microservices, and server business logic.',
+    tagColor: 'border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10',
+  },
+  {
+    key: 'devops',
+    title: 'DevOps & Docker',
+    description: 'Application containerization, multi-service Docker Compose, and CI/CD pipelines.',
+    tagColor: 'border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10',
+  },
+  {
+    key: 'security',
+    title: 'Security & Auth',
+    description: 'Web application security, OAuth2, RBAC/PBAC access controls, and data encryption.',
+    tagColor: 'border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-500/10',
+  },
+];
+
+
+export function isAutomationFeatureEnabled(): boolean {
+  return process.env.FEATURE_AUTOMATION_CONTENT_ENABLED === 'true';
+}
+
+export function canAccessAutomationContent(user?: { userId?: string; role?: UserRole }): boolean {
+  if (isAutomationFeatureEnabled()) return true;
+  if (!user) return false;
+  return user.role === UserRole.admin || user.role === UserRole.contributor;
+}
+
+export function isAutomationSeries(series?: {
+  id?: string;
+  slug?: string;
+  category?: string;
+  labs?: Array<{ sandboxType?: string; unitType?: string; slug?: string }>;
+} | null): boolean {
+  if (!series) return false;
+  const slug = (series.slug || '').toLowerCase();
+  const id = (series.id || '').toLowerCase();
+  const category = (series.category || '').toLowerCase();
+
+  if (
+    slug.includes('playwright') ||
+    slug.includes('automation') ||
+    id.includes('auto') ||
+    category === 'automation'
+  ) {
+    return true;
+  }
+
+  if (
+    Array.isArray(series.labs) &&
+    series.labs.length > 0 &&
+    series.labs.every((l) => isAutomationLab(l))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export function isAutomationLab(lab?: {
+  sandboxType?: string;
+  unitType?: string;
+  slug?: string;
+  seriesId?: string;
+  series?: any;
+} | null): boolean {
+  if (!lab) return false;
+  if (lab.sandboxType === 'js_worker' || lab.unitType === 'automation_lab') return true;
+  const slug = (lab.slug || '').toLowerCase();
+  if (slug.includes('playwright') || slug.includes('auto-syntax') || slug.startsWith('lab-auto-')) {
+    return true;
+  }
+  if (lab.series && isAutomationSeries(lab.series)) {
+    return true;
+  }
+  return false;
+}
+
+export function normalizeTopicKey(key?: string): string {
+  if (!key) return 'testing';
+  const lower = key.toLowerCase().trim();
+  return TOPIC_KEY_ALIASES[lower] || lower;
+}
+
 @Injectable()
 export class SeriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(includeInactive = false) {
-    const where = includeInactive ? {} : { isActive: true, status: ContentLifecycleStatus.published };
-    return this.prisma.labSeries.findMany({
+  getTaxonomyTopics() {
+    return CANONICAL_TOPICS;
+  }
+
+  normalizeCategory(category?: string): string {
+    return normalizeTopicKey(category);
+  }
+
+  async findAll(includeInactive = false, requestingUser?: { userId?: string; role?: UserRole }) {
+    const allowInactive = Boolean(includeInactive && requestingUser?.role === UserRole.admin);
+    const where = allowInactive ? {} : { isActive: true, status: ContentLifecycleStatus.published };
+    const allSeries = await this.prisma.labSeries.findMany({
       where,
       orderBy: { orderIndex: 'asc' },
       include: {
@@ -30,7 +150,7 @@ export class SeriesService {
           orderBy: { orderIndex: 'asc' },
         },
         labs: {
-          where: includeInactive ? {} : { isActive: true, status: ContentLifecycleStatus.published },
+          where: allowInactive ? {} : { isActive: true, status: ContentLifecycleStatus.published },
           orderBy: { orderIndex: 'asc' },
           select: {
             id: true,
@@ -53,6 +173,23 @@ export class SeriesService {
         },
       },
     });
+
+    if (canAccessAutomationContent(requestingUser)) {
+      return allSeries;
+    }
+
+    return allSeries
+      .filter((s) => !isAutomationSeries(s))
+      .map((s) => {
+        const filteredLabs = s.labs.filter((l) => !isAutomationLab(l));
+        return {
+          ...s,
+          labs: filteredLabs,
+          _count: {
+            labs: filteredLabs.length,
+          },
+        };
+      });
   }
 
   async findMySeries(authorId: string) {
@@ -113,10 +250,22 @@ export class SeriesService {
       throw new NotFoundException(`Topic "${slugOrId}" not found`);
     }
 
+    // Gatekeeper: Automation series visibility control
+    const isPrivilegedForAutomation =
+      canAccessAutomationContent(currentUser) ||
+      (currentUser && currentUser.userId === series.authorId);
+    if (isAutomationSeries(series) && !isPrivilegedForAutomation) {
+      throw new NotFoundException(`Topic "${slugOrId}" is temporarily unavailable`);
+    }
+
     // Filter labs: Public students only see published labs; Author/Admin sees all
-    const visibleLabs = isAuthorizedAuthorOrAdmin
+    let visibleLabs = isAuthorizedAuthorOrAdmin
       ? series.labs
       : series.labs.filter((l) => l.isActive && l.status === ContentLifecycleStatus.published);
+
+    if (!isPrivilegedForAutomation) {
+      visibleLabs = visibleLabs.filter((l) => !isAutomationLab(l));
+    }
 
     const userProgressMap = new Map<string, any>();
     if (currentUser?.userId) {
@@ -165,8 +314,19 @@ export class SeriesService {
       });
     }
 
+    let isSaved = false;
+    if (currentUser?.userId && (this.prisma as any).userSavedSeries) {
+      const bookmark = await (this.prisma as any).userSavedSeries.findUnique({
+        where: {
+          userId_seriesId: { userId: currentUser.userId, seriesId: series.id },
+        },
+      });
+      isSaved = Boolean(bookmark);
+    }
+
     return {
       ...series,
+      isSaved,
       sections: sectionsWithLabs,
       labs: enrichedLabs,
     };
@@ -212,6 +372,7 @@ export class SeriesService {
     return this.prisma.labSeries.create({
       data: {
         ...dto,
+        category: this.normalizeCategory(dto.category),
         slug: targetSlug,
         authorId: user.userId,
         status,
@@ -250,6 +411,10 @@ export class SeriesService {
       if (existing.status === ContentLifecycleStatus.changes_requested) {
         updateData.status = ContentLifecycleStatus.draft;
       }
+    }
+
+    if (updateData.category) {
+      updateData.category = this.normalizeCategory(updateData.category);
     }
 
     return this.prisma.labSeries.update({
@@ -362,5 +527,60 @@ export class SeriesService {
     await this.prisma.seriesSection.delete({
       where: { id: sectionId },
     });
+  }
+
+  async saveSeries(userId: string, seriesId: string) {
+    const series = await this.prisma.labSeries.findUnique({ where: { id: seriesId } });
+    if (!series || !series.isActive) {
+      throw new NotFoundException(`Series "${seriesId}" not found`);
+    }
+    const existing = await (this.prisma as any).userSavedSeries.findUnique({
+      where: {
+        userId_seriesId: { userId, seriesId },
+      },
+    });
+    if (existing) {
+      return { saved: true, message: 'Series already saved' };
+    }
+    await (this.prisma as any).userSavedSeries.create({
+      data: { userId, seriesId },
+    });
+    return { saved: true, message: 'Series saved successfully' };
+  }
+
+  async unsaveSeries(userId: string, seriesId: string) {
+    await (this.prisma as any).userSavedSeries.deleteMany({
+      where: { userId, seriesId },
+    });
+    return { saved: false, message: 'Series unsaved successfully' };
+  }
+
+  async getSavedSeries(userId: string, requestingUser?: { userId?: string; role?: UserRole }) {
+    const saved = await (this.prisma as any).userSavedSeries.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        series: {
+          include: {
+            author: { select: { id: true, name: true, role: true } },
+            _count: { select: { labs: true } },
+          },
+        },
+      },
+    });
+
+    const canSeeAuto = canAccessAutomationContent(requestingUser);
+    return (saved || [])
+      .filter(
+        (item: any) =>
+          item.series &&
+          item.series.isActive &&
+          item.series.status === ContentLifecycleStatus.published &&
+          (canSeeAuto || !isAutomationSeries(item.series)),
+      )
+      .map((item: any) => ({
+        savedAt: item.createdAt,
+        ...item.series,
+      }));
   }
 }

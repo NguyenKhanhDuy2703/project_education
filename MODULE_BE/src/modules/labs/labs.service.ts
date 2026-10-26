@@ -19,6 +19,7 @@ import { SqlPreflightDto } from './dto/sql-preflight.dto';
 import { validateV3AutomationSubmission } from './automation-v3-validator';
 import { UpdatePositionDto, CompleteTheoryDto } from './dto/theory-progress.dto';
 import { inferLearningUnitType } from './domain/labContentCodec';
+import { canAccessAutomationContent, isAutomationLab } from '../series/series.service';
 import { QuizGradingService } from './quiz-grading.service';
 
 @Injectable()
@@ -46,6 +47,8 @@ export class LabsService {
             slug: true,
             category: true,
             isProOnly: true,
+            repoUrl: true,
+            swaggerUrl: true,
           },
         },
       },
@@ -62,6 +65,13 @@ export class LabsService {
     // Gatekeeper: If lab is not published, only author or admin can view (Preview mode)
     if (lab.status !== ContentLifecycleStatus.published && !isAuthorizedAuthorOrAdmin) {
       throw new NotFoundException(`Practice Lab "${slugOrId}" not found`);
+    }
+
+    const isPrivilegedForAuto =
+      canAccessAutomationContent(currentUser) ||
+      (currentUser && currentUser.userId === lab.authorId);
+    if (isAutomationLab(lab) && !isPrivilegedForAuto) {
+      throw new NotFoundException(`Practice Lab "${slugOrId}" is temporarily unavailable`);
     }
 
     // Pro Access Check (enforce if lab is Pro-only OR if parent series is Pro-only and lab is not a free preview)
@@ -84,9 +94,51 @@ export class LabsService {
       }
     }
 
+    if (isLocked) {
+      const unitType = inferLearningUnitType(lab.unitType, lab.sandboxType);
+      return {
+        id: lab.id,
+        title: lab.title,
+        slug: lab.slug,
+        seriesId: lab.seriesId,
+        series: lab.series
+          ? {
+              id: lab.series.id,
+              title: lab.series.title,
+              slug: lab.series.slug,
+              category: lab.series.category,
+              isProOnly: lab.series.isProOnly,
+              repoUrl: lab.series.repoUrl,
+              swaggerUrl: lab.series.swaggerUrl,
+            }
+          : null,
+        orderIndex: lab.orderIndex,
+        durationMinutes: lab.durationMinutes,
+        unitType,
+        sandboxType: lab.sandboxType,
+        isFreePreview: lab.isFreePreview,
+        isProOnly: lab.isProOnly,
+        status: lab.status,
+        isLocked: true,
+        lockReason,
+        instructions: '',
+        initialSnippet: '',
+        testScript: '',
+        solution: null,
+        config: null,
+        sqlSchema: null,
+        sampleData: null,
+        expectedQueryResult: null,
+        quizQuestions: [],
+        quizList: [],
+        progress: null,
+      };
+    }
+
 
     // Dynamic Entitlement Resolution: Check VIEW_SOLUTION feature
     let canViewSolution = false;
+    let isBannedFromSolution = false;
     if (currentUser) {
       if (currentUser.role === UserRole.admin || currentUser.userId === lab.authorId) {
         canViewSolution = true;
@@ -96,6 +148,7 @@ export class LabsService {
           'VIEW_SOLUTION',
         );
         canViewSolution = evaluation.hasAccess && !evaluation.isBanned;
+        isBannedFromSolution = Boolean(evaluation.isBanned);
       }
     }
 
@@ -193,6 +246,9 @@ export class LabsService {
       }
     }
 
+    const isCompleted = progress?.status === LearningProgressStatus.COMPLETED;
+    const canViewSolutionEffective = isAuthorizedAuthorOrAdmin || (Boolean(isCompleted) && !isLocked && !isBannedFromSolution);
+
     return {
       ...publicFields,
       unitType,
@@ -206,7 +262,7 @@ export class LabsService {
       quizList: quizQuestions,
       isLocked,
       lockReason,
-      solution: canViewSolution && !isLocked ? solution : null,
+      solution: canViewSolutionEffective ? solution : null,
     };
   }
 
@@ -226,8 +282,42 @@ export class LabsService {
     labId: string,
     userId: string,
     payload: SubmitLabDto,
+    currentUser?: { userId?: string; role?: UserRole },
   ) {
     const lab = await this.findById(labId);
+    await this.assertLabAccess(lab, userId);
+
+    if (!currentUser && this.prisma.user?.findUnique) {
+      const u = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (u) {
+        currentUser = { userId: u.id, role: u.role };
+      }
+    }
+
+    if (!currentUser && this.prisma.user?.findUnique) {
+      const u = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (u) {
+        currentUser = { userId: u.id, role: u.role };
+      }
+    }
+
+    if (isAutomationLab(lab) && !canAccessAutomationContent(currentUser) && currentUser?.userId !== lab.authorId) {
+      throw new ForbiddenException(`Practice Lab "${lab.slug}" is temporarily unavailable for submissions`);
+    }
+
+    const submissionType = payload.submissionType || 'code';
+    if (submissionType === 'pull_request') {
+      const prUrl = payload.submittedCode?.trim() || '';
+      const isPrUrl = /^https?:\/\/.+/i.test(prUrl);
+      if (!isPrUrl) {
+        throw new BadRequestException('Pull request submission must be a valid repository pull request URL');
+      }
+    } else if (submissionType === 'test_file') {
+      if (!payload.submittedCode?.trim()) {
+        throw new BadRequestException('Test file submission cannot be empty');
+      }
+    }
+
     let authoritativeResult: {
       status: string;
       timeMs: number;
@@ -235,7 +325,7 @@ export class LabsService {
       scorePercentage?: number;
       review?: any;
     } = {
-      status: payload.status || 'failed',
+      status: 'failed',
       timeMs: payload.timeMs || 0,
       testLogs: payload.testLogs || null,
     };
@@ -294,7 +384,7 @@ export class LabsService {
       const isPassed = authoritativeResult.status === 'passed';
       const scoreVal = authoritativeResult.scorePercentage ?? (isPassed ? 100 : 0);
 
-      if (isPassed) {
+      if (isPassed && this.prisma.learningUnitProgress.upsert) {
         await this.prisma.learningUnitProgress.upsert({
           where: {
             userId_labId: {
@@ -315,7 +405,7 @@ export class LabsService {
             completedAt: new Date(),
           },
         });
-      } else {
+      } else if (this.prisma.learningUnitProgress.findUnique) {
         const existing = await this.prisma.learningUnitProgress.findUnique({
           where: {
             userId_labId: {
@@ -324,7 +414,7 @@ export class LabsService {
             },
           },
         });
-        if (!existing) {
+        if (!existing && this.prisma.learningUnitProgress.create) {
           await this.prisma.learningUnitProgress.create({
             data: {
               userId,
@@ -333,7 +423,7 @@ export class LabsService {
               score: scoreVal,
             },
           });
-        } else if (existing.status !== LearningProgressStatus.COMPLETED) {
+        } else if (existing && existing.status !== LearningProgressStatus.COMPLETED && this.prisma.learningUnitProgress.update) {
           await this.prisma.learningUnitProgress.update({
             where: { id: existing.id },
             data: {
@@ -394,7 +484,6 @@ export class LabsService {
   async validateAutomationLabForRelease(lab: { sandboxType: string; unitType?: LearningUnitType | null; objective: string | null }) {
     const isAutomation =
       lab.sandboxType === 'automation_v3' ||
-      lab.sandboxType === 'js_worker' ||
       lab.unitType === LearningUnitType.automation_lab;
     if (!isAutomation) return;
     if (!lab.objective?.trim()) {
@@ -450,10 +539,44 @@ export class LabsService {
     }
   }
 
+  private async assertLabAccess(lab: any, userId: string): Promise<void> {
+    if (lab.status && lab.status !== ContentLifecycleStatus.published) {
+      let isPrivileged = false;
+      if (this.prisma.user?.findUnique) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        isPrivileged = user?.role === UserRole.admin || lab.authorId === userId;
+      }
+      if (!isPrivileged) {
+        throw new ForbiddenException('Cannot access or record progress on an unpublished lab.');
+      }
+    }
+
+    const isProRequired = Boolean(lab.isProOnly || (lab.series?.isProOnly && !lab.isFreePreview));
+    if (isProRequired) {
+      let isPrivileged = false;
+      if (this.prisma.user?.findUnique) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        isPrivileged = user?.role === UserRole.admin || lab.authorId === userId;
+      }
+      if (!isPrivileged && this.entitlementsService?.checkUserFeature) {
+        const proEval = await this.entitlementsService.checkUserFeature(
+          userId,
+          'EXECUTE_LAB_ADVANCED',
+        );
+        if (!proEval.hasAccess || proEval.isBanned) {
+          throw new ForbiddenException('This lab requires a PRO subscription.');
+        }
+      }
+    }
+  }
+
   private async findLabEntity(idOrSlug: string) {
     const lab = await this.prisma.lab.findFirst({
       where: {
         OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      },
+      include: {
+        series: true,
       },
     });
     if (!lab) {
@@ -489,6 +612,8 @@ export class LabsService {
 
   async startTheoryProgress(labIdOrSlug: string, userId: string) {
     const lab = await this.findLabEntity(labIdOrSlug);
+    await this.assertLabAccess(lab, userId);
+
     const existing = await this.prisma.learningUnitProgress.findUnique({
       where: {
         userId_labId: {
@@ -519,6 +644,8 @@ export class LabsService {
 
   async updateTheoryPosition(labIdOrSlug: string, userId: string, dto: UpdatePositionDto) {
     const lab = await this.findLabEntity(labIdOrSlug);
+    await this.assertLabAccess(lab, userId);
+
     return this.prisma.learningUnitProgress.upsert({
       where: {
         userId_labId: {
@@ -540,7 +667,15 @@ export class LabsService {
 
   async completeTheoryProgress(labIdOrSlug: string, userId: string, dto?: CompleteTheoryDto) {
     const lab = await this.findLabEntity(labIdOrSlug);
-    const score = dto?.score !== undefined ? dto.score : 100;
+    await this.assertLabAccess(lab, userId);
+
+    const effectiveUnitType = inferLearningUnitType(lab.unitType, lab.sandboxType);
+    if (effectiveUnitType !== 'theory') {
+      throw new BadRequestException(
+        `Only theory learning units can be marked complete directly. Lab "${lab.title || lab.slug}" is of type "${effectiveUnitType}" and requires automated server submission grading.`,
+      );
+    }
+    const score = 100;
 
     return this.prisma.learningUnitProgress.upsert({
       where: {

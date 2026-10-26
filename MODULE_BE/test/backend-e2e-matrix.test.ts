@@ -36,9 +36,9 @@ async function runE2ESuite() {
   const groupsService = new GroupsService(prisma as any, auditLogsService);
 
   // Fetch test personas
-  const admin = await prisma.user.findFirst({ where: { role: UserRole.admin } });
-  const contributor = await prisma.user.findFirst({ where: { role: UserRole.contributor } });
-  const student = await prisma.user.findFirst({ where: { role: UserRole.user } });
+  const admin = (await prisma.user.findFirst({ where: { email: 'admin@studyweb.dev' } })) || (await prisma.user.findFirst({ where: { role: UserRole.admin } }));
+  const contributor = (await prisma.user.findFirst({ where: { email: 'contributor@studyweb.dev' } })) || (await prisma.user.findFirst({ where: { role: UserRole.contributor } }));
+  const student = (await prisma.user.findFirst({ where: { email: 'user@studyweb.dev' } })) || (await prisma.user.findFirst({ where: { role: UserRole.user } }));
 
   assert('Test Personas Exist in Database', Boolean(admin && contributor && student));
 

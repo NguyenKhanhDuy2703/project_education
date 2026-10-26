@@ -55,7 +55,7 @@ describe('Lab Cloze Security & Config Preservation (Task 4)', () => {
 
     const result = await service.findBySlug('api-cloze-security', learner);
 
-    assert.equal(result.objective, 'Practice 4 API assertion decisions');
+    assert.equal((result as any).objective, 'Practice 4 API assertion decisions');
     assert.ok(result.config, 'config should be present');
     assert.equal(result.config.interactionMode, 'smart_cloze');
     assert.equal(result.config.blanks.length, 1);
@@ -105,6 +105,9 @@ describe('Lab Cloze Security & Config Preservation (Task 4)', () => {
   });
 
   it('strips V3 gradingKey and solutionPlan for regular learners while preserving public fixture and blocks', async () => {
+    const prevFlag = process.env.FEATURE_AUTOMATION_CONTENT_ENABLED;
+    process.env.FEATURE_AUTOMATION_CONTENT_ENABLED = 'true';
+    try {
     const v3LabRecord = {
       ...mockLabRecord,
       id: 'lab-v3-sec-1',
@@ -150,6 +153,9 @@ describe('Lab Cloze Security & Config Preservation (Task 4)', () => {
     assert.equal(result.config.fixture.initialRoute, '/auth/login');
     assert.equal(result.config.allowedBlocks.length, 1);
     assert.equal(result.config.starterPlan.length, 1);
+    } finally {
+      process.env.FEATURE_AUTOMATION_CONTENT_ENABLED = prevFlag;
+    }
   });
 
   it('preserves V3 gradingKey for admin or author', async () => {

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -26,12 +27,12 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const existingEmail = await this.usersService.findByEmail(registerDto.email);
     if (existingEmail) {
-      throw new BadRequestException('Email already in use');
+      throw new ConflictException('Email already in use');
     }
 
     const existingPhone = await this.usersService.findByPhone(registerDto.phone);
     if (existingPhone) {
-      throw new BadRequestException('Phone number already in use');
+      throw new ConflictException('Phone number already in use');
     }
 
     const hashedPassword = await this.bcryptService.hashPassword(registerDto.password);
@@ -45,6 +46,7 @@ export class AuthService {
 
     return {
       message: 'User registered successfully',
+      nextAction: 'login' as const,
       user: {
         id: user.id,
         _id: user.id,
@@ -142,7 +144,7 @@ export class AuthService {
 
   async generateTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
     const tokens = await this.signTokens(user);
-    await this.authSessionService.createSessionWithLegacyToken(user.id, tokens.refreshToken);
+    await this.authSessionService.createSession(user.id, tokens.refreshToken);
     return tokens;
   }
 
@@ -165,29 +167,16 @@ export class AuthService {
 
       const newTokens = await this.signTokens(user);
 
-      // Attempt atomic rotation via AuthSession with 30-second Grace Window
-      try {
-        const rotation = await this.authSessionService.validateAndRotate(token, newTokens.refreshToken);
-        if (rotation.isGraceWindow) {
-          // Idempotent recovery for concurrent requests: return fresh access token with presented refresh token
-          return {
-            accessToken: newTokens.accessToken,
-            refreshToken: token,
-          };
-        }
-        return newTokens;
-      } catch (sessionError) {
-        // Fallback to legacy single-field check
-        const userWithToken = await this.usersService.findByRefreshToken(token);
-        if (!userWithToken || userWithToken.id !== user.id) {
-          throw new UnauthorizedException('Invalid refresh token');
-        }
-        await this.authSessionService.createSessionWithLegacyToken(
-          user.id,
-          newTokens.refreshToken,
-        );
-        return newTokens;
+      // Atomic rotation via AuthSession with 30-second Grace Window
+      const rotation = await this.authSessionService.validateAndRotate(token, newTokens.refreshToken);
+      if (rotation.isGraceWindow) {
+        // Idempotent recovery for concurrent requests: return fresh access token with presented refresh token
+        return {
+          accessToken: newTokens.accessToken,
+          refreshToken: token,
+        };
       }
+      return newTokens;
     } catch (err: any) {
       if (err instanceof UnauthorizedException) {
         throw err;

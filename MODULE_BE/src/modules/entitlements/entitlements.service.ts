@@ -11,7 +11,7 @@ import { UpdatePlanDto } from './dto/update-plan.dto';
 import { CreateFeatureDto } from './dto/create-feature.dto';
 import { AssignSubscriptionDto } from './dto/assign-subscription.dto';
 import { SetFeatureOverrideDto } from './dto/set-feature-override.dto';
-import { SubscriptionStatus } from '@prisma/client';
+import { BillingCycle, SubscriptionStatus } from '@prisma/client';
 
 @Injectable()
 export class EntitlementsService {
@@ -514,12 +514,22 @@ export class EntitlementsService {
     });
   }
 
-  async createPlan(dto: CreatePlanDto) {
+  async createPlan(dto: CreatePlanDto, adminId?: string) {
     const existing = await this.prisma.subscriptionPlan.findUnique({
       where: { code: dto.code },
     });
     if (existing) {
       throw new ConflictException(`Plan with code "${dto.code}" already exists`);
+    }
+
+    if (dto.price < 0) {
+      throw new BadRequestException('Price cannot be negative');
+    }
+    if (dto.price > 0 && !Number.isInteger(dto.price)) {
+      throw new BadRequestException('Price in VND must be an integer');
+    }
+    if (dto.isSaleReady && dto.price <= 0 && dto.billingCycle !== BillingCycle.FREE) {
+      throw new BadRequestException('Cannot mark paid plan as sale ready without a positive price');
     }
 
     if (dto.isDefault) {
@@ -529,12 +539,39 @@ export class EntitlementsService {
       });
     }
 
-    return this.prisma.subscriptionPlan.create({ data: dto });
+    const created = await this.prisma.subscriptionPlan.create({ data: dto });
+
+    if (adminId) {
+      await this.auditLogsService.log({
+        actorId: adminId,
+        action: 'CREATE_SUBSCRIPTION_PLAN',
+        details: { planId: created.id, code: created.code, name: created.name, price: created.price },
+      });
+    }
+
+    return created;
   }
 
-  async updatePlan(planId: string, dto: UpdatePlanDto) {
+  async updatePlan(planId: string, dto: UpdatePlanDto, adminId?: string) {
     const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: planId } });
     if (!plan) throw new NotFoundException('Plan not found');
+
+    if (dto.price !== undefined) {
+      if (dto.price < 0) {
+        throw new BadRequestException('Price cannot be negative');
+      }
+      if (dto.price > 0 && !Number.isInteger(dto.price)) {
+        throw new BadRequestException('Price in VND must be an integer');
+      }
+    }
+
+    const targetPrice = dto.price !== undefined ? dto.price : Number(plan.price);
+    const targetSaleReady = dto.isSaleReady !== undefined ? dto.isSaleReady : plan.isSaleReady;
+    const targetCycle = dto.billingCycle || plan.billingCycle;
+
+    if (targetSaleReady && targetPrice <= 0 && targetCycle !== BillingCycle.FREE) {
+      throw new BadRequestException('Cannot mark paid plan as sale ready without a positive price');
+    }
 
     if (dto.isDefault) {
       await this.prisma.subscriptionPlan.updateMany({
@@ -543,16 +580,26 @@ export class EntitlementsService {
       });
     }
 
-    return this.prisma.subscriptionPlan.update({
+    const updated = await this.prisma.subscriptionPlan.update({
       where: { id: planId },
       data: dto,
       include: {
         planFeatures: { include: { feature: true } },
       },
     });
+
+    if (adminId) {
+      await this.auditLogsService.log({
+        actorId: adminId,
+        action: 'UPDATE_SUBSCRIPTION_PLAN',
+        details: { planId, code: plan.code, ...dto },
+      });
+    }
+
+    return updated;
   }
 
-  async deletePlan(planId: string) {
+  async deletePlan(planId: string, adminId?: string) {
     const plan = await this.prisma.subscriptionPlan.findUnique({
       where: { id: planId },
       include: {
@@ -569,12 +616,28 @@ export class EntitlementsService {
       );
     }
 
+    const totalSubCount = await this.prisma.userSubscription.count({ where: { planId } });
+    const upgradeReqCount = await (this.prisma as any).upgradeRequest.count({ where: { planId } });
+    if (totalSubCount > 0 || upgradeReqCount > 0) {
+      throw new BadRequestException(
+        `Cannot delete plan "${plan.name}" because it is referenced by historical subscriptions or upgrade requests. Deactivate or disable sale instead.`
+      );
+    }
+
     await this.prisma.$transaction(async (tx) => {
       await tx.planFeature.deleteMany({ where: { planId } });
       await tx.groupPlan.deleteMany({ where: { planId } });
       await tx.userSubscription.deleteMany({ where: { planId } });
       await tx.subscriptionPlan.delete({ where: { id: planId } });
     });
+
+    if (adminId) {
+      await this.auditLogsService.log({
+        actorId: adminId,
+        action: 'DELETE_SUBSCRIPTION_PLAN',
+        details: { planId, code: plan.code, name: plan.name },
+      });
+    }
 
     return { message: `Plan "${plan.name}" deleted successfully`, planId };
   }

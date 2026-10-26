@@ -58,10 +58,10 @@ export class ResourceOwnerGuard implements CanActivate {
       authorId = lab.authorId;
     }
 
-    // If resource has an author, ensure the current contributor is the sole owner
-    if (authorId && authorId !== user.userId) {
+    // Non-admin users can ONLY modify resources they author; orphan resources require admin
+    if (!authorId || authorId !== user.userId) {
       throw new ForbiddenException(
-        'Access Denied: You are not authorized to modify or delete content authored by another user',
+        'Access Denied: You are not authorized to modify or delete content authored by another user or orphaned resources',
       );
     }
 
