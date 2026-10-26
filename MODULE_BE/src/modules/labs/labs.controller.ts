@@ -90,7 +90,7 @@ export class LabsController {
     @Req() req: Request & { user: any },
     @Body() body: SubmitLabDto,
   ) {
-    return this.labsService.submit(labId, req.user.userId, body);
+    return this.labsService.submit(labId, req.user.userId, body, req.user);
   }
 
   @Get(':id/progress')

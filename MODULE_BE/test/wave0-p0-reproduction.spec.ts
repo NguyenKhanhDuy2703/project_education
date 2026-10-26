@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { LabsService } from '../src/modules/labs/labs.service';
+import { validateV3AutomationSubmission } from '../src/modules/labs/automation-v3-validator';
+import { UserRole } from '@prisma/client';
 import {
   V3_AUTO_LABS,
 } from '../prisma/v3-curriculum-data';
@@ -55,21 +57,18 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
       results[slug] = passed;
     }
 
-    // Hypothesis 1 verification:
-    // auto-syntax-01: passes unchanged (true)
-    // auto-syntax-02: passes unchanged (true)
-    // auto-syntax-03: fails unchanged (false)
-    // auto-syntax-04: passes unchanged (true)
-    assert.equal(results['auto-syntax-01-describe-test-structure'], true, 'auto-syntax-01 passes unchanged');
-    assert.equal(results['auto-syntax-02-core-matchers-primitive-vs-deep'], true, 'auto-syntax-02 passes unchanged');
+    // Prevention verification:
+    // None of the 4 legacy labs pass without learner work
+    assert.equal(results['auto-syntax-01-describe-test-structure'], false, 'auto-syntax-01 fails as intended with incomplete starter');
+    assert.equal(results['auto-syntax-02-core-matchers-primitive-vs-deep'], false, 'auto-syntax-02 fails as intended with incomplete starter');
     assert.equal(results['auto-syntax-03-api-response-schema-assert'], false, 'auto-syntax-03 fails as intended');
-    assert.equal(results['auto-syntax-04-playwright-parameterized-testing'], true, 'auto-syntax-04 passes unchanged');
+    assert.equal(results['auto-syntax-04-playwright-parameterized-testing'], false, 'auto-syntax-04 fails as intended with incomplete starter');
 
     const unassistedPassCount = Object.values(results).filter(Boolean).length;
-    assert.equal(unassistedPassCount, 3, 'Exactly 3 of 4 legacy labs pass without learner work');
+    assert.equal(unassistedPassCount, 0, 'Zero legacy labs pass without learner work');
   });
 
-  it('P0-2: Proves legacy js_worker submission retains client-supplied status: passed when objective is plain text', async () => {
+  it('P0-2: Proves legacy js_worker submission rejects client-supplied status: passed when objective is plain text', async () => {
     let capturedSubmissionStatus: string | null = null;
     let capturedProgressStatus: string | null = null;
 
@@ -82,6 +81,8 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
           unitType: 'automation_lab',
           objective: 'Tổ chức các kịch bản kiểm thử rõ ràng theo cú pháp BDD với describe và test', // Plain text, NOT JSON
           solution: null,
+          status: 'published',
+          series: { isProOnly: false },
         }),
         findUnique: async () => ({
           id: 'legacy-js-lab',
@@ -90,6 +91,8 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
           unitType: 'automation_lab',
           objective: 'Tổ chức các kịch bản kiểm thử rõ ràng theo cú pháp BDD với describe và test',
           solution: null,
+          status: 'published',
+          series: { isProOnly: false },
         }),
       },
       labSubmission: {
@@ -108,7 +111,7 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
     };
 
     const mockEntitlements: any = {
-      checkUserFeature: async () => ({ hasAccess: true, isBanned: false }),
+      checkUserFeature: async () => ({ hasAccess: false, isBanned: false }),
     };
 
     const labsService = new LabsService(mockPrisma, mockEntitlements);
@@ -120,12 +123,12 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
       timeMs: 10,
     });
 
-    // Proves the defect: Server trusted client payload because JSON.parse failed silently!
-    assert.equal(capturedSubmissionStatus, 'passed', 'Vulnerability demonstrated: server accepted client status: passed');
-    assert.equal(capturedProgressStatus, 'COMPLETED', 'Vulnerability demonstrated: client received completed progress without grading');
+    // Prevention verified: Server strictly defaulted to failed status!
+    assert.equal(capturedSubmissionStatus, 'failed', 'Server grading strictly enforces failed status for invalid/empty submission');
+    assert.notEqual(capturedProgressStatus, 'COMPLETED', 'Client cannot attain COMPLETED progress without server-verified pass');
   });
 
-  it('P0-3: Proves all 8 Automation V3 source configs lack effective gradingRules / gradingKey', () => {
+  it('P0-3: Proves all 8 Automation V3 source configs have effective gradingRules or gradingKey', () => {
     assert.equal(V3_AUTO_LABS.length, 8);
     for (const lab of V3_AUTO_LABS) {
       assert.ok(lab.config, `Lab ${lab.slug} must have config`);
@@ -136,13 +139,13 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
 
       assert.equal(
         hasGradingRules || hasGradingKey,
-        false,
-        `V3 Lab ${lab.slug} currently lacks server gradingRules or gradingKey`,
+        true,
+        `V3 Lab ${lab.slug} must have server gradingRules or gradingKey`,
       );
     }
   });
 
-  it('P0-4: Proves all 8 Automation V3 starter plans already contain all block types referenced by public checks', () => {
+  it('P0-4: Proves all 8 Automation V3 starter plans do not contain all block types referenced by public checks', () => {
     assert.equal(V3_AUTO_LABS.length, 8);
     for (const lab of V3_AUTO_LABS) {
       const config = lab.config;
@@ -157,17 +160,23 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
         publicChecks.map((check) => check.targetBlockType),
       );
 
-      // Proves that every checked block type is already in starterBlockTypes
+      // Verifies that at least one required block type is missing from starterBlockTypes
+      let allAlreadyPresent = true;
       for (const reqBlock of checkedBlockTypes) {
-        assert.ok(
-          starterBlockTypes.has(reqBlock),
-          `V3 Lab ${lab.slug} starter plan already contains blockType ${reqBlock}`,
-        );
+        if (!starterBlockTypes.has(reqBlock)) {
+          allAlreadyPresent = false;
+          break;
+        }
       }
+      assert.equal(
+        allAlreadyPresent,
+        false,
+        `V3 Lab ${lab.slug} starter plan must not already contain all target blocks`,
+      );
     }
   });
 
-  it('P0-5: Proves older SQL seeded starters contain answer-leaking TODO comments', () => {
+  it('P0-5: Proves older SQL seeded starters do not contain answer-leaking TODO comments', () => {
     const seedPath = path.resolve(__dirname, '../prisma/seed.ts');
     const seedContent = fs.readFileSync(seedPath, 'utf-8');
 
@@ -188,11 +197,73 @@ describe('Wave 0 P0 Vulnerability Reproduction Suite', () => {
       assert.ok(snippetMatch, `initialSnippet for ${slug} must exist`);
 
       const snippet = snippetMatch[1];
-      assert.match(
-        snippet,
-        pattern,
-        `Legacy lab ${slug} initialSnippet contains the literal answer in TODO comment`,
+      assert.equal(
+        pattern.test(snippet),
+        false,
+        `Legacy lab ${slug} initialSnippet must not contain the literal answer in TODO comment`,
       );
+    }
+  });
+  it('P0-6: Proves unmodified starter plans fail server validation for all 8 Playwright labs', () => {
+    for (const lab of V3_AUTO_LABS) {
+      const config = lab.config as any;
+      const starterPlan = Array.isArray(config?.starterPlan) ? config.starterPlan : [];
+
+      const rawPayload = {
+        version: config?.version || '3.0',
+        exerciseRevision: config?.contentRevision || 'v3.0.0',
+        stepPlan: starterPlan,
+        generatedCode: '// Starter code only',
+        status: 'passed',
+        timeMs: 50,
+      };
+
+      const encoded = `/* AUTOMATION_V3_SUBMISSION:${Buffer.from(JSON.stringify(rawPayload)).toString('base64')}*/\n\n${rawPayload.generatedCode}`;
+
+      const validation = validateV3AutomationSubmission(encoded, config);
+      assert.equal(
+        validation.status,
+        'failed',
+        `Starter plan for ${lab.slug} must not be sufficient to pass grading rules (Expected fail, got valid)`
+      );
+    }
+  });
+
+  it('P0-7: Proves solutions, gradingRules, and gradingKey are strictly stripped for ordinary learners', async () => {
+    const prevFlag = process.env.FEATURE_AUTOMATION_CONTENT_ENABLED;
+    process.env.FEATURE_AUTOMATION_CONTENT_ENABLED = 'true';
+
+    try {
+      const testLab = V3_AUTO_LABS[0];
+      const mockPrisma: any = {
+        lab: {
+          findFirst: async () => ({
+            ...testLab,
+            objective: JSON.stringify({ summary: testLab.title, ...testLab.config }),
+            status: 'published',
+            authorId: 'author-999',
+            series: { isProOnly: false },
+          }),
+        },
+        learningUnitProgress: {
+          findUnique: async () => null,
+        },
+      };
+
+      const mockEntitlements: any = {
+        checkUserFeature: async () => ({ hasAccess: false, isBanned: false }),
+      };
+
+      const service = new LabsService(mockPrisma, mockEntitlements);
+      const res = await service.findBySlug(testLab.slug, { userId: 'learner-1', role: UserRole.user });
+
+      assert.equal(res.solution, null, 'Solution must be stripped for non-completed learner');
+      assert.equal(res.config?.gradingRules, undefined, 'gradingRules must be stripped from config');
+      assert.equal(res.config?.gradingKey, undefined, 'gradingKey must be stripped from config');
+      assert.equal(res.config?.hiddenChecks, undefined, 'hiddenChecks must be stripped from config');
+      assert.ok(res.config?.allowedBlocks, 'allowedBlocks must remain visible');
+    } finally {
+      process.env.FEATURE_AUTOMATION_CONTENT_ENABLED = prevFlag;
     }
   });
 });

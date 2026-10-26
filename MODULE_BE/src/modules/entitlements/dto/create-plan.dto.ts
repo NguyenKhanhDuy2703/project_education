@@ -30,4 +30,14 @@ export class CreatePlanDto {
   @IsBoolean()
   @IsOptional()
   isDefault?: boolean;
+
+  @ApiPropertyOptional({ default: false, description: 'Whether this plan is visible publicly' })
+  @IsBoolean()
+  @IsOptional()
+  isPublic?: boolean;
+
+  @ApiPropertyOptional({ default: false, description: 'Whether this plan is ready for sale' })
+  @IsBoolean()
+  @IsOptional()
+  isSaleReady?: boolean;
 }

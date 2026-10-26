@@ -1,12 +1,13 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Put, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
-import { LoginDto, RefreshTokenDto, RegisterDto, ChangePasswordDto } from './auth.dto';
+import { LoginDto, RefreshTokenDto, RegisterDto, ChangePasswordDto, UpdateProfileDto } from './auth.dto';
 import { User } from '@prisma/client';
+import { RateLimitGuard, Throttle } from '../../common/guards/rate-limit.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -54,11 +55,16 @@ export class AuthController {
   }
 
   @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(RateLimitGuard)
+  @Throttle({ limit: 10, ttlMs: 60000 })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @Throttle({ limit: 15, ttlMs: 60000 })
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: LoginDto,
@@ -75,6 +81,8 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @UseGuards(RateLimitGuard)
+  @Throttle({ limit: 30, ttlMs: 60000 })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(
@@ -144,6 +152,39 @@ export class AuthController {
         isContributor: user.isContributor,
         contributorStatus: user.contributorStatus,
         avatarUrl: user.avatarUrl,
+        defaultAddress: user.defaultAddress,
+      },
+    };
+  }
+
+  @Put('profile')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update profile of current logged-in user' })
+  async updateProfile(
+    @Req() req: Request & { user: any },
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    const updated = await this.usersService.update(req.user.userId, {
+      ...(updateProfileDto.name !== undefined && { name: updateProfileDto.name }),
+      ...(updateProfileDto.avatarUrl !== undefined && { avatarUrl: updateProfileDto.avatarUrl }),
+      ...(updateProfileDto.defaultAddress !== undefined && { defaultAddress: updateProfileDto.defaultAddress }),
+    });
+
+    return {
+      message: 'Profile updated successfully',
+      user: {
+        id: updated.id,
+        _id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        phone: updated.phone,
+        role: updated.role,
+        isContributor: updated.isContributor,
+        contributorStatus: updated.contributorStatus,
+        avatarUrl: updated.avatarUrl,
+        defaultAddress: updated.defaultAddress,
       },
     };
   }
@@ -200,7 +241,7 @@ export class AuthController {
 
       const redirectUrl = new URL('/auth/callback', frontendUrl);
       redirectUrl.searchParams.set('token', tokens.accessToken);
-      redirectUrl.searchParams.set('refreshToken', tokens.refreshToken);
+      // refreshToken is securely transmitted via HttpOnly cookie (res.cookie above); omitted from URL
       return res.redirect(redirectUrl.toString());
     } catch (error) {
       console.error('[AuthController] googleCallback failed:', error);

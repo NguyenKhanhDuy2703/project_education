@@ -221,6 +221,18 @@ async function main() {
     },
   });
 
+  const fExecuteLabAdvanced = await prisma.feature.upsert({
+    where: { code: 'EXECUTE_LAB_ADVANCED' },
+    update: {},
+    create: {
+      code: 'EXECUTE_LAB_ADVANCED',
+      name: 'Execute Advanced Labs',
+      description: 'Unlock and practice Pro-tier and advanced sandbox practice labs',
+      category: 'lab_execution',
+      isActive: true,
+    },
+  });
+
   // 3. Seed Permissions
   const permissionsData = [
     { code: 'content:create', name: 'Create Draft Content', module: 'content', description: 'Create draft topics, series, and labs' },
@@ -252,6 +264,8 @@ async function main() {
       billingCycle: 'FREE',
       isDefault: true,
       isActive: true,
+      isPublic: true,
+      isSaleReady: true,
     },
   });
 
@@ -266,6 +280,8 @@ async function main() {
       billingCycle: 'MONTHLY',
       isDefault: false,
       isActive: true,
+      isPublic: true,
+      isSaleReady: false,
     },
   });
 
@@ -280,6 +296,23 @@ async function main() {
       billingCycle: 'YEARLY',
       isDefault: false,
       isActive: true,
+      isPublic: false,
+      isSaleReady: false,
+    },
+  });
+
+  // Seed default billing settings if not present
+  await prisma.billingSettings.upsert({
+    where: { id: 'default' },
+    update: {},
+    create: {
+      id: 'default',
+      bankName: '',
+      bankCode: '',
+      accountNumber: '',
+      accountHolder: '',
+      instructions: 'Please transfer the exact amount with the transfer reference as message.',
+      isIntakeEnabled: false,
     },
   });
 
@@ -299,6 +332,7 @@ async function main() {
     fViewSolution.id,
     fAiMentor.id,
     fDownloadRepo.id,
+    fExecuteLabAdvanced.id,
   ];
   for (const featureId of proFeatureIds) {
     await prisma.planFeature.upsert({
@@ -434,7 +468,8 @@ async function main() {
     where: { slug: 'w3schools-sql-fundamentals' },
     update: {
       authorId: contributorUser.id,
-      status: ContentLifecycleStatus.published,
+      status: ContentLifecycleStatus.draft,
+      isActive: false,
       category: 'database',
       orderIndex: 1,
     },
@@ -447,8 +482,8 @@ async function main() {
       coverEmoji: '🗄️',
       orderIndex: 1,
       isProOnly: false,
-      isActive: true,
-      status: ContentLifecycleStatus.published,
+      isActive: false,
+      status: ContentLifecycleStatus.draft,
       authorId: contributorUser.id,
     },
   });
@@ -528,7 +563,7 @@ async function main() {
       sampleData: customersSampleData,
       expectedQueryResult: Array.from(new Set(customersSampleData.map((r) => r.Country))).map((c) => ({ Country: c })),
       instructions: `# W3Schools SQL 03: SELECT DISTINCT\n\nTừ khóa \`SELECT DISTINCT\` dùng để trả về danh sách các giá trị khác nhau (loại bỏ các bản ghi trùng lặp).\n\n### Nhiệm Vụ Của Bạn:\nViết câu lệnh SQL để lấy danh sách các quốc gia (\`Country\`) duy nhất từ bảng \`Customers\`.`,
-      initialSnippet: `-- Lấy danh sách các Country không trùng lặp\nSELECT /* TODO: Thêm DISTINCT */ Country\nFROM Customers;`,
+      initialSnippet: `-- Lấy danh sách các Country không trùng lặp\nSELECT /* TODO: Bổ sung từ khóa loại bỏ trùng lặp */ Country\nFROM Customers;`,
       testScript: `assert('Có từ khóa DISTINCT cho cột Country', code.toUpperCase().includes('DISTINCT') && code.toUpperCase().includes('COUNTRY') && code.toUpperCase().includes('FROM CUSTOMERS'));`,
       solution: `SELECT DISTINCT Country FROM Customers;`,
       durationMinutes: 15,
@@ -543,7 +578,7 @@ async function main() {
       sampleData: customersSampleData,
       expectedQueryResult: customersSampleData.filter((r) => r.Country === 'Mexico'),
       instructions: `# W3Schools SQL 04: Mệnh Đề WHERE\n\nMệnh đề \`WHERE\` được sử dụng để lọc các bản ghi, chỉ trích xuất những bản ghi thỏa mãn điều kiện chỉ định.\n\n### Nhiệm Vụ Của Bạn:\nViết câu lệnh SQL để lấy tất cả khách hàng sống tại quốc gia \`'Mexico'\` từ bảng \`Customers\`.`,
-      initialSnippet: `-- Lọc khách hàng có Country là 'Mexico'\nSELECT * FROM Customers\nWHERE /* TODO: Thêm điều kiện Country = 'Mexico' */;`,
+      initialSnippet: `-- Lọc khách hàng theo quốc gia được yêu cầu\nSELECT * FROM Customers\nWHERE /* TODO: Viết biểu thức so sánh quốc gia */;`,
       testScript: `assert('Mệnh đề WHERE Country = Mexico', code.toUpperCase().includes('WHERE') && code.toUpperCase().includes('COUNTRY') && code.toUpperCase().includes('MEXICO'));`,
       solution: `SELECT * FROM Customers WHERE Country = 'Mexico';`,
       durationMinutes: 15,
@@ -558,7 +593,7 @@ async function main() {
       sampleData: productsSampleData,
       expectedQueryResult: [...productsSampleData].sort((a, b) => b.Price - a.Price),
       instructions: `# W3Schools SQL 05: Sắp Xếp ORDER BY\n\nTừ khóa \`ORDER BY\` được sử dụng để sắp xếp tập kết quả theo thứ tự tăng dần (\`ASC\`) hoặc giảm dần (\`DESC\`).\n\n### Bảng dữ liệu: \`Products\`\nCấu trúc các cột: \`ProductID\`, \`ProductName\`, \`CategoryID\`, \`Unit\`, \`Price\`.\n\n### Nhiệm Vụ Của Bạn:\nViết câu lệnh SQL để lấy toàn bộ sản phẩm từ bảng \`Products\`, sắp xếp theo giá (\`Price\`) giảm dần (\`DESC\`).`,
-      initialSnippet: `-- Lấy sản phẩm và sắp xếp theo Price giảm dần\nSELECT * FROM Products\nORDER BY /* TODO: Sắp xếp theo Price DESC */;`,
+      initialSnippet: `-- Lấy sản phẩm và sắp xếp theo Price giảm dần\nSELECT * FROM Products\nORDER BY /* TODO: Bổ sung cột và thứ tự sắp xếp mong muốn */;`,
       testScript: `assert('Sắp xếp ORDER BY Price DESC', code.toUpperCase().includes('ORDER BY') && code.toUpperCase().includes('PRICE') && code.toUpperCase().includes('DESC'));`,
       solution: `SELECT * FROM Products ORDER BY Price DESC;`,
       durationMinutes: 20,
@@ -573,7 +608,7 @@ async function main() {
       sampleData: customersSampleData,
       expectedQueryResult: customersSampleData.filter((r) => r.Country === 'Germany' && r.City === 'Berlin'),
       instructions: `# W3Schools SQL 06: Toán Tử AND & OR\n\nToán tử \`AND\` hiển thị bản ghi nếu TẤT CẢ các điều kiện đều đúng. Toán tử \`OR\` hiển thị bản ghi nếu BẤT KỲ điều kiện nào đúng.\n\n### Nhiệm Vụ Của Bạn:\nViết câu lệnh SQL lấy khách hàng sống tại quốc gia \`'Germany'\` VÀ có thành phố là \`'Berlin'\`.`,
-      initialSnippet: `-- Kết hợp điều kiện AND\nSELECT * FROM Customers\nWHERE Country = 'Germany' AND /* TODO: City = 'Berlin' */;`,
+      initialSnippet: `-- Kết hợp điều kiện AND\nSELECT * FROM Customers\nWHERE Country = 'Germany' AND /* TODO: Bổ sung điều kiện thứ hai */;`,
       testScript: `assert('Kết hợp điều kiện AND giữa Germany và Berlin', code.toUpperCase().includes('AND') && code.toUpperCase().includes('GERMANY') && code.toUpperCase().includes('BERLIN'));`,
       solution: `SELECT * FROM Customers WHERE Country = 'Germany' AND City = 'Berlin';`,
       durationMinutes: 20,
@@ -707,7 +742,8 @@ async function main() {
     where: { slug: 'sql-ecommerce-analytics-mastery' },
     update: {
       authorId: contributorUser.id,
-      status: ContentLifecycleStatus.published,
+      status: ContentLifecycleStatus.draft,
+      isActive: false,
       category: 'database',
       orderIndex: 2,
     },
@@ -720,8 +756,8 @@ async function main() {
       coverEmoji: '📊',
       orderIndex: 2,
       isProOnly: false,
-      isActive: true,
-      status: ContentLifecycleStatus.published,
+      isActive: false,
+      status: ContentLifecycleStatus.draft,
       authorId: contributorUser.id,
     },
   });
@@ -882,7 +918,8 @@ async function main() {
     where: { slug: 'testing-theory-istqb-quizel' },
     update: {
       authorId: contributorUser.id,
-      status: ContentLifecycleStatus.published,
+      status: ContentLifecycleStatus.draft,
+      isActive: false,
       category: 'testing',
       orderIndex: 3,
     },
@@ -895,8 +932,8 @@ async function main() {
       coverEmoji: '🎯',
       orderIndex: 3,
       isProOnly: false,
-      isActive: true,
-      status: ContentLifecycleStatus.published,
+      isActive: false,
+      status: ContentLifecycleStatus.draft,
       authorId: contributorUser.id,
     },
   });
@@ -1130,7 +1167,8 @@ async function main() {
     where: { slug: 'automation-test-syntax-masterclass' },
     update: {
       authorId: contributorUser.id,
-      status: ContentLifecycleStatus.published,
+      status: ContentLifecycleStatus.draft,
+      isActive: false,
       category: 'testing',
       orderIndex: 4,
     },
@@ -1143,8 +1181,8 @@ async function main() {
       coverEmoji: '⚡',
       orderIndex: 4,
       isProOnly: false,
-      isActive: true,
-      status: ContentLifecycleStatus.published,
+      isActive: false,
+      status: ContentLifecycleStatus.draft,
       authorId: contributorUser.id,
     },
   });
@@ -1159,17 +1197,16 @@ async function main() {
       instructions: `# Cấu Trúc Bộ Kiểm Thử Tự Động (Test Suite Structure)\n\nTrong các framework kiểm thử hiện đại (Jest, Vitest, Mocha):\n- \`describe('Tên nhóm', () => { ... })\` dùng để gom nhóm các ca kiểm thử liên quan.\n- \`test('Hành vi kỳ vọng', () => { ... })\` (hoặc \`it()\`) đại diện cho một ca kiểm thử cụ thể.\n\n### Nhiệm Vụ Của Bạn:\nHoàn thành hàm \`applyDiscount(amount, code)\` và các câu kiểm tra bên dưới để tất cả test cases đều Passed!`,
       initialSnippet: `// 1. Hàm tính toán giảm giá cần kiểm thử
 function applyDiscount(amount, code) {
-  if (code === 'DISCOUNT10') return amount * 0.9;
-  if (code === 'DISCOUNT20') return amount * 0.8;
-  return amount;
+  // TODO: Trả về amount * 0.9 nếu code là 'DISCOUNT10'
+  // TODO: Trả về amount * 0.8 nếu code là 'DISCOUNT20'
+  // TODO: Trả về amount nếu không khớp
+  return 0;
 }
 
 // 2. Kịch bản kiểm thử
 function runSuite() {
-  const t1 = applyDiscount(100, 'DISCOUNT10') === 90;
-  const t2 = applyDiscount(100, 'DISCOUNT20') === 80;
-  const t3 = applyDiscount(100, 'INVALID') === 100;
-  return t1 && t2 && t3;
+  // TODO: Viết các assertion kiểm tra applyDiscount
+  return false;
 }
 `,
       testScript: `assert('applyDiscount tồn tại', typeof applyDiscount === 'function');
@@ -1206,17 +1243,16 @@ function runSuite() {
       instructions: `# Cấu Trúc Bộ Kiểm Thử Tự Động (Test Suite Structure)\n\nTrong các framework kiểm thử hiện đại (Jest, Vitest, Mocha):\n- \`describe('Tên nhóm', () => { ... })\` dùng để gom nhóm các ca kiểm thử liên quan.\n- \`test('Hành vi kỳ vọng', () => { ... })\` (hoặc \`it()\`) đại diện cho một ca kiểm thử cụ thể.\n\n### Nhiệm Vụ Của Bạn:\nHoàn thành hàm \`applyDiscount(amount, code)\` và các câu kiểm tra bên dưới để tất cả test cases đều Passed!`,
       initialSnippet: `// 1. Hàm tính toán giảm giá cần kiểm thử
 function applyDiscount(amount, code) {
-  if (code === 'DISCOUNT10') return amount * 0.9;
-  if (code === 'DISCOUNT20') return amount * 0.8;
-  return amount;
+  // TODO: Trả về amount * 0.9 nếu code là 'DISCOUNT10'
+  // TODO: Trả về amount * 0.8 nếu code là 'DISCOUNT20'
+  // TODO: Trả về amount nếu không khớp
+  return 0;
 }
 
 // 2. Kịch bản kiểm thử
 function runSuite() {
-  const t1 = applyDiscount(100, 'DISCOUNT10') === 90;
-  const t2 = applyDiscount(100, 'DISCOUNT20') === 80;
-  const t3 = applyDiscount(100, 'INVALID') === 100;
-  return t1 && t2 && t3;
+  // TODO: Viết các assertion kiểm tra applyDiscount
+  return false;
 }
 `,
       testScript: `assert('applyDiscount tồn tại', typeof applyDiscount === 'function');
@@ -1256,12 +1292,8 @@ function runSuite() {
       objective: 'Phân biệt so sánh tham chiếu primitives (toBe) và so sánh sâu object/array (toEqual), kiểm tra phần tử mảng (toContain)',
       instructions: `# Phân Biệt Matcher: toBe vs toEqual vs toContain\n\n- \`toBe(x)\`: Dùng so sánh bằng tham chiếu (\`===\`) cho kiểu nguyên thủy: \`number\`, \`string\`, \`boolean\`.\n- \`toEqual(obj)\`: So sánh cấu trúc sâu (Deep equality) duyệt qua tất cả các thuộc tính của Object/Array.\n- \`toContain(item)\`: Kiểm tra mảng có chứa một phần tử nhất định.\n\n### Nhiệm Vụ Của Bạn:\nHoàn thành hàm \`assertProductPayload(product)\` trả về \`true\` nếu thỏa mãn:\n1. \`product.id\` là 101.\n2. \`product.categories\` có chứa \`'electronics'\`.\n3. \`product.specs\` khớp cấu trúc \`{ ram: '16GB', storage: '512GB' }\`.`,
       initialSnippet: `function assertProductPayload(product) {
-  // TODO: Kiểm tra id === 101, categories chứa 'electronics', specs đúng { ram: '16GB', storage: '512GB' }
-  const isIdValid = product.id === 101;
-  const hasCategory = Array.isArray(product.categories) && product.categories.includes('electronics');
-  const isSpecsValid = product.specs?.ram === '16GB' && product.specs?.storage === '512GB';
-  
-  return isIdValid && hasCategory && isSpecsValid;
+  // TODO: Viết assertions kiểm tra id === 101, categories chứa 'electronics', specs đúng { ram: '16GB', storage: '512GB' }
+  return false;
 }
 `,
       testScript: `const validProduct = {
@@ -1298,12 +1330,8 @@ assert('Thiếu category -> false', assertProductPayload(invalidProduct2) === fa
       objective: 'Phân biệt so sánh tham chiếu primitives (toBe) và so sánh sâu object/array (toEqual), kiểm tra phần tử mảng (toContain)',
       instructions: `# Phân Biệt Matcher: toBe vs toEqual vs toContain\n\n- \`toBe(x)\`: Dùng so sánh bằng tham chiếu (\`===\`) cho kiểu nguyên thủy: \`number\`, \`string\`, \`boolean\`.\n- \`toEqual(obj)\`: So sánh cấu trúc sâu (Deep equality) duyệt qua tất cả các thuộc tính của Object/Array.\n- \`toContain(item)\`: Kiểm tra mảng có chứa một phần tử nhất định.\n\n### Nhiệm Vụ Của Bạn:\nHoàn thành hàm \`assertProductPayload(product)\` trả về \`true\` nếu thỏa mãn:\n1. \`product.id\` là 101.\n2. \`product.categories\` có chứa \`'electronics'\`.\n3. \`product.specs\` khớp cấu trúc \`{ ram: '16GB', storage: '512GB' }\`.`,
       initialSnippet: `function assertProductPayload(product) {
-  // TODO: Kiểm tra id === 101, categories chứa 'electronics', specs đúng { ram: '16GB', storage: '512GB' }
-  const isIdValid = product.id === 101;
-  const hasCategory = Array.isArray(product.categories) && product.categories.includes('electronics');
-  const isSpecsValid = product.specs?.ram === '16GB' && product.specs?.storage === '512GB';
-  
-  return isIdValid && hasCategory && isSpecsValid;
+  // TODO: Viết assertions kiểm tra id === 101, categories chứa 'electronics', specs đúng { ram: '16GB', storage: '512GB' }
+  return false;
 }
 `,
       testScript: `const validProduct = {
@@ -1459,19 +1487,13 @@ assert('Bad status -> false', validateLoginResponse(badStatusRes) === false);
       instructions: `# Playwright Parameterized Testing (Data-Driven Tests)\n\nKhi cần kiểm thử cùng một luồng nghiệp vụ trên nhiều tập dữ liệu (ví dụ: các quyền đăng nhập, từ khóa tìm kiếm, giá trị biên), hãy sử dụng mảng dữ liệu lặp qua \`forEach\` thay vì sao chép các hàm \`test()\`.\n\n### Nguyên Tắc Cốt Lõi:\n1. **Unique Test Title**: Sử dụng template string lồng dữ liệu (\`[\${role}] \${title}\`) để test runner phân biệt các lần chạy độc lập.\n2. **Shared Hooks Outside Loop**: Đặt \`beforeAll\`/\`afterAll\` bên ngoài vòng lặp \`forEach\`.\n3. **Tham chiếu chuẩn**: Xem tài liệu Playwright chính thức tại [Playwright Parameterize](https://playwright.dev/docs/test-parameterize).\n\n### Nhiệm Vụ Của Bạn:\nHoàn thành bộ kịch bản tham số hóa để kiểm tra 3 vai trò người dùng (\`standard_user\`, \`pro_subscriber\`, \`admin_operator\`) trả về đúng đường dẫn tương ứng!`,
       initialSnippet: `// 1. Ma trận kịch bản đăng nhập theo vai trò
 const authScenarios = [
-  { role: 'standard_user', targetUrl: '/dashboard' },
-  { role: 'pro_subscriber', targetUrl: '/pro-hub' },
-  { role: 'admin_operator', targetUrl: '/admin' }
+  // TODO: Khai báo 3 vai trò: standard_user -> /dashboard, pro_subscriber -> /pro-hub, admin_operator -> /admin
 ];
 
 // 2. Hàm giả lập runner kiểm tra kịch bản tham số hóa
 function runParameterizedAuthSuite() {
-  const titles = [];
-  authScenarios.forEach(({ role, targetUrl }) => {
-    const testTitle = \`Verify login destination for role: \${role}\`;
-    titles.push(testTitle);
-  });
-  return titles;
+  // TODO: Duyệt qua authScenarios và sinh danh sách testTitle
+  return [];
 }
 `,
       testScript: `const titles = runParameterizedAuthSuite();
@@ -1510,19 +1532,13 @@ function runParameterizedAuthSuite() {
       instructions: `# Playwright Parameterized Testing (Data-Driven Tests)\n\nKhi cần kiểm thử cùng một luồng nghiệp vụ trên nhiều tập dữ liệu (ví dụ: các quyền đăng nhập, từ khóa tìm kiếm, giá trị biên), hãy sử dụng mảng dữ liệu lặp qua \`forEach\` thay vì sao chép các hàm \`test()\`.\n\n### Nguyên Tắc Cốt Lõi:\n1. **Unique Test Title**: Sử dụng template string lồng dữ liệu (\`[\${role}] \${title}\`) để test runner phân biệt các lần chạy độc lập.\n2. **Shared Hooks Outside Loop**: Đặt \`beforeAll\`/\`afterAll\` bên ngoài vòng lặp \`forEach\`.\n3. **Tham chiếu chuẩn**: Xem tài liệu Playwright chính thức tại [Playwright Parameterize](https://playwright.dev/docs/test-parameterize).\n\n### Nhiệm Vụ Của Bạn:\nHoàn thành bộ kịch bản tham số hóa để kiểm tra 3 vai trò người dùng (\`standard_user\`, \`pro_subscriber\`, \`admin_operator\`) trả về đúng đường dẫn tương ứng!`,
       initialSnippet: `// 1. Ma trận kịch bản đăng nhập theo vai trò
 const authScenarios = [
-  { role: 'standard_user', targetUrl: '/dashboard' },
-  { role: 'pro_subscriber', targetUrl: '/pro-hub' },
-  { role: 'admin_operator', targetUrl: '/admin' }
+  // TODO: Khai báo 3 vai trò: standard_user -> /dashboard, pro_subscriber -> /pro-hub, admin_operator -> /admin
 ];
 
 // 2. Hàm giả lập runner kiểm tra kịch bản tham số hóa
 function runParameterizedAuthSuite() {
-  const titles = [];
-  authScenarios.forEach(({ role, targetUrl }) => {
-    const testTitle = \`Verify login destination for role: \${role}\`;
-    titles.push(testTitle);
-  });
-  return titles;
+  // TODO: Duyệt qua authScenarios và sinh danh sách testTitle
+  return [];
 }
 `,
       testScript: `const titles = runParameterizedAuthSuite();

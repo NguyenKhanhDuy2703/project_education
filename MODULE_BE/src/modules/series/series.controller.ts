@@ -30,10 +30,14 @@ export class SeriesController {
   constructor(private readonly seriesService: SeriesService) {}
 
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'List all practice topics / series (Public catalog)' })
-  async findAll(@Query('includeInactive') includeInactive?: string) {
+  async findAll(
+    @Query('includeInactive') includeInactive?: string,
+    @Req() req?: Request & { user?: any },
+  ) {
     const showAll = includeInactive === 'true';
-    return this.seriesService.findAll(showAll);
+    return this.seriesService.findAll(showAll, req?.user);
   }
 
   @Get('contributor/my-series')
@@ -42,6 +46,36 @@ export class SeriesController {
   @ApiOperation({ summary: 'Get series authored by currently authenticated contributor' })
   async findMySeries(@Req() req: Request & { user: any }) {
     return this.seriesService.findMySeries(req.user.userId);
+  }
+
+  @Get('taxonomy/topics')
+  @ApiOperation({ summary: 'Get canonical topic taxonomy list (Public)' })
+  getTaxonomyTopics() {
+    return this.seriesService.getTaxonomyTopics();
+  }
+
+  @Get('user/saved')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get saved / bookmarked series for current user' })
+  async getSavedSeries(@Req() req: Request & { user: any }) {
+    return this.seriesService.getSavedSeries(req.user.userId, req.user);
+  }
+
+  @Post(':id/save')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Save / bookmark a series for current user' })
+  async saveSeries(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    return this.seriesService.saveSeries(req.user.userId, id);
+  }
+
+  @Delete(':id/save')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unsave / remove bookmark for a series' })
+  async unsaveSeries(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    return this.seriesService.unsaveSeries(req.user.userId, id);
   }
 
   @Get(':slug')

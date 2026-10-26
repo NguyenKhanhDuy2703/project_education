@@ -69,6 +69,13 @@ model User {
   reviewedApplications   ContributorApplication[] @relation("ReviewedApplications")
   sessions                AuthSession[]
   learningProgress        LearningUnitProgress[]
+  savedSeries             UserSavedSeries[]
+
+  upgradeRequests         UpgradeRequest[]         @relation("UserUpgradeRequests")
+  reviewedUpgradeRequests UpgradeRequest[]         @relation("ReviewedUpgradeRequests")
+  notifications           Notification[]
+  authoredAnnouncements   Announcement[]
+  announcementRecipients  AnnouncementRecipient[]
 
   @@map("users")
 }
@@ -96,6 +103,7 @@ model LabSeries {
   author           User?                  @relation("AuthoredSeries", fields: [authorId], references: [id], onDelete: SetNull)
   labs             Lab[]
   sections         SeriesSection[]
+  savedByUsers     UserSavedSeries[]
 
   @@map("lab_series")
 }
@@ -257,6 +265,8 @@ model SubscriptionPlan {
   billingCycle BillingCycle @default(FREE)
   isDefault    Boolean      @default(false)
   isActive     Boolean      @default(true)
+  isPublic     Boolean      @default(false)
+  isSaleReady  Boolean      @default(false)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -264,6 +274,7 @@ model SubscriptionPlan {
   subscriptions   UserSubscription[]
   groupPlans      GroupPlan[]
   planPermissions PlanPermission[]
+  upgradeRequests UpgradeRequest[]
 
   @@map("subscription_plans")
 }
@@ -345,6 +356,7 @@ model UserSubscription {
 
   user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  upgradeRequests UpgradeRequest[]
 
   @@index([userId, status])
   @@map("user_subscriptions")
@@ -449,4 +461,163 @@ model AuthSession {
   @@index([refreshTokenHash])
   @@index([previousTokenHash])
   @@map("auth_sessions")
+}
+
+model UserSavedSeries {
+  id        String    @id @default(uuid())
+  userId    String
+  seriesId  String
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series    LabSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, seriesId])
+  @@index([userId])
+  @@index([seriesId])
+  @@map("user_saved_series")
+}
+
+enum UpgradeRequestStatus {
+  AWAITING_PAYMENT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum NotificationType {
+  UPGRADE_REQUEST_CREATED
+  PAYMENT_SUBMITTED
+  UPGRADE_APPROVED
+  UPGRADE_REJECTED
+  MEMBERSHIP_EXPIRING_SOON
+  MEMBERSHIP_EXPIRED
+  CONTENT_REVIEW_APPROVED
+  CONTENT_REVIEW_CHANGES_REQUESTED
+  CONTENT_REVIEW_REJECTED
+  CONTENT_REVIEW_PUBLISHED
+  ANNOUNCEMENT
+  SYSTEM
+}
+
+enum AnnouncementStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model UpgradeRequest {
+  id                    String               @id @default(uuid())
+  userId                String
+  planId                String
+  status                UpgradeRequestStatus @default(AWAITING_PAYMENT)
+  transferReference     String               @unique
+  priceSnapshot         Decimal              @db.Decimal(10, 2)
+  currency              String               @default("VND")
+  period                String               @default("MONTHLY")
+  bankSnapshot          Json
+  paymentReference      String?
+  paymentSubmittedAt    DateTime?
+  reviewedById          String?
+  reviewedAt            DateTime?
+  reviewReason          String?              @db.Text
+  verifiedAmount        Decimal?             @db.Decimal(10, 2)
+  verifiedBankReference String?              @unique
+  subscriptionId        String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  user                  User                 @relation("UserUpgradeRequests", fields: [userId], references: [id], onDelete: Cascade)
+  plan                  SubscriptionPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  reviewedBy            User?                @relation("ReviewedUpgradeRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  subscription          UserSubscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("upgrade_requests")
+}
+
+model BillingSettings {
+  id              String   @id @default("default")
+  bankName        String   @default("")
+  bankCode        String   @default("")
+  accountNumber   String   @default("")
+  accountHolder   String   @default("")
+  instructions    String?  @db.Text
+  isIntakeEnabled Boolean  @default(false)
+  updatedById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("billing_settings")
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  userId     String
+  type       NotificationType
+  title      String
+  body       String           @db.Text
+  actionPath String?
+  eventKey   String?          @unique
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model Announcement {
+  id                  String               @id @default(uuid())
+  title               String
+  body                String               @db.Text
+  actionPath          String?
+  targetAudience      String               @default("ALL")
+  totalRecipients     Int                  @default(0)
+  processedRecipients Int                  @default(0)
+  status              AnnouncementStatus   @default(PENDING)
+  createdById         String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  createdBy           User                 @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  recipients          AnnouncementRecipient[]
+
+  @@index([status, createdAt])
+  @@map("announcements")
+}
+
+model AnnouncementRecipient {
+  id             String       @id @default(uuid())
+  announcementId String
+  userId         String
+  notificationId String?
+  deliveredAt    DateTime?
+  createdAt      DateTime     @default(now())
+
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([announcementId, deliveredAt])
+  @@map("announcement_recipients")
+}
+
+model ScheduledJobLease {
+  jobName    String   @id
+  lockedBy   String
+  lockedAt   DateTime
+  expiresAt  DateTime
+  lastRunAt  DateTime?
+  lastResult Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("scheduled_job_leases")
 }

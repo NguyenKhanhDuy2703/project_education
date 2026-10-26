@@ -99,7 +99,7 @@ export class AuthSessionService {
         }),
         this.prisma.user.update({
           where: { id: session.userId },
-          data: { refreshToken: newRefreshToken },
+          data: { refreshToken: null },
         }),
       ]);
 
@@ -125,22 +125,44 @@ export class AuthSessionService {
   }
 
   /**
-   * Revokes a specific session (Logout).
+   * Revokes a specific session (Logout) and purges plaintext token.
    */
   async revokeSession(sessionId: string): Promise<void> {
-    await this.prisma.authSession.updateMany({
+    const session = await this.prisma.authSession.findUnique({
       where: { id: sessionId },
-      data: { revokedAt: new Date() },
     });
+    if (session) {
+      await this.prisma.$transaction([
+        this.prisma.authSession.updateMany({
+          where: { id: sessionId },
+          data: { revokedAt: new Date() },
+        }),
+        this.prisma.user.update({
+          where: { id: session.userId },
+          data: { refreshToken: null },
+        }),
+      ]);
+    } else {
+      await this.prisma.authSession.updateMany({
+        where: { id: sessionId },
+        data: { revokedAt: new Date() },
+      });
+    }
   }
 
   /**
-   * Revokes all active sessions for a user (e.g. password change).
+   * Revokes all active sessions for a user (e.g. password change) and purges plaintext token.
    */
   async revokeAllUserSessions(userId: string): Promise<void> {
-    await this.prisma.authSession.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await this.prisma.$transaction([
+      this.prisma.authSession.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { refreshToken: null },
+      }),
+    ]);
   }
 }

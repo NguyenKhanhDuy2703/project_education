@@ -91,6 +91,17 @@ export class ReviewController {
     return this.reviewService.unpublish(type, id, req.user.userId);
   }
 
+  @Post(':type/:id/archive')
+  @ApiOperation({ summary: 'Archive content item (Series or Lab)' })
+  async archive(
+    @Param('type') type: ContentType,
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @Req() req: Request & { user: any },
+  ) {
+    return this.reviewService.archive(type, id, req.user.userId, body?.reason);
+  }
+
   @Post(':type/:id/transfer-ownership')
   @ApiOperation({ summary: 'Transfer content authorship to another user' })
   async transferOwnership(

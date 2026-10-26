@@ -19,6 +19,8 @@ import { GroupsModule } from './modules/groups/groups.module';
 import { ReviewModule } from './modules/review/review.module';
 import { FeedbackModule } from './modules/feedback/feedback.module';
 import { ContributorApplicationModule } from './modules/contributor-application/contributor-application.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { BillingModule } from './modules/billing/billing.module';
 import validateEnvironmentVariables from './configs/env.validation';
 import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware';
 @Module({
@@ -53,6 +55,8 @@ import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware
     ReviewModule,
     FeedbackModule,
     ContributorApplicationModule,
+    NotificationsModule,
+    BillingModule,
   ],
 })
 export class AppModule implements NestModule {
