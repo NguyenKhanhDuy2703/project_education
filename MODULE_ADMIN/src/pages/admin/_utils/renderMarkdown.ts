@@ -103,12 +103,86 @@ markedInstance.use({
   },
 });
 
+const ALLOWED_TAGS = new Set([
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'p', 'span', 'div', 'blockquote', 'pre', 'code', 'hr', 'br',
+  'ul', 'ol', 'li',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  'a', 'img', 'strong', 'em', 'del', 's', 'sub', 'sup', 'b', 'i', 'u',
+]);
+
+const ALLOWED_ATTRS = new Set([
+  'id', 'class', 'classname', 'align', 'title', 'alt', 'src', 'href', 'target', 'rel',
+]);
+
+export function sanitizeHtml(html: string): string {
+  if (!html) return '';
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
+    return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  const sanitizeNode = (node: Node) => {
+    if (node.nodeType === 3) return; // Node.TEXT_NODE
+    if (node.nodeType === 8) { // Node.COMMENT_NODE
+      node.parentNode?.removeChild(node);
+      return;
+    }
+    if (node.nodeType === 1) { // Node.ELEMENT_NODE
+      const el = node as Element;
+      const tagName = el.tagName.toLowerCase();
+      if (!ALLOWED_TAGS.has(tagName)) {
+        el.parentNode?.removeChild(el);
+        return;
+      }
+
+      const attrNames = Array.from(el.attributes).map((a) => a.name);
+      for (const name of attrNames) {
+        const lowerName = name.toLowerCase();
+        if (lowerName.startsWith('on') || !ALLOWED_ATTRS.has(lowerName)) {
+          el.removeAttribute(name);
+          continue;
+        }
+        if (lowerName === 'href' || lowerName === 'src') {
+          const val = el.getAttribute(name)?.trim() || '';
+          if (/^(?:javascript|vbscript|data):/i.test(val)) {
+            el.removeAttribute(name);
+          }
+        }
+      }
+
+      if (tagName === 'a') {
+        const target = el.getAttribute('target');
+        if (target === '_blank') {
+          el.setAttribute('rel', 'noopener noreferrer');
+        }
+      }
+
+      const children = Array.from(el.childNodes);
+      for (const child of children) {
+        sanitizeNode(child);
+      }
+    }
+  };
+
+  const bodyChildren = Array.from(doc.body.childNodes);
+  for (const child of bodyChildren) {
+    sanitizeNode(child);
+  }
+
+  return doc.body.innerHTML;
+}
+
 export function renderMarkdown(md: string): string {
   if (!md) return '';
   try {
-    return markedInstance.parse(md) as string;
+    const rawParsed = markedInstance.parse(md) as string;
+    return sanitizeHtml(rawParsed);
   } catch (err) {
     console.error('Failed to parse markdown:', err);
-    return md;
+    return sanitizeHtml(md);
   }
 }
+

@@ -13,6 +13,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "test": "tsx --test \"test/**/*.spec.ts\"",
+    "test:e2e": "tsx test/backend-e2e-matrix.test.ts",
     "postinstall": "prisma skills sync || exit 0"
   },
   "dependencies": {

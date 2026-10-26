@@ -6,6 +6,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, Copy, Check } from 'lucide-react';
 import { renderMarkdown } from './renderMarkdown';
+import { SampleProjectLinks } from '@/components/domain/SampleProjectLinks';
+import { BugHintsPanel } from './BugHintsPanel';
 import type { PracticeLabV1, LabDetail, LabSeries, LabSubmissionRecord } from '@/types/lab.types';
 
 export interface LabTheoryPaneProps {
@@ -159,6 +161,17 @@ export function LabTheoryPane({
                 </span>
               )}
             </div>
+
+            {(() => {
+              const repoUrl = ('repoUrl' in lab && lab.repoUrl) || (lab as any).config?.repoUrl || series?.repoUrl || ('series' in lab && (lab as any).series?.repoUrl);
+              const swaggerUrl = ('swaggerUrl' in lab && lab.swaggerUrl) || (lab as any).config?.swaggerUrl || series?.swaggerUrl || ('series' in lab && (lab as any).series?.swaggerUrl);
+              if (!repoUrl && !swaggerUrl) return null;
+              return (
+                <div className="pt-1">
+                  <SampleProjectLinks repoUrl={repoUrl} swaggerUrl={swaggerUrl} />
+                </div>
+              );
+            })()}
           </div>
 
           {/* Contextual slot (e.g. CheatSheet, SQL Schema table, etc.) */}
@@ -169,45 +182,75 @@ export function LabTheoryPane({
             className="prose prose-sm dark:prose-invert max-w-none text-foreground leading-relaxed"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(instructions) }}
           />
+
+          {/* Categorized Bug Hints */}
+          {(() => {
+            const rawHints =
+              ('bugHints' in lab && (lab as any).bugHints) ||
+              (lab as any).config?.bugHints ||
+              (lab as any).config?.hints ||
+              (lab as any).hints;
+            if (!rawHints) return null;
+            return (
+              <div className="mt-6 pt-4 border-t border-border/70">
+                <BugHintsPanel hints={rawHints} />
+              </div>
+            );
+          })()}
         </TabsContent>
 
         {!isQuiz && (
           <TabsContent value="solution" className="flex-1 overflow-y-auto p-5 m-0 text-sm">
             {hasSolutionAccess ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-border">
+              solution ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-border">
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                    >
+                      Verified Reference Solution (PRO)
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopySolution(solution || '')}
+                      className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                    >
+                      {copiedSolution ? (
+                        <Check className="size-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="size-3" />
+                      )}
+                      <span>{copiedSolution ? 'Copied!' : 'Copy Code'}</span>
+                    </Button>
+                  </div>
+
+                  <pre className="p-3.5 rounded-xl bg-muted/60 border border-border font-mono text-xs overflow-x-auto text-foreground leading-relaxed">
+                    <code>{solution}</code>
+                  </pre>
+
+                  <div className="text-xs text-muted-foreground space-y-1 bg-primary/5 border border-primary/20 rounded-lg p-3">
+                    <p className="font-semibold text-foreground">Explanation & Best Practices:</p>
+                    <p>
+                      Review the implementation above and ensure edge conditions, boundary values, and performance limits are accounted for.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border p-6 text-center space-y-3 bg-muted/20">
                   <Badge
                     variant="outline"
-                    className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                    className="text-xs font-bold px-2 py-0.5 border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
                   >
-                    Verified Reference Solution (PRO)
+                    Hoàn thành bài tập để mở khóa
                   </Badge>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleCopySolution(solution || '')}
-                    className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                  >
-                    {copiedSolution ? (
-                      <Check className="size-3 text-emerald-500" />
-                    ) : (
-                      <Copy className="size-3" />
-                    )}
-                    <span>{copiedSolution ? 'Copied!' : 'Copy Code'}</span>
-                  </Button>
-                </div>
-
-                <pre className="p-3.5 rounded-xl bg-muted/60 border border-border font-mono text-xs overflow-x-auto text-foreground leading-relaxed">
-                  <code>{solution || '-- Solution will appear here'}</code>
-                </pre>
-
-                <div className="text-xs text-muted-foreground space-y-1 bg-primary/5 border border-primary/20 rounded-lg p-3">
-                  <p className="font-semibold text-foreground">Explanation & Best Practices:</p>
-                  <p>
-                    Review the implementation above and ensure edge conditions, boundary values, and performance limits are accounted for.
+                  <p className="font-bold text-sm text-foreground">Complete the lab to unlock solution</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                    Theo phương pháp học tập chủ động, học viên gói Pro cần hoàn thành bài lab (Passed) trước khi mở khóa lời giải chi tiết.
                   </p>
                 </div>
-              </div>
+              )
             ) : (
               <div className="rounded-xl border border-dashed border-border p-6 text-center space-y-3">
                 <Badge

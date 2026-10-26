@@ -32,4 +32,14 @@ export class UpdatePlanDto {
   @IsBoolean()
   @IsOptional()
   isDefault?: boolean;
+
+  @ApiPropertyOptional({ description: 'Whether this plan is visible publicly' })
+  @IsBoolean()
+  @IsOptional()
+  isPublic?: boolean;
+
+  @ApiPropertyOptional({ description: 'Whether this plan is ready for sale' })
+  @IsBoolean()
+  @IsOptional()
+  isSaleReady?: boolean;
 }

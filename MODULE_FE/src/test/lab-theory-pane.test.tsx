@@ -71,6 +71,24 @@ describe('LabTheoryPane Component Suite (Subtask 3.3)', () => {
     expect(screen.getByText(/const answer = 42;/i)).toBeDefined();
   });
 
+  it('renders completion requirement when hasSolutionAccess is true but solution is locked/not provided', () => {
+    const lockedLab = { ...mockLab, solution: undefined };
+    render(
+      <MemoryRouter>
+        <LabTheoryPane
+          lab={lockedLab as LabDetail}
+          currentLabIndex={0}
+          hasSolutionAccess={true}
+          isSolved={false}
+          activeTab="solution"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Complete the lab to unlock solution/i)).toBeDefined();
+    expect(screen.getByText(/Hoàn thành bài tập để mở khóa/i)).toBeDefined();
+  });
+
   it('renders contextual slot when provided', () => {
     render(
       <MemoryRouter>

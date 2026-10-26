@@ -57,8 +57,8 @@ export class EntitlementsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new subscription plan (Admin only)' })
   @HttpCode(HttpStatus.CREATED)
-  async createPlan(@Body() dto: CreatePlanDto) {
-    return this.entitlementsService.createPlan(dto);
+  async createPlan(@Body() dto: CreatePlanDto, @Req() req: Request & { user: any }) {
+    return this.entitlementsService.createPlan(dto, req.user?.userId);
   }
 
   @Put('admin/plans/:id')
@@ -70,8 +70,9 @@ export class EntitlementsController {
   async updatePlan(
     @Param('id') planId: string,
     @Body() dto: UpdatePlanDto,
+    @Req() req: Request & { user: any },
   ) {
-    return this.entitlementsService.updatePlan(planId, dto);
+    return this.entitlementsService.updatePlan(planId, dto, req.user?.userId);
   }
 
   @Delete('admin/plans/:id')
@@ -80,8 +81,8 @@ export class EntitlementsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a subscription plan (Admin only)' })
   @HttpCode(HttpStatus.OK)
-  async deletePlan(@Param('id') planId: string) {
-    return this.entitlementsService.deletePlan(planId);
+  async deletePlan(@Param('id') planId: string, @Req() req: Request & { user: any }) {
+    return this.entitlementsService.deletePlan(planId, req.user?.userId);
   }
 
   @Put('admin/plans/:id/features')

@@ -6,8 +6,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
-import { ContentLifecycleStatus } from '@prisma/client';
+import { ContentLifecycleStatus, NotificationType } from '@prisma/client';
 import { LabsService } from '../labs/labs.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export type ContentType = 'series' | 'lab';
 
@@ -17,6 +18,7 @@ export class ReviewService {
     private readonly prisma: PrismaService,
     private readonly auditLogsService: AuditLogsService,
     @Optional() private readonly labsService?: LabsService,
+    @Optional() private readonly notificationsService?: NotificationsService,
   ) {}
 
   /**
@@ -191,7 +193,7 @@ export class ReviewService {
    * Action: Approve submitted content (Does NOT auto-publish).
    */
   async approve(type: ContentType, id: string, adminId: string) {
-    await this.verifyExists(type, id);
+    const existing = await this.verifyExists(type, id);
 
     let updated: any;
     if (type === 'series') {
@@ -212,6 +214,17 @@ export class ReviewService {
       details: { type, id, title: updated.title, status: updated.status },
     });
 
+    if (existing.authorId && this.notificationsService) {
+      await this.notificationsService.createNotification({
+        userId: existing.authorId,
+        type: NotificationType.CONTENT_REVIEW_APPROVED,
+        title: `Nội dung "${updated.title}" đã được duyệt`,
+        body: `Nội dung của bạn đã được phê duyệt thành công bởi ban quản trị.`,
+        actionPath: type === 'series' ? `/studio/series/${updated.id}` : `/studio/labs/${updated.id}`,
+        eventKey: `review-approved-${type}-${id}-${updated.updatedAt.getTime()}`,
+      });
+    }
+
     return { message: `${type.toUpperCase()} approved successfully`, item: updated };
   }
 
@@ -219,7 +232,7 @@ export class ReviewService {
    * Action: Request changes with specific review feedback.
    */
   async requestChanges(type: ContentType, id: string, feedback: string, adminId: string) {
-    await this.verifyExists(type, id);
+    const existing = await this.verifyExists(type, id);
 
     let updated: any;
     if (type === 'series') {
@@ -246,6 +259,17 @@ export class ReviewService {
       details: { type, id, title: updated.title, feedback },
     });
 
+    if (existing.authorId && this.notificationsService) {
+      await this.notificationsService.createNotification({
+        userId: existing.authorId,
+        type: NotificationType.CONTENT_REVIEW_CHANGES_REQUESTED,
+        title: `Yêu cầu chỉnh sửa nội dung "${updated.title}"`,
+        body: `Ban quản trị yêu cầu chỉnh sửa: ${feedback}`,
+        actionPath: type === 'series' ? `/studio/series/${updated.id}` : `/studio/labs/${updated.id}`,
+        eventKey: `review-changes-${type}-${id}-${updated.updatedAt.getTime()}`,
+      });
+    }
+
     return { message: 'Changes requested successfully', item: updated };
   }
 
@@ -253,7 +277,7 @@ export class ReviewService {
    * Action: Reject submission.
    */
   async reject(type: ContentType, id: string, reason: string, adminId: string) {
-    await this.verifyExists(type, id);
+    const existing = await this.verifyExists(type, id);
 
     let updated: any;
     if (type === 'series') {
@@ -279,6 +303,17 @@ export class ReviewService {
       action: 'REJECT_CONTENT',
       details: { type, id, title: updated.title, reason },
     });
+
+    if (existing.authorId && this.notificationsService) {
+      await this.notificationsService.createNotification({
+        userId: existing.authorId,
+        type: NotificationType.CONTENT_REVIEW_REJECTED,
+        title: `Nội dung "${updated.title}" bị từ chối`,
+        body: `Lý do từ chối: ${reason}`,
+        actionPath: type === 'series' ? `/studio/series/${updated.id}` : `/studio/labs/${updated.id}`,
+        eventKey: `review-rejected-${type}-${id}-${updated.updatedAt.getTime()}`,
+      });
+    }
 
     return { message: 'Submission rejected', item: updated };
   }
@@ -321,6 +356,17 @@ export class ReviewService {
       details: { type, id, title: updated.title, status: updated.status },
     });
 
+    if (existing.authorId && this.notificationsService) {
+      await this.notificationsService.createNotification({
+        userId: existing.authorId,
+        type: NotificationType.CONTENT_REVIEW_PUBLISHED,
+        title: `Nội dung "${updated.title}" đã được xuất bản!`,
+        body: `Nội dung của bạn hiện đã hiển thị công khai trên hệ thống học tập.`,
+        actionPath: type === 'series' ? `/series/${updated.slug}` : `/labs/${updated.slug}`,
+        eventKey: `review-published-${type}-${id}-${updated.updatedAt.getTime()}`,
+      });
+    }
+
     return { message: `${type.toUpperCase()} published live to students`, item: updated };
   }
 
@@ -350,6 +396,42 @@ export class ReviewService {
     });
 
     return { message: `${type.toUpperCase()} unpublished successfully`, item: updated };
+  }
+
+  /**
+   * Action: Archive content item (Series or Lab).
+   */
+  async archive(type: ContentType, id: string, adminId: string, reason?: string) {
+    await this.verifyExists(type, id);
+
+    let updated: any;
+    if (type === 'series') {
+      updated = await this.prisma.labSeries.update({
+        where: { id },
+        data: {
+          status: ContentLifecycleStatus.archived,
+          isActive: false,
+          ...(reason ? { reviewFeedback: reason } : {}),
+        },
+      });
+    } else {
+      updated = await this.prisma.lab.update({
+        where: { id },
+        data: {
+          status: ContentLifecycleStatus.archived,
+          isActive: false,
+          ...(reason ? { reviewFeedback: reason } : {}),
+        },
+      });
+    }
+
+    await this.auditLogsService.log({
+      actorId: adminId,
+      action: 'ARCHIVE_CONTENT',
+      details: { type, id, title: updated.title, status: updated.status, reason },
+    });
+
+    return { message: `${type.toUpperCase()} archived successfully`, item: updated };
   }
 
   /**

@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   BookOpen,
   Search,
-  Bell,
   Menu,
   X,
   Home,
@@ -19,6 +18,7 @@ import {
 import { ContributorApplyModal } from '@/features/contributor/components/ContributorApplyModal';
 import { useTheme } from '@/features/preferences/theme';
 import { useI18n } from '@/features/preferences/i18n';
+import { NotificationDropdown } from '@/features/notifications/components/NotificationDropdown';
 
 export function Navbar() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
@@ -135,14 +135,7 @@ export function Navbar() {
 
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label={t('nav.notifications')}
-                className="relative p-2 rounded-full text-foreground/80 hover:bg-muted transition-colors"
-              >
-                <Bell className="size-4" />
-                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary" />
-              </button>
+              <NotificationDropdown />
 
               {/* User Avatar Badge (non-clickable, no redirect to dashboard) */}
               <div

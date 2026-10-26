@@ -19,7 +19,7 @@
 export const V3_SQL_SERIES = {
   id: 'series-sql-v3-mastery',
   slug: 'postgresql-business-scenarios',
-  title: 'PostgreSQL: 8 Tình Huống Truy Vấn Nghiệp Vụ Thực Tế',
+  title: 'PostgreSQL Business Labs',
   category: 'database',
   level: 'beginner',
   coverEmoji: '🐘',
@@ -598,7 +598,7 @@ Thay \`ROW_NUMBER()\` bằng \`DENSE_RANK()\` và quan sát sự khác biệt kh
 export const V3_QUIZ_SERIES = {
   id: 'series-quiz-v3-certification',
   slug: 'testing-theory-scenario-quiz',
-  title: 'Testing Theory: 40 Tình Huống Kiểm Thử Thực Tế ISTQB & Security',
+  title: 'Testing Theory Quiz',
   category: 'testing',
   level: 'beginner',
   coverEmoji: '🎯',
@@ -1290,7 +1290,7 @@ export const V3_QUIZ_LABS = [
 export const V3_AUTO_SERIES = {
   id: 'series-auto-v3-playwright',
   slug: 'playwright-low-code-automation',
-  title: 'Playwright Automation: Từ Low-Code Đến Test Script Chuyên Nghiệp',
+  title: 'Playwright Automation Labs',
   category: 'testing',
   level: 'intermediate',
   coverEmoji: '🎭',
@@ -1351,11 +1351,19 @@ Làm quen với cấu trúc kịch bản kiểm thử Playwright: Arrange – Ac
       ],
       starterPlan: [
         { id: 's1', blockType: 'nav_goto', category: 'navigation', params: { route: '/orders' } },
-        { id: 's2', blockType: 'assert_visible', category: 'assertion', params: { locator: "page.getByRole('table')" } },
       ],
       publicChecks: [
         { id: 'chk_goto', name: 'Navigate to Orders Route', ruleType: 'block_exists', targetBlockType: 'nav_goto' },
         { id: 'chk_assert', name: 'Table Visibility Assertion', ruleType: 'assertion_match', targetBlockType: 'assert_visible' },
+      ],
+      gradingRules: [
+        {
+          requiredSteps: [
+            { blockType: 'nav_goto', targetUrl: '/orders' },
+            { blockType: 'assert_visible' },
+          ],
+          feedback: 'Must navigate to /orders and verify table visibility',
+        },
       ],
     },
   },
@@ -1418,12 +1426,20 @@ Học cách sử dụng các bộ định vị bền vững (Resilient Locators)
       ],
       starterPlan: [
         { id: 's1', blockType: 'nav_goto', category: 'navigation', params: { route: '/orders' } },
-        { id: 's2', blockType: 'act_click', category: 'action', params: { locator: "page.getByRole('button', { name: 'Filter Failed' })" } },
-        { id: 's3', blockType: 'assert_visible', category: 'assertion', params: { locator: "page.getByRole('region', { name: 'Order Details' })" } },
       ],
       publicChecks: [
         { id: 'chk_click', name: 'Filter Failed Click', ruleType: 'block_exists', targetBlockType: 'act_click' },
         { id: 'chk_visible', name: 'Order Details Visible', ruleType: 'assertion_match', targetBlockType: 'assert_visible' },
+      ],
+      gradingRules: [
+        {
+          requiredSteps: [
+            { blockType: 'nav_goto', targetUrl: '/orders' },
+            { blockType: 'act_click' },
+            { blockType: 'assert_visible' },
+          ],
+          feedback: 'Must filter failed orders and verify details region',
+        },
       ],
     },
   },
@@ -1507,16 +1523,22 @@ Thực hành các thao tác tương tác form: điền chuỗi (\`fill\`), click
       ],
       starterPlan: [
         { id: 's1', blockType: 'nav_goto', category: 'navigation', params: { route: '/login' } },
-        { id: 's2', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Email Address')", value: 'qa.learner@studyweb.dev' } },
-        { id: 's3', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Password')", value: 'SecurePass123!' } },
-        { id: 's4', blockType: 'act_check', category: 'action', params: { locator: "page.getByLabel('Remember me')" } },
-        { id: 's5', blockType: 'act_click', category: 'action', params: { locator: "page.getByRole('button', { name: 'Sign In' })" } },
-        { id: 's6', blockType: 'assert_url', category: 'assertion', params: { url: '/dashboard/user' } },
       ],
       publicChecks: [
         { id: 'chk_fill', name: 'Credentials Filled', ruleType: 'block_exists', targetBlockType: 'act_fill' },
         { id: 'chk_check', name: 'Remember Me Checked', ruleType: 'block_exists', targetBlockType: 'act_check' },
         { id: 'chk_url', name: 'User Dashboard URL', ruleType: 'assertion_match', targetBlockType: 'assert_url' },
+      ],
+      gradingRules: [
+        {
+          requiredSteps: [
+            { blockType: 'nav_goto', targetUrl: '/login' },
+            { blockType: 'act_fill' },
+            { blockType: 'act_check' },
+            { blockType: 'assert_url', targetUrl: '/dashboard/user' },
+          ],
+          feedback: 'Must complete form fields and verify navigation to user dashboard',
+        },
       ],
     },
   },
@@ -1581,12 +1603,19 @@ Kích hoạt hành động thử lại thanh toán ("Retry Payment") và xác mi
       starterPlan: [
         { id: 's1', blockType: 'nav_goto', category: 'navigation', params: { route: '/orders' }, isLocked: true },
         { id: 's2', blockType: 'act_click', category: 'action', params: { locator: "page.getByRole('button', { name: 'Filter Failed' })" }, isLocked: true },
-        { id: 's3', blockType: 'act_click', category: 'action', params: { locator: "page.getByRole('button', { name: 'Retry Payment' })" } },
-        { id: 's4', blockType: 'assert_text', category: 'assertion', params: { locator: "page.getByRole('status')", expected: 'Processing' } },
       ],
       publicChecks: [
         { id: 'chk_retry_click', name: 'Retry Payment Triggered', ruleType: 'block_exists', targetBlockType: 'act_click' },
         { id: 'chk_status_text', name: 'Processing Status Match', ruleType: 'assertion_match', targetBlockType: 'assert_text' },
+      ],
+      gradingRules: [
+        {
+          requiredSteps: [
+            { blockType: 'act_click' },
+            { blockType: 'assert_text' },
+          ],
+          feedback: 'Must retry payment and verify processing status',
+        },
       ],
     },
   },
@@ -1657,12 +1686,19 @@ Xây dựng kịch bản kiểm thử luồng đăng nhập hợp lệ (Positive
         { id: 's1', blockType: 'nav_goto', category: 'navigation', params: { route: '/login' }, isLocked: true },
         { id: 's2', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Email Address')", value: 'student@studyweb.dev' } },
         { id: 's3', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Password')", value: 'ValidPassword123!' } },
-        { id: 's4', blockType: 'act_click', category: 'action', params: { locator: "page.getByRole('button', { name: 'Sign In' })" } },
-        { id: 's5', blockType: 'assert_url', category: 'assertion', params: { url: '/dashboard/user' } },
       ],
       publicChecks: [
         { id: 'chk_sub', name: 'Submit Login', ruleType: 'block_exists', targetBlockType: 'act_click' },
         { id: 'chk_dest', name: 'Dashboard URL Matched', ruleType: 'assertion_match', targetBlockType: 'assert_url' },
+      ],
+      gradingRules: [
+        {
+          requiredSteps: [
+            { blockType: 'act_click' },
+            { blockType: 'assert_url', targetUrl: '/dashboard/user' },
+          ],
+          feedback: 'Must submit login and reach dashboard',
+        },
       ],
     },
   },
@@ -1744,13 +1780,19 @@ Viết kịch bản kiểm thử dựa trên dữ liệu (Data-Driven Testing) v
         { id: 's1', blockType: 'nav_goto', category: 'navigation', params: { route: '/login' }, isLocked: true },
         { id: 's2', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Email Address')", value: 'admin@studyweb.dev' } },
         { id: 's3', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Password')", value: 'Password123!' } },
-        { id: 's4', blockType: 'act_select_option', category: 'action', params: { locator: "page.getByLabel('Select Role')", value: 'admin' } },
-        { id: 's5', blockType: 'act_click', category: 'action', params: { locator: "page.getByRole('button', { name: 'Sign In' })" } },
-        { id: 's6', blockType: 'assert_url', category: 'assertion', params: { url: '/dashboard/admin' } },
       ],
       publicChecks: [
         { id: 'chk_select', name: 'Select Role Option', ruleType: 'block_exists', targetBlockType: 'act_select_option' },
         { id: 'chk_admin_url', name: 'Admin Dashboard Redirect', ruleType: 'assertion_match', targetBlockType: 'assert_url' },
+      ],
+      gradingRules: [
+        {
+          requiredSteps: [
+            { blockType: 'act_select_option' },
+            { blockType: 'assert_url' },
+          ],
+          feedback: 'Must select role and verify parameterized destination',
+        },
       ],
     },
   },
@@ -1840,14 +1882,19 @@ Kiểm thử ma trận phân quyền người dùng (Role-Based Access Control).
         { id: 's1', blockType: 'nav_goto', category: 'navigation', params: { route: '/login' } },
         { id: 's2', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Email Address')", value: 'admin@studyweb.dev' } },
         { id: 's3', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Password')", value: 'AdminPass123!' } },
-        { id: 's4', blockType: 'act_select_option', category: 'action', params: { locator: "page.getByLabel('Select Role')", value: 'admin' } },
-        { id: 's5', blockType: 'act_click', category: 'action', params: { locator: "page.getByRole('button', { name: 'Sign In' })" } },
-        { id: 's6', blockType: 'assert_url', category: 'assertion', params: { url: '/dashboard/admin' } },
-        { id: 's7', blockType: 'assert_visible', category: 'assertion', params: { locator: "page.getByRole('region', { name: 'Admin Tools' })" } },
       ],
       publicChecks: [
         { id: 'chk_admin_role', name: 'Admin Role Option Selected', ruleType: 'block_exists', targetBlockType: 'act_select_option' },
         { id: 'chk_admin_view', name: 'Admin Tools Visible', ruleType: 'assertion_match', targetBlockType: 'assert_visible' },
+      ],
+      gradingRules: [
+        {
+          requiredSteps: [
+            { blockType: 'act_select_option' },
+            { blockType: 'assert_visible' },
+          ],
+          feedback: 'Must select admin role and verify admin tools visibility',
+        },
       ],
     },
   },
@@ -1932,18 +1979,21 @@ Capstone tốt nghiệp phần Automation: Viết kịch bản kiểm thử lu�
       ],
       starterPlan: [
         { id: 's1', blockType: 'nav_goto', category: 'navigation', params: { route: '/shop' } },
-        { id: 's2', blockType: 'act_click', category: 'action', params: { locator: "page.getByRole('button', { name: 'Add Mechanical Keyboard to Cart' })" } },
-        { id: 's3', blockType: 'assert_text', category: 'assertion', params: { locator: "page.getByRole('status', { name: 'Cart items count' })", expected: '1 items' } },
-        { id: 's4', blockType: 'nav_goto', category: 'navigation', params: { route: '/checkout' } },
-        { id: 's5', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Recipient Name')", value: 'Nguyen Khanh Duy' } },
-        { id: 's6', blockType: 'act_fill', category: 'action', params: { locator: "page.getByLabel('Shipping Address')", value: '123 Vo Van Ngan, Thu Duc, TP.HCM' } },
-        { id: 's7', blockType: 'act_click', category: 'action', params: { locator: "page.getByRole('button', { name: 'Place Order Now' })" } },
-        { id: 's8', blockType: 'assert_visible', category: 'assertion', params: { locator: "page.getByRole('status')" } },
       ],
       publicChecks: [
         { id: 'chk_add_cart', name: 'Item Added to Cart', ruleType: 'block_exists', targetBlockType: 'act_click' },
         { id: 'chk_checkout_fill', name: 'Shipping Form Filled', ruleType: 'block_exists', targetBlockType: 'act_fill' },
         { id: 'chk_order_confirm', name: 'Order Success Confirmed', ruleType: 'assertion_match', targetBlockType: 'assert_visible' },
+      ],
+      gradingRules: [
+        {
+          requiredSteps: [
+            { blockType: 'act_click' },
+            { blockType: 'act_fill' },
+            { blockType: 'assert_visible' },
+          ],
+          feedback: 'Must complete cart addition, checkout form, and verify order confirmation',
+        },
       ],
     },
   },

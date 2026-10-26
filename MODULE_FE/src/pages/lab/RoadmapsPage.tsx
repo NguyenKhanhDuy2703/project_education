@@ -47,7 +47,7 @@ const UPCOMING_ROADMAPS: RoadmapPreview[] = [
     level: 'Beginner to Intermediate',
     estimatedWeeks: 12,
     description:
-      'Build scalable web applications from scratch using React, NestJS, Prisma, and robust automated end-to-end testing.',
+      'Build scalable web applications from scratch using React, NestJS, Prisma, and comprehensive testing methodologies.',
     milestones: ['TypeScript Foundations', 'React Component Architecture', 'NestJS Modular Backend', 'Full-stack Integration'],
     icon: Terminal,
     accentColor: 'text-sky-500 bg-sky-500/10 border-sky-500/20',

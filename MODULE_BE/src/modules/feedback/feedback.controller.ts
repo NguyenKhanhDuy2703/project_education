@@ -19,6 +19,7 @@ import { UserRole } from '@prisma/client';
 import { FeedbackService } from './feedback.service';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { Request } from 'express';
+import { RateLimitGuard, Throttle } from '../../common/guards/rate-limit.guard';
 
 @ApiTags('User & Guest Feedback')
 @Controller('feedback')
@@ -26,7 +27,8 @@ export class FeedbackController {
   constructor(private readonly feedbackService: FeedbackService) {}
 
   @Post()
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard, RateLimitGuard)
+  @Throttle({ limit: 10, ttlMs: 60000 })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Submit user or guest feedback' })
   async create(

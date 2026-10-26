@@ -24,14 +24,6 @@ export const useAuth = () => {
 
   const registerMutation = useMutation({
     mutationFn: (credentials: RegisterCredentials) => authApi.register(credentials),
-    onSuccess: (data) => {
-      dispatch(
-        setAuth({
-          user: data.user,
-          accessToken: data.accessToken,
-        })
-      );
-    },
   });
 
   const currentUserQuery = useQuery({

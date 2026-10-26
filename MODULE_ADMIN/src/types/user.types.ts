@@ -18,6 +18,10 @@ export type PermissionCode =
   | 'LAB_PRO'
   | 'SOLUTION_ACCESS'
   | 'SERIES_PUBLIC'
+  | 'EXECUTE_LAB_ADVANCED'
+  | 'VIEW_SOLUTION'
+  | 'RUN_JS_WORKER'
+  | 'AI_CODE_REVIEW'
   // System Administration
   | 'USER_MANAGE'
   | 'GROUP_MANAGE'

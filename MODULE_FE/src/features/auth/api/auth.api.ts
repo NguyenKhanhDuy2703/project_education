@@ -1,5 +1,5 @@
 import { apiClient } from '@/services/api.client';
-import type { AuthResponse, User } from '@/types/user.types';
+import type { AuthResponse, RegisterResponse, User } from '@/types/user.types';
 import type { LoginCredentials, RegisterCredentials } from '../types/auth.types';
 
 export const authApi = {
@@ -11,7 +11,7 @@ export const authApi = {
     return res.data?.data ?? res.data;
   },
 
-  register: async (credentials: RegisterCredentials): Promise<AuthResponse> => {
+  register: async (credentials: RegisterCredentials): Promise<RegisterResponse> => {
     const res = await apiClient.post<any>('/auth/register', credentials);
     return res.data?.data ?? res.data;
   },
@@ -33,5 +33,15 @@ export const authApi = {
   logout: async (): Promise<void> => {
     localStorage.removeItem('refresh_token');
     await apiClient.post('/auth/logout', {}, { withCredentials: true });
+  },
+
+  updateProfile: async (data: { name?: string; avatarUrl?: string; defaultAddress?: string }): Promise<{ message: string; user: User }> => {
+    const res = await apiClient.put<any>('/auth/profile', data);
+    return res.data?.data ?? res.data;
+  },
+
+  changePassword: async (data: { currentPassword: string; newPassword: string }): Promise<{ message: string }> => {
+    const res = await apiClient.post<any>('/auth/change-password', data);
+    return res.data?.data ?? res.data;
   },
 };

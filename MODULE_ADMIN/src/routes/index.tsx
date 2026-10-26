@@ -13,6 +13,7 @@ import { AdminGroupsPage } from '@/pages/admin/AdminGroupsPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
 import { AdminLabStudioPage } from '@/pages/admin/AdminLabStudioPage';
 import { AdminFeedbackPage } from '@/pages/admin/AdminFeedbackPage';
+import { AdminAnnouncementsPage } from '@/pages/admin/AdminAnnouncementsPage';
 
 export const router = createBrowserRouter([
   // Public Admin Login
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
           { path: 'plans', element: <AdminPlansPage /> },
           { path: 'groups', element: <AdminGroupsPage /> },
           { path: 'feedback', element: <AdminFeedbackPage /> },
+          { path: 'announcements', element: <AdminAnnouncementsPage /> },
           { path: 'audit', element: <AdminAuditPage /> },
         ],
       },

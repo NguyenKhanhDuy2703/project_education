@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '../hooks/useAuth';
-import { LogIn, Loader2, Eye, EyeOff, Lock, User as UserIcon, AlertCircle } from 'lucide-react';
+import { LogIn, Loader2, Eye, EyeOff, Lock, User as UserIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface LoginFormProps {
   onSuccess?: () => void;
 }
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
+  const location = useLocation();
+  const registeredSuccess = Boolean((location.state as any)?.registered);
   const { login, isLoggingIn } = useAuth();
   const [phoneOrEmail, setPhoneOrEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,6 +45,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Sign In</h1>
         <p className="text-sm text-muted-foreground mt-1">Continue your learning journey on StudyIT</p>
       </div>
+
+      {/* Registration Success */}
+      {registeredSuccess && !errorMessage && (
+        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
+          <CheckCircle2 className="size-4 shrink-0" />
+          <span>Tài khoản đã tạo thành công! Vui lòng đăng nhập để tiếp tục.</span>
+        </div>
+      )}
 
       {/* Error */}
       {errorMessage && (

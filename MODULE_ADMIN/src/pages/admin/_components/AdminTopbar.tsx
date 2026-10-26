@@ -9,11 +9,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, KeyRound, LogOut, Menu } from 'lucide-react';
+import { KeyRound, LogOut, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/stores/store';
 import { logout } from '@/stores/slices/auth.slice';
 import { ChangePasswordModal } from '@/components/domain';
+import { AdminNotificationDropdown } from '@/features/notifications/components/AdminNotificationDropdown';
 
 interface AdminTopbarProps {
   onToggleMobileMenu?: () => void;
@@ -54,14 +55,8 @@ export function AdminTopbar({ onToggleMobileMenu }: AdminTopbarProps) {
 
       {/* Right actions */}
       <div className="flex items-center gap-2">
-        {/* Notification bell */}
-        <button
-          type="button"
-          className="relative p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          aria-label="Notifications"
-        >
-          <Bell className="size-4" />
-        </button>
+        {/* Notification inbox dropdown */}
+        <AdminNotificationDropdown />
 
         {/* User dropdown */}
         <DropdownMenu>

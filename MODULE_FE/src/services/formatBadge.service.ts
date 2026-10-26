@@ -1,3 +1,17 @@
+export const FEATURE_AUTOMATION_ENABLED = false;
+
+export function isAutomationSeriesSlug(slugOrId?: string): boolean {
+  if (!slugOrId) return false;
+  const s = slugOrId.toLowerCase();
+  return s.includes('automation') || s.includes('playwright') || s.includes('auto-syntax') || s.startsWith('series-auto-');
+}
+
+export function isAutomationContentHidden(userRole?: string): boolean {
+  if (FEATURE_AUTOMATION_ENABLED) return false;
+  if (userRole === 'admin' || userRole === 'contributor') return false;
+  return true;
+}
+
 import type { LabSeries } from '@/types/lab.types';
 
 export interface FormatBadgeInfo {

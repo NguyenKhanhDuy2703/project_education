@@ -1,13 +1,54 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Crown, Check, ArrowRight, Zap, HelpCircle, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Crown, Check, ArrowRight, Zap, HelpCircle, ShieldCheck, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppSelector } from '@/stores/store';
+import { billingApi } from '@/features/billing/api/billingApi';
 
 export function PricingPage() {
+  const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
+
+  const { data: catalog, isLoading: loadingPlans } = useQuery({
+    queryKey: ['public-plans'],
+    queryFn: billingApi.getPublicPlans,
+  });
+
+  const { data: membership } = useQuery({
+    queryKey: ['membership-me'],
+    queryFn: billingApi.getMembershipState,
+    enabled: Boolean(user),
+  });
+
+  const proPlan = catalog?.plans.find((p) => p.code === 'PRO_MONTHLY');
+  const isAvailable = Boolean(catalog?.intakeEnabled && proPlan?.isSaleReady);
+
+  const createRequestMutation = useMutation({
+    mutationFn: (planId: string) => billingApi.createUpgradeRequest(planId),
+    onSuccess: () => {
+      navigate('/membership');
+    },
+    onError: () => {
+      navigate('/membership');
+    },
+  });
+
+  const handleUpgradeClick = () => {
+    if (!user) {
+      navigate('/login?redirect=/membership');
+      return;
+    }
+    if (membership?.openRequest) {
+      navigate('/membership');
+      return;
+    }
+    if (proPlan) {
+      createRequestMutation.mutate(proPlan.id);
+    } else {
+      navigate('/membership');
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-12 max-w-5xl space-y-16">
@@ -15,59 +56,50 @@ export function PricingPage() {
       <div className="text-center space-y-4 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
           <Crown className="size-3.5" />
-          <span>Bảng giá & Gói thành viên StudyIT PRO</span>
+          <span>Gói thành viên StudyIT PRO</span>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
-          Đầu tư vào kỹ năng thực chiến, <span className="text-primary">không học vẹt.</span>
+          Đầu tư vào kỹ năng thực chiến, <span className="text-primary">luyện tập bài bản.</span>
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-          Thực hành trực tiếp trên sandbox với các bài toán thực tế của doanh nghiệp. Mở khóa toàn bộ giáo trình nâng cao cùng StudyIT PRO.
+          Nâng cao kỹ năng kiểm thử và cơ sở dữ liệu với kho bài thực hành SQL & Quiz nâng cao.
+          Thanh toán chuyển khoản ngân hàng minh bạch và đối soát thủ công an toàn.
         </p>
 
-        {/* Billing cycle toggle */}
-        <div className="flex items-center justify-center pt-2">
-          <div className="inline-flex items-center p-1 bg-muted rounded-xl border border-border">
-            <button
-              type="button"
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-card text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
+        {user && membership && (
+          <div className="pt-2">
+            <Badge
+              variant="outline"
+              className={`text-xs px-3 py-1 font-semibold ${
+                membership.isPro
+                  ? 'border-emerald-500/30 text-emerald-600 bg-emerald-500/10'
+                  : 'text-muted-foreground bg-muted/40'
               }`}
             >
-              Thanh toán tháng
-            </button>
-            <button
-              type="button"
-              onClick={() => setBillingCycle('yearly')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
-                billingCycle === 'yearly'
-                  ? 'bg-card text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <span>Thanh toán năm</span>
-              <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded-full">
-                Tiết kiệm 35%
-              </span>
-            </button>
+              Trạng thái tài khoản của bạn:{' '}
+              <strong className="ml-1">{membership.isPro ? 'StudyIT PRO' : 'Gói Miễn phí'}</strong>
+              {membership.endDate && (
+                <span className="ml-1">
+                  (hết hạn: {new Date(membership.endDate).toLocaleDateString('vi-VN')})
+                </span>
+              )}
+            </Badge>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* ── Pricing Cards Grid ────────────────────────────────────────────── */}
+      {/* ── Pricing Cards Grid (Monthly only in v1) ────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
         {/* FREE PLAN */}
         <div className="rounded-2xl border border-border bg-card p-8 flex flex-col justify-between shadow-xs">
           <div className="space-y-6">
             <div className="space-y-2">
               <Badge variant="outline" className="text-xs font-semibold uppercase">
-                Learner Free
+                Free Learner
               </Badge>
-              <h3 className="text-2xl font-bold text-foreground">Khởi động miễn phí</h3>
+              <h3 className="text-2xl font-bold text-foreground">Học tập miễn phí</h3>
               <p className="text-xs text-muted-foreground">
-                Dành cho lập trình viên mới bắt đầu tiếp cận phương pháp học thực hành.
+                Làm quen với nền tảng qua các bài thực hành SQL và trắc nghiệm cơ bản.
               </p>
             </div>
 
@@ -83,19 +115,19 @@ export function PricingPage() {
               <ul className="space-y-2.5 text-xs text-muted-foreground">
                 <li className="flex items-center gap-2.5">
                   <Check className="size-4 text-emerald-500 shrink-0" />
-                  <span>Truy cập toàn bộ Series nhập môn và bài tập cơ bản</span>
+                  <span>Truy cập các bài thực hành SQL & Quiz cơ bản (Free Preview)</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="size-4 text-emerald-500 shrink-0" />
-                  <span>Chạy code trên JS Worker & SQL in-browser Sandbox</span>
+                  <span>Chạy truy vấn SQL trực tiếp trong trình duyệt qua PGlite Engine</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="size-4 text-emerald-500 shrink-0" />
-                  <span>Theo dõi Streak học tập và lịch sử nộp bài</span>
+                  <span>Tự động chấm điểm và đánh giá kết quả tức thì</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="size-4 text-emerald-500 shrink-0" />
-                  <span>Lưu các Series yêu thích vào tài khoản cá nhân</span>
+                  <span>Lưu các chuỗi bài học yêu thích vào thư viện cá nhân</span>
                 </li>
               </ul>
             </div>
@@ -104,80 +136,95 @@ export function PricingPage() {
           <div className="pt-8">
             <Button variant="outline" asChild className="w-full h-11 font-semibold gap-2">
               <Link to="/series">
-                <span>Khám phá Series miễn phí</span>
+                <span>Khám phá bài học miễn phí</span>
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
           </div>
         </div>
 
-        {/* PRO PLAN */}
+        {/* PRO MONTHLY PLAN */}
         <div className="relative rounded-2xl border-2 border-primary bg-card p-8 flex flex-col justify-between shadow-xl shadow-primary/5">
-          {/* Top highlight badge */}
           <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
             <Badge className="bg-primary text-primary-foreground font-bold px-3 py-1 shadow-sm text-xs gap-1.5">
               <Crown className="size-3.5" />
-              <span>GÓI ĐƯỢC CHỌN NHIỀU NHẤT</span>
+              <span>GÓI PRO HÀNG THÁNG</span>
             </Badge>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold">
-                StudyIT PRO
+              <Badge
+                variant="secondary"
+                className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold"
+              >
+                StudyIT PRO Monthly
               </Badge>
-              <h3 className="text-2xl font-bold text-foreground">Lập trình viên chuyên nghiệp</h3>
+              <h3 className="text-2xl font-bold text-foreground">Thành viên Pro Chuyên sâu</h3>
               <p className="text-xs text-muted-foreground">
-                Mở khóa tất cả bài thực hành enterprise và giải pháp chuẩn sản phẩm.
+                Mở khóa toàn bộ kho bài thực hành SQL nâng cao, câu hỏi tình huống và giải pháp.
               </p>
             </div>
 
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-extrabold text-foreground">
-                {billingCycle === 'yearly' ? '129.000đ' : '199.000đ'}
+                {proPlan ? `${proPlan.price.toLocaleString('vi-VN')}đ` : '199.000đ'}
               </span>
-              <span className="text-xs text-muted-foreground">/ tháng</span>
-              {billingCycle === 'yearly' && (
-                <span className="text-[11px] text-muted-foreground ml-1">
-                  (thu 1.548.000đ / năm)
-                </span>
-              )}
+              <span className="text-xs text-muted-foreground">/ 1 tháng dương lịch</span>
             </div>
 
             <div className="space-y-3 pt-4 border-t border-border">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Mọi quyền lợi của Free, cộng thêm:
+                Quyền lợi Pro bao gồm:
               </span>
               <ul className="space-y-2.5 text-xs text-muted-foreground">
                 <li className="flex items-center gap-2.5 font-medium text-foreground">
                   <Check className="size-4 text-primary shrink-0" />
-                  <span>Mở khóa 100% Series PRO (DevOps, QA Automation, Microservices)</span>
+                  <span>Mở khóa 100% bài thực hành SQL nâng cao (JOIN, CTE, Window Functions)</span>
+                </li>
+                <li className="flex items-center gap-2.5 font-medium text-foreground">
+                  <Check className="size-4 text-primary shrink-0" />
+                  <span>Toàn bộ bài kiểm tra Tester Quiz Checkpoint chuyên sâu</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="size-4 text-primary shrink-0" />
-                  <span>Xem mã nguồn lời giải mẫu và test cases chuyên sâu</span>
+                  <span>Mở khóa xem lời giải chi tiết và đáp án sau khi hoàn thành bài tập</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="size-4 text-primary shrink-0" />
-                  <span>Huy hiệu PRO nổi bật trên hồ sơ cá nhân và bảng xếp hạng</span>
+                  <span>AI gợi ý và giải thích lỗi kiểm thử tự động</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="size-4 text-primary shrink-0" />
-                  <span>Ưu tiên giải đáp thắc mắc kỹ thuật từ ban biên tập</span>
+                  <span>Cộng dồn thời hạn linh hoạt khi gia hạn sớm trước ngày hết hạn</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          <div className="pt-8">
-            <Button asChild className="w-full h-11 font-bold gap-2 text-sm shadow-md">
-              <a href="mailto:pro@studyit.dev?subject=Y%C3%AAu%20c%E1%BA%A7u%20n%C3%A2ng%20c%E1%BA%A5p%20StudyIT%20PRO">
+          <div className="pt-8 space-y-2">
+            <Button
+              onClick={handleUpgradeClick}
+              disabled={loadingPlans || (!isAvailable && !membership?.openRequest)}
+              className="w-full h-11 font-bold gap-2 text-sm shadow-md"
+            >
+              {createRequestMutation.isPending ? (
+                <RefreshCw className="size-4 animate-spin" />
+              ) : (
                 <Zap className="size-4" />
-                <span>Nâng cấp ngay với StudyIT PRO</span>
-              </a>
+              )}
+              <span>
+                {membership?.openRequest
+                  ? 'Xem yêu cầu chuyển khoản đang mở'
+                  : isAvailable
+                  ? membership?.isPro
+                    ? 'Gia hạn thêm 1 tháng'
+                    : 'Nâng cấp ngay với StudyIT PRO'
+                  : 'Cổng mua đang tạm đóng'}
+              </span>
             </Button>
-            <p className="text-[11px] text-center text-muted-foreground mt-2">
-              Kích hoạt ngay trong 5 phút · Hỗ trợ chuyển khoản hoặc thẻ
+            <p className="text-[11px] text-center text-muted-foreground">
+              Thanh toán chuyển khoản ngân hàng · Admin đối soát và kích hoạt trong giờ làm việc
             </p>
           </div>
         </div>
@@ -188,13 +235,14 @@ export function PricingPage() {
         <div className="space-y-2 text-center sm:text-left">
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase">
             <ShieldCheck className="size-4" />
-            <span>Chính sách miễn phí cho Contributor</span>
+            <span>Dành cho Tác giả đóng góp nội dung</span>
           </div>
           <h4 className="text-lg font-bold text-foreground">
             Bạn muốn đóng góp giáo trình hoặc bài Lab cho cộng đồng?
           </h4>
           <p className="text-xs text-muted-foreground max-w-xl">
-            Tất cả tác giả (Contributor) có bài giảng được duyệt chính thức sẽ được <strong>tặng tài khoản PRO miễn phí</strong> vĩnh viễn cùng nhuận bút đóng góp nội dung.
+            Tác giả (Contributor) được cấp quyền Studio để soạn thảo và gửi duyệt nội dung bài tập,
+            đồng thời giữ nguyên quyền xem lời giải của các bài do chính mình biên soạn.
           </p>
         </div>
         <Button variant="outline" asChild className="shrink-0 h-10 text-xs font-semibold">
@@ -216,27 +264,27 @@ export function PricingPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div className="p-4 rounded-xl border border-border bg-card space-y-1.5">
-            <h5 className="font-bold text-foreground">Tôi có thể hủy gói PRO bất cứ lúc nào không?</h5>
+            <h5 className="font-bold text-foreground">Quy trình kích hoạt Pro diễn ra như thế nào?</h5>
             <p className="text-muted-foreground leading-relaxed">
-              Có. Bạn có thể chủ động hủy gói gia hạn bất kỳ lúc nào mà không phát sinh thêm chi phí nào.
+              Bạn tạo yêu cầu nâng cấp, hệ thống sẽ cấp mã chuyển khoản duy nhất. Sau khi bạn chuyển khoản và gửi mã giao dịch, ban quản trị sẽ đối soát và kích hoạt Pro cho tài khoản.
             </p>
           </div>
           <div className="p-4 rounded-xl border border-border bg-card space-y-1.5">
-            <h5 className="font-bold text-foreground">Phương thức thanh toán được hỗ trợ?</h5>
+            <h5 className="font-bold text-foreground">Gia hạn sớm có bị mất ngày sử dụng không?</h5>
             <p className="text-muted-foreground leading-relaxed">
-              Chúng tôi hỗ trợ quét mã VietQR ngân hàng, MoMo, ZaloPay và thẻ thanh toán quốc tế Visa/MasterCard.
+              Không. Nếu bạn gia hạn trước khi hết hạn, hệ thống sẽ tự động cộng thêm 1 tháng dương lịch tính từ ngày hết hạn hiện tại của bạn.
             </p>
           </div>
           <div className="p-4 rounded-xl border border-border bg-card space-y-1.5">
-            <h5 className="font-bold text-foreground">Có xuất hóa đơn VAT cho doanh nghiệp không?</h5>
+            <h5 className="font-bold text-foreground">Khi nào tôi xem được lời giải bài tập?</h5>
             <p className="text-muted-foreground leading-relaxed">
-              Có. StudyIT xuất hóa đơn điện tử VAT đầy đủ khi bạn đăng ký gói đào tạo cho cá nhân hoặc doanh nghiệp.
+              Để đảm bảo hiệu quả thực học, lời giải tham khảo chính thức sẽ được mở khóa sau khi bạn đã vượt qua tất cả bài kiểm tra của bài thực hành đó.
             </p>
           </div>
           <div className="p-4 rounded-xl border border-border bg-card space-y-1.5">
-            <h5 className="font-bold text-foreground">Làm sao để nhận hỗ trợ khi gặp sự cố?</h5>
+            <h5 className="font-bold text-foreground">Tôi có thể hủy yêu cầu nâng cấp không?</h5>
             <p className="text-muted-foreground leading-relaxed">
-              Vui lòng gửi email đến support@studyit.dev. Đội ngũ kỹ thuật trực 24/7 sẽ phản hồi trong vòng 30 phút.
+              Có. Nếu chưa chuyển khoản hoặc chưa gửi xác nhận thanh toán, bạn có thể bấm nút "Hủy yêu cầu" trong trang Quản lý gói thành viên bất kỳ lúc nào.
             </p>
           </div>
         </div>
