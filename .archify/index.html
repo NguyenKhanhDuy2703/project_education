@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StudyWeb — Architecture & Feature Workflows Portal</title>
+  <title>StudyWeb — Architecture & Workflow Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -11,34 +11,44 @@
     :root {
       --bg-primary: #090d16;
       --bg-secondary: #0f172a;
-      --bg-card: #131d36;
-      --bg-card-hover: #1a2748;
+      --bg-card: #111a2e;
+      --bg-card-hover: #17233f;
+      --bg-card-active: #1c2b4d;
       --border: #1e293b;
+      --border-subtle: #172033;
       --border-focus: #3b82f6;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-subtle: #64748b;
       --accent: #3b82f6;
+      --accent-hover: #2563eb;
       --accent-glow: rgba(59, 130, 246, 0.25);
-      --badge-system: #06b6d4;
-      --badge-workflow: #10b981;
-      --badge-security: #f59e0b;
-      --badge-erd: #8b5cf6;
+      --brand-orange: #f97316;
+      --brand-orange-glow: rgba(249, 115, 22, 0.25);
+      --success: #10b981;
       --sidebar-width: 360px;
+      --topbar-height: 56px;
+      --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     [data-theme="light"] {
       --bg-primary: #f8fafc;
-      --bg-secondary: #f1f5f9;
-      --bg-card: #ffffff;
-      --bg-card-hover: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #f1f5f9;
+      --bg-card-hover: #e2e8f0;
+      --bg-card-active: #e0e7ff;
       --border: #e2e8f0;
-      --border-focus: #3b82f6;
+      --border-subtle: #cbd5e1;
+      --border-focus: #2563eb;
       --text-main: #0f172a;
       --text-muted: #475569;
-      --text-subtle: #94a3b8;
+      --text-subtle: #64748b;
       --accent: #2563eb;
+      --accent-hover: #1d4ed8;
       --accent-glow: rgba(37, 99, 235, 0.15);
+      --brand-orange: #ea580c;
+      --brand-orange-glow: rgba(234, 88, 12, 0.15);
+      --success: #059669;
     }
 
     * {
@@ -53,10 +63,18 @@
       color: var(--text-main);
       display: flex;
       height: 100vh;
+      width: 100vw;
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Sidebar */
+    /* Accessibility focus ring */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Sidebar Layout */
     .sidebar {
       width: var(--sidebar-width);
       min-width: var(--sidebar-width);
@@ -65,98 +83,142 @@
       display: flex;
       flex-direction: column;
       height: 100%;
-      z-index: 20;
-      transition: transform 0.25s ease, margin 0.25s ease;
+      z-index: 30;
+      transition: margin-left var(--transition), transform var(--transition);
+      position: relative;
     }
 
     .sidebar.collapsed {
       margin-left: calc(-1 * var(--sidebar-width));
     }
 
+    /* Sidebar Header */
     .sidebar-header {
-      padding: 20px;
+      padding: 16px 18px;
       border-bottom: 1px solid var(--border);
-      background: rgba(15, 23, 42, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--bg-secondary);
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 12px;
     }
 
-    .brand-icon {
-      width: 36px;
-      height: 36px;
+    .brand-icon-wrapper {
+      width: 38px;
+      height: 38px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      background: linear-gradient(135deg, #f97316, #ea580c);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
-      font-weight: 800;
-      font-size: 18px;
-      box-shadow: 0 4px 12px var(--accent-glow);
+      box-shadow: 0 4px 14px var(--brand-orange-glow);
+      flex-shrink: 0;
     }
 
-    .brand-info h1 {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-main);
-      letter-spacing: -0.3px;
+    .brand-icon-wrapper svg {
+      width: 22px;
+      height: 22px;
+      color: #ffffff;
     }
 
-    .brand-info p {
-      font-size: 12px;
-      color: var(--text-subtle);
-    }
-
-    .stats-row {
+    .brand-details {
       display: flex;
-      gap: 8px;
+      flex-direction: column;
+      min-width: 0;
     }
 
-    .stat-pill {
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text-main);
+      line-height: 1.2;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-subtle);
+      margin-top: 2px;
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 4px;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-size: 11px;
       font-weight: 600;
       padding: 3px 8px;
-      border-radius: 9999px;
-      background: rgba(59, 130, 246, 0.12);
-      color: var(--accent);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-    }
-
-    .stat-pill.success {
+      border-radius: 6px;
       background: rgba(16, 185, 129, 0.12);
-      color: #10b981;
-      border-color: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
-    /* Search & Filter */
+    .badge-status .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .badge-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-subtle);
+    }
+
+    /* Search & Filter Section */
     .filter-section {
-      padding: 14px 18px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       gap: 10px;
+      background: var(--bg-secondary);
     }
 
-    .search-input-wrapper {
+    .search-box {
       position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-box svg.search-icon {
+      position: absolute;
+      left: 12px;
+      width: 15px;
+      height: 15px;
+      color: var(--text-subtle);
+      pointer-events: none;
     }
 
     .search-input {
       width: 100%;
-      padding: 9px 12px 9px 34px;
+      padding: 8px 36px 8px 34px;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: var(--bg-card);
       color: var(--text-main);
-      font-size: 13px;
+      font-size: 12.5px;
       font-family: inherit;
       outline: none;
-      transition: all 0.2s;
+      transition: border-color var(--transition), box-shadow var(--transition);
     }
 
     .search-input:focus {
@@ -164,53 +226,75 @@
       box-shadow: 0 0 0 3px var(--accent-glow);
     }
 
-    .search-icon {
+    .search-clear-btn {
       position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
+      right: 28px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .search-clear-btn:hover {
+      color: var(--text-main);
+    }
+
+    .kbd-shortcut {
+      position: absolute;
+      right: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: var(--border);
       color: var(--text-subtle);
       pointer-events: none;
+      border: 1px solid var(--border-subtle);
     }
 
+    /* Filter Segmented Control */
     .filter-tabs {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .filter-tabs::-webkit-scrollbar {
-      display: none;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      background: var(--bg-primary);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
     }
 
     .tab-btn {
-      padding: 5px 10px;
+      padding: 6px 0;
+      text-align: center;
       border-radius: 6px;
-      border: 1px solid transparent;
+      border: none;
       background: transparent;
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
       cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.15s;
+      transition: background var(--transition), color var(--transition);
     }
 
     .tab-btn:hover {
-      background: var(--bg-card);
       color: var(--text-main);
     }
 
     .tab-btn.active {
-      background: var(--bg-card);
+      background: var(--bg-secondary);
       color: var(--accent);
-      border-color: var(--border);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
     }
 
-    /* Diagram List */
+    /* Diagram List Container */
     .diagram-list {
       flex: 1;
       overflow-y: auto;
@@ -218,99 +302,113 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
     }
 
-    .group-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--text-subtle);
-      padding: 4px 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .group-items {
+    .group-section {
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
 
-    .item-card {
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px;
+    }
+
+    .group-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-subtle);
+    }
+
+    .group-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-subtle);
+    }
+
+    /* Diagram Card */
+    .diagram-card {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      padding: 10px 12px;
+      gap: 5px;
+      padding: 11px 13px;
       border-radius: 8px;
-      border: 1px solid transparent;
-      background: transparent;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
       cursor: pointer;
-      text-align: left;
-      transition: all 0.15s ease;
-      color: inherit;
       text-decoration: none;
+      color: inherit;
+      position: relative;
+      transition: transform var(--transition), border-color var(--transition), background var(--transition);
     }
 
-    .item-card:hover {
-      background: var(--bg-card);
-      border-color: var(--border);
-      transform: translateX(2px);
+    .diagram-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-focus);
+      transform: translateY(-1px);
     }
 
-    .item-card.active {
-      background: var(--bg-card);
+    .diagram-card.active {
+      background: var(--bg-card-active);
       border-color: var(--accent);
-      box-shadow: 0 2px 10px var(--accent-glow);
+      box-shadow: 0 0 0 1px var(--accent), 0 4px 16px var(--accent-glow);
     }
 
-    .item-header {
+    .card-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
     }
 
-    .item-title {
+    .card-title {
       font-size: 13px;
       font-weight: 600;
       color: var(--text-main);
-      line-height: 1.3;
+      line-height: 1.35;
     }
 
-    .item-card.active .item-title {
+    .diagram-card.active .card-title {
       color: var(--accent);
     }
 
-    .type-badge {
+    .type-pill {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 600;
       text-transform: uppercase;
       padding: 2px 6px;
       border-radius: 4px;
+      letter-spacing: 0.4px;
       flex-shrink: 0;
     }
 
-    .badge-architecture { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
-    .badge-erd { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
-    .badge-sequence { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-    .badge-lifecycle { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
-    .badge-tree { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
-    .badge-workflow { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .pill-architecture { background: rgba(6, 182, 212, 0.14); color: #06b6d4; }
+    .pill-erd { background: rgba(139, 92, 246, 0.14); color: #a78bfa; }
+    .pill-sequence { background: rgba(245, 158, 11, 0.14); color: #f59e0b; }
+    .pill-lifecycle { background: rgba(236, 72, 153, 0.14); color: #ec4899; }
+    .pill-tree { background: rgba(100, 116, 139, 0.18); color: #94a3b8; }
+    .pill-workflow { background: rgba(16, 185, 129, 0.14); color: #10b981; }
 
-    .item-desc {
-      font-size: 11px;
-      color: var(--text-subtle);
-      line-height: 1.4;
+    .card-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
 
-    /* Main Content */
+    /* Main Content Area */
     .main-content {
       flex: 1;
       display: flex;
@@ -318,31 +416,34 @@
       height: 100%;
       background: var(--bg-primary);
       position: relative;
+      min-width: 0;
     }
 
-    .top-bar {
-      height: 60px;
-      min-height: 60px;
-      padding: 0 20px;
+    /* Top Navigation Bar */
+    .topbar {
+      height: var(--topbar-height);
+      min-height: var(--topbar-height);
+      padding: 0 18px;
       border-bottom: 1px solid var(--border);
       background: var(--bg-secondary);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
+      z-index: 20;
     }
 
-    .top-left {
+    .topbar-left {
       display: flex;
       align-items: center;
       gap: 12px;
       min-width: 0;
     }
 
-    .toggle-sidebar-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
+    .sidebar-toggle-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
       border: 1px solid var(--border);
       background: var(--bg-card);
       color: var(--text-muted);
@@ -350,20 +451,35 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
+      transition: background var(--transition), color var(--transition);
+      flex-shrink: 0;
     }
 
-    .toggle-sidebar-btn:hover {
+    .sidebar-toggle-btn:hover {
+      background: var(--bg-card-hover);
       color: var(--text-main);
-      border-color: var(--border-focus);
     }
 
-    .current-diagram-info {
+    .breadcrumb-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       min-width: 0;
     }
 
-    .current-title {
-      font-size: 15px;
+    .breadcrumb-root {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-subtle);
+    }
+
+    .breadcrumb-sep {
+      color: var(--border);
+      font-size: 12px;
+    }
+
+    .breadcrumb-current {
+      font-size: 13.5px;
       font-weight: 700;
       color: var(--text-main);
       white-space: nowrap;
@@ -371,26 +487,17 @@
       text-overflow: ellipsis;
     }
 
-    .current-path {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--text-subtle);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .top-actions {
+    .topbar-actions {
       display: flex;
       align-items: center;
       gap: 8px;
       flex-shrink: 0;
     }
 
-    .action-btn {
-      height: 34px;
-      padding: 0 12px;
-      border-radius: 8px;
+    .btn-action {
+      height: 32px;
+      padding: 0 11px;
+      border-radius: 6px;
       border: 1px solid var(--border);
       background: var(--bg-card);
       color: var(--text-muted);
@@ -401,32 +508,39 @@
       align-items: center;
       gap: 6px;
       text-decoration: none;
-      transition: all 0.15s;
+      transition: all var(--transition);
     }
 
-    .action-btn:hover {
+    .btn-action:hover {
       background: var(--bg-card-hover);
       color: var(--text-main);
       border-color: var(--border-focus);
     }
 
-    .action-btn.primary {
+    .btn-action.primary {
       background: var(--accent);
       color: #ffffff;
       border-color: transparent;
     }
 
-    .action-btn.primary:hover {
-      background: #2563eb;
+    .btn-action.primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-icon-only {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      justify-content: center;
     }
 
     /* Viewer Stage */
     .viewer-stage {
       flex: 1;
       width: 100%;
-      height: calc(100% - 60px);
+      height: calc(100% - var(--topbar-height));
       position: relative;
-      background: #000;
+      background: var(--bg-primary);
     }
 
     .viewer-iframe {
@@ -437,6 +551,25 @@
       display: block;
     }
 
+    /* Loading overlay */
+    .stage-loader {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--brand-orange));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 250ms ease;
+      z-index: 10;
+    }
+
+    .stage-loader.loading {
+      transform: scaleX(1);
+    }
+
+    /* Empty state */
     .empty-state {
       position: absolute;
       inset: 0;
@@ -444,37 +577,73 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 10px;
       color: var(--text-subtle);
       background: var(--bg-primary);
     }
 
-    .empty-icon {
-      font-size: 48px;
+    .empty-state h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
     }
 
-    /* Shortcut toast */
+    .empty-state p {
+      font-size: 12.5px;
+      color: var(--text-subtle);
+    }
+
+    /* Toast Notification */
     .toast {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
-      padding: 10px 16px;
+      bottom: 20px;
+      right: 20px;
+      padding: 9px 15px;
       border-radius: 8px;
-      background: #10b981;
-      color: #fff;
-      font-size: 13px;
+      background: var(--bg-secondary);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      font-size: 12.5px;
       font-weight: 600;
-      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
       opacity: 0;
       pointer-events: none;
-      transform: translateY(10px);
-      transition: all 0.25s ease;
-      z-index: 9999;
+      transform: translateY(8px);
+      transition: all var(--transition);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .toast.show {
       opacity: 1;
       transform: translateY(0);
+    }
+
+    .toast-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        box-shadow: 8px 0 24px rgba(0, 0, 0, 0.4);
+      }
+      .sidebar.collapsed {
+        transform: translateX(-100%);
+        margin-left: 0;
+      }
+      .topbar-actions .btn-label {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -484,27 +653,43 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="brand">
-        <div class="brand-icon">S</div>
-        <div class="brand-info">
-          <h1>StudyWeb Architecture</h1>
-          <p>System & Feature Workflows</p>
+        <div class="brand-icon-wrapper" title="StudyWeb Code Architecture">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+        </div>
+        <div class="brand-details">
+          <span class="brand-title">StudyWeb Archify</span>
+          <span class="brand-subtitle">Architecture & Workflow Portal</span>
         </div>
       </div>
-      <div class="stats-row">
-        <span class="stat-pill">14 Sơ đồ</span>
-        <span class="stat-pill success">Showcase Quality</span>
+      <div class="header-meta">
+        <div class="badge-status">
+          <span class="pulse-dot"></span>
+          <span>14 Specifications</span>
+        </div>
+        <span class="badge-count" id="filteredCountLabel">14/14</span>
       </div>
     </div>
 
-    <!-- Search & Filter section -->
+    <!-- Search & Filter Section -->
     <div class="filter-section">
-      <div class="search-input-wrapper">
+      <div class="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm sơ đồ, tính năng... (Ctrl+K)">
+        <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm sơ đồ... (Ctrl K)">
+        <button id="searchClearBtn" class="search-clear-btn" title="Xoá tìm kiếm">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <span class="kbd-shortcut">/</span>
       </div>
+
       <div class="filter-tabs">
         <button class="tab-btn active" data-filter="all">Tất cả (14)</button>
         <button class="tab-btn" data-filter="system">Kiến trúc (6)</button>
@@ -512,198 +697,224 @@
       </div>
     </div>
 
-    <!-- Navigation List -->
+    <!-- Diagram List Container -->
     <div class="diagram-list" id="diagramList">
-      <!-- Injected via JS -->
+      <!-- Cards rendered via JavaScript -->
     </div>
   </aside>
 
   <!-- Main Viewer Content -->
   <main class="main-content">
-    <header class="top-bar">
-      <div class="top-left">
-        <button class="toggle-sidebar-btn" id="toggleSidebar" title="Đóng/Mở Sidebar (Ctrl+B)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle-btn" id="toggleSidebar" title="Đóng/Mở Sidebar (Ctrl B)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="3" y1="12" x2="21" y2="12"></line>
             <line x1="3" y1="6" x2="21" y2="6"></line>
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
-        <div class="current-diagram-info">
-          <div class="current-title" id="currentTitle">Đang tải sơ đồ...</div>
-          <div class="current-path" id="currentPath">.archify/...</div>
-        </div>
+        <nav class="breadcrumb-nav">
+          <span class="breadcrumb-root">Portal</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current" id="currentBreadcrumb">Đang tải...</span>
+        </nav>
       </div>
 
-      <div class="top-actions">
-        <button class="action-btn" id="copyPathBtn" title="Copy đường dẫn tệp">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="topbar-actions">
+        <!-- Theme Toggle -->
+        <button class="btn-action btn-icon-only" id="themeToggleBtn" title="Chuyển chế độ Sáng / Tối">
+          <svg id="themeIconDark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg id="themeIconLight" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        <!-- Copy Path -->
+        <button class="btn-action" id="copyPathBtn" title="Copy đường dẫn tệp">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
           </svg>
-          Copy Path
+          <span class="btn-label">Copy Path</span>
         </button>
 
-        <a class="action-btn" id="openExternalBtn" target="_blank" href="#" title="Mở trong tab mới">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- Open New Tab -->
+        <a class="btn-action" id="openExternalBtn" target="_blank" href="#" title="Mở trong tab trình duyệt độc lập">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
             <polyline points="15 3 21 3 21 9"></polyline>
             <line x1="10" y1="14" x2="21" y2="3"></line>
           </svg>
-          Mở tab riêng
+          <span class="btn-label">Mở tab riêng</span>
         </a>
 
-        <button class="action-btn primary" id="fullscreenBtn" title="Toàn màn hình">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- Fullscreen -->
+        <button class="btn-action primary" id="fullscreenBtn" title="Toàn màn hình">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
           </svg>
-          Toàn màn hình
+          <span class="btn-label">Toàn màn hình</span>
         </button>
       </div>
     </header>
 
     <div class="viewer-stage" id="viewerStage">
+      <div class="stage-loader" id="stageLoader"></div>
       <iframe id="diagramFrame" class="viewer-iframe" src=""></iframe>
       <div id="emptyState" class="empty-state" style="display: none;">
-        <div class="empty-icon">🔍</div>
         <h3>Không tìm thấy sơ đồ phù hợp</h3>
-        <p>Vui lòng thử từ khóa tìm kiếm khác</p>
+        <p>Vui lòng thử từ khóa tìm kiếm khác hoặc chọn tab Tất cả</p>
       </div>
     </div>
   </main>
 
-  <div id="toast" class="toast">Đã copy đường dẫn vào bộ nhớ tạm!</div>
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <span class="toast-dot"></span>
+    <span id="toastMessage">Đã copy đường dẫn vào bộ nhớ tạm</span>
+  </div>
 
   <script>
     const diagrams = [
-      // Nhóm 1: Kiến trúc cốt lõi & CSDL
+      // Nhóm 1: Kiến trúc cốt lõi & CSDL (6 sơ đồ)
       {
         id: "system-architecture",
         group: "system",
-        title: "Kiến trúc Tổng quan Hệ thống",
+        title: "Tổng quan Kiến trúc Hệ thống",
         type: "architecture",
         desc: "Phân tầng Frontend (FE/Admin), NestJS BE, PostgreSQL, Docker Sandbox & External APIs.",
         path: "./architecture-system-overview-20261024-143500/system-architecture.html",
-        badgeClass: "badge-architecture"
+        pillClass: "pill-architecture"
       },
       {
         id: "database-erd",
         group: "system",
-        title: "Sơ đồ Thực thể CSDL (ERD)",
+        title: "Lược đồ Thực thể Cơ sở dữ liệu",
         type: "erd",
         desc: "Toàn bộ 18 models trong Prisma: Users, Sessions, Labs, Entitlements, Groups, Review, Audit.",
         path: "./erd-database-schema-20261024-145200/database-erd.html",
-        badgeClass: "badge-erd"
+        pillClass: "pill-erd"
       },
       {
         id: "sequence-lab-execution",
         group: "system",
-        title: "Sequence: Lab WASM Sandbox Execution",
+        title: "Thực thi Sandbox WebAssembly PGlite",
         type: "sequence",
         desc: "Luồng khởi tạo in-browser PGlite, nạp seed, thực thi SQL truy vấn và đối soát test case.",
         path: "./sequence-lab-execution-20261024-145400/lab-execution-sequence.html",
-        badgeClass: "badge-sequence"
+        pillClass: "pill-sequence"
       },
       {
         id: "sequence-dynamic-iam",
         group: "system",
-        title: "Sequence: Dynamic IAM 5-Tier Entitlements",
+        title: "Phân giải Quyền Dynamic IAM 5 Cấp",
         type: "sequence",
         desc: "Thứ tự phân giải quyền 5 bậc: User DENY > Direct ALLOW > Plan > IAM Groups > Free Plan.",
         path: "./sequence-dynamic-iam-20261024-145700/dynamic-iam-sequence.html",
-        badgeClass: "badge-sequence"
+        pillClass: "pill-sequence"
       },
       {
         id: "lifecycle-content-review",
         group: "system",
-        title: "Lifecycle: Content Review State Machine",
+        title: "State Machine Duyệt & Xuất bản Nội dung",
         type: "lifecycle",
-        desc: "Vòng đời 8 trạng thái duyệt bài từ draft -> submitted -> changes_requested / approved -> published.",
+        desc: "Vòng đời 8 trạng thái duyệt bài: draft -> submitted -> changes_requested / approved -> published.",
         path: "./lifecycle-content-review-20261024-145900/content-review-lifecycle.html",
-        badgeClass: "badge-lifecycle"
+        pillClass: "pill-lifecycle"
       },
       {
         id: "tree-monorepo-structure",
         group: "system",
-        title: "Topology: Monorepo Topology & Services",
+        title: "Cấu trúc Phân tầng Monorepo",
         type: "tree",
         desc: "Cấu trúc tổ chức thư mục của 3 module: MODULE_FE, MODULE_ADMIN, MODULE_BE.",
         path: "./tree-monorepo-structure-20261024-150100/monorepo-tree.html",
-        badgeClass: "badge-tree"
+        pillClass: "pill-tree"
       },
 
-      // Nhóm 2: Feature Workflows
+      // Nhóm 2: Feature Workflows (8 sơ đồ)
       {
         id: "workflow-auth-session",
         group: "workflow",
-        title: "Workflow: Auth & Session Token Rotation",
+        title: "Vòng đời Xác thực & Xoay vòng Token",
         type: "workflow",
-        desc: "Luồng Login, bcrypt verify, cấp phát Access Token (15m) & Refresh Token (7d), Sliding Window.",
+        desc: "Đăng nhập, bcrypt verify, cấp phát Access Token (15m) & Refresh Token (7d), Sliding Window.",
         path: "./workflow-auth-session-20261024-152500/auth-session-workflow.html",
-        badgeClass: "badge-workflow"
+        pillClass: "pill-workflow"
       },
       {
         id: "workflow-catalog-discovery",
         group: "workflow",
-        title: "Workflow: Catalog & Lab Discovery",
+        title: "Khám phá & Tra cứu Giáo trình",
         type: "workflow",
         desc: "Học viên duyệt Series/Labs, lọc độ khó, kiểm tra Feature Entitlement Gate và hiển thị Upgrade Modal.",
         path: "./workflow-catalog-discovery-20261024-152800/catalog-discovery-workflow.html",
-        badgeClass: "badge-workflow"
+        pillClass: "pill-workflow"
       },
       {
         id: "workflow-sql-lab",
         group: "workflow",
-        title: "Workflow: Interactive SQL Lab & WASM Engine",
+        title: "Thực hành Truy vấn SQL Tương tác",
         type: "workflow",
         desc: "Monaco Editor gõ SQL, In-Browser WASM PGlite Sandbox chấm test cases và đồng bộ tiến độ học.",
         path: "./workflow-sql-lab-20261024-153000/sql-lab-workflow.html",
-        badgeClass: "badge-workflow"
+        pillClass: "pill-workflow"
       },
       {
         id: "workflow-automation-v3",
         group: "workflow",
-        title: "Workflow: Automation V3 Low-Code Sandbox",
+        title: "Hộp cát Thử nghiệm Automation V3",
         type: "workflow",
         desc: "Builder cấu hình steps, AST static analyzer kiểm tra cú pháp, Mock Execution Engine và báo cáo.",
         path: "./workflow-automation-v3-20261024-153200/automation-v3-workflow.html",
-        badgeClass: "badge-workflow"
+        pillClass: "pill-workflow"
       },
       {
         id: "workflow-contributor-studio",
         group: "workflow",
-        title: "Workflow: Contributor Studio & Preflight Gate",
+        title: "Studio Biên soạn & Kiểm thử Preflight",
         type: "workflow",
         desc: "Soạn thảo giáo trình Lab, kiểm thử Dry-Run Sandbox bắt buộc trước khi gửi đơn duyệt.",
         path: "./workflow-contributor-studio-20261024-153300/contributor-studio-workflow.html",
-        badgeClass: "badge-workflow"
+        pillClass: "pill-workflow"
       },
       {
         id: "workflow-content-review",
         group: "workflow",
-        title: "Workflow: Review Queue & Publishing",
+        title: "Hàng đợi Xét duyệt & Xuất bản Giáo trình",
         type: "workflow",
         desc: "Admin tiếp nhận bài, claim queue, yêu cầu sửa đổi hoặc phê duyệt xuất bản trực tiếp kèm Audit Log.",
         path: "./workflow-content-review-20261024-153400/content-review-workflow.html",
-        badgeClass: "badge-workflow"
+        pillClass: "pill-workflow"
       },
       {
         id: "workflow-dynamic-iam",
         group: "workflow",
-        title: "Workflow: Dynamic IAM Governance",
+        title: "Quản trị Phân quyền & Giám sát Truy cập",
         type: "workflow",
         desc: "Guard chặn truy cập, phân giải 5 bậc quyền hạn, cấp phép hành động và ghi nhận nhật ký quản trị.",
         path: "./workflow-dynamic-iam-20261024-153700/dynamic-iam-workflow.html",
-        badgeClass: "badge-workflow"
+        pillClass: "pill-workflow"
       },
       {
         id: "workflow-contributor-onboarding",
         group: "workflow",
-        title: "Workflow: Contributor Onboarding Gate",
+        title: "Đăng ký & Onboarding Contributor",
         type: "workflow",
         desc: "Nộp đơn đăng ký Contributor (Bio, Portfolio, Sample Topic), Admin thẩm định và nâng cấp role.",
         path: "./workflow-contributor-onboarding-20261024-153900/contributor-onboarding-workflow.html",
-        badgeClass: "badge-workflow"
+        pillClass: "pill-workflow"
       }
     ];
 
@@ -711,19 +922,50 @@
     let currentFilter = "all";
     let searchQuery = "";
 
+    // DOM Elements
     const diagramListEl = document.getElementById("diagramList");
     const diagramFrameEl = document.getElementById("diagramFrame");
-    const currentTitleEl = document.getElementById("currentTitle");
-    const currentPathEl = document.getElementById("currentPath");
+    const currentBreadcrumbEl = document.getElementById("currentBreadcrumb");
     const openExternalBtn = document.getElementById("openExternalBtn");
     const copyPathBtn = document.getElementById("copyPathBtn");
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     const searchInput = document.getElementById("searchInput");
+    const searchClearBtn = document.getElementById("searchClearBtn");
     const toggleSidebarBtn = document.getElementById("toggleSidebar");
     const sidebarEl = document.getElementById("sidebar");
     const emptyStateEl = document.getElementById("emptyState");
     const toastEl = document.getElementById("toast");
+    const toastMessageEl = document.getElementById("toastMessage");
+    const stageLoaderEl = document.getElementById("stageLoader");
+    const filteredCountLabel = document.getElementById("filteredCountLabel");
+    const themeToggleBtn = document.getElementById("themeToggleBtn");
+    const themeIconDark = document.getElementById("themeIconDark");
+    const themeIconLight = document.getElementById("themeIconLight");
 
+    // Theme Management
+    function initTheme() {
+      const savedTheme = localStorage.getItem("archify_theme") || "dark";
+      setTheme(savedTheme);
+    }
+
+    function setTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("archify_theme", theme);
+      if (theme === "dark") {
+        themeIconDark.style.display = "block";
+        themeIconLight.style.display = "none";
+      } else {
+        themeIconDark.style.display = "none";
+        themeIconLight.style.display = "block";
+      }
+    }
+
+    themeToggleBtn.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "dark";
+      setTheme(current === "dark" ? "light" : "dark");
+    });
+
+    // Render Diagram List
     function renderList() {
       diagramListEl.innerHTML = "";
 
@@ -732,9 +974,12 @@
         const matchesSearch = !searchQuery ||
           d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           d.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          d.type.toLowerCase().includes(searchQuery.toLowerCase());
+          d.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.id.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesFilter && matchesSearch;
       });
+
+      filteredCountLabel.textContent = `${filtered.length}/${diagrams.length}`;
 
       if (filtered.length === 0) {
         emptyStateEl.style.display = "flex";
@@ -745,53 +990,59 @@
         diagramFrameEl.style.display = "block";
       }
 
-      // Group filtered items
       const systemItems = filtered.filter(d => d.group === "system");
       const workflowItems = filtered.filter(d => d.group === "workflow");
 
       if (systemItems.length > 0) {
-        const groupEl = document.createElement("div");
-        groupEl.innerHTML = `
-          <div class="group-title">
-            <span>Kiến trúc & Dữ liệu</span>
-            <span>${systemItems.length}</span>
+        const sectionEl = document.createElement("div");
+        sectionEl.className = "group-section";
+        sectionEl.innerHTML = `
+          <div class="group-header">
+            <span class="group-title">Kiến trúc & Cơ sở dữ liệu</span>
+            <span class="group-count">${systemItems.length}</span>
           </div>
-          <div class="group-items" id="systemGroupItems"></div>
+          <div class="group-container" id="systemContainer"></div>
         `;
-        diagramListEl.appendChild(groupEl);
-        const container = groupEl.querySelector("#systemGroupItems");
-        systemItems.forEach(item => container.appendChild(createItemCard(item)));
+        diagramListEl.appendChild(sectionEl);
+        const container = sectionEl.querySelector("#systemContainer");
+        systemItems.forEach(item => container.appendChild(createCard(item)));
       }
 
       if (workflowItems.length > 0) {
-        const groupEl = document.createElement("div");
-        groupEl.innerHTML = `
-          <div class="group-title">
-            <span>Feature Workflows</span>
-            <span>${workflowItems.length}</span>
+        const sectionEl = document.createElement("div");
+        sectionEl.className = "group-section";
+        sectionEl.innerHTML = `
+          <div class="group-header">
+            <span class="group-title">Quy trình Nghiệp vụ (Workflows)</span>
+            <span class="group-count">${workflowItems.length}</span>
           </div>
-          <div class="group-items" id="workflowGroupItems"></div>
+          <div class="group-container" id="workflowContainer"></div>
         `;
-        diagramListEl.appendChild(groupEl);
-        const container = groupEl.querySelector("#workflowGroupItems");
-        workflowItems.forEach(item => container.appendChild(createItemCard(item)));
+        diagramListEl.appendChild(sectionEl);
+        const container = sectionEl.querySelector("#workflowContainer");
+        workflowItems.forEach(item => container.appendChild(createCard(item)));
       }
     }
 
-    function createItemCard(item) {
+    function createCard(item) {
       const a = document.createElement("a");
-      a.className = `item-card ${item.id === currentDiagramId ? 'active' : ''}`;
+      a.className = `diagram-card ${item.id === currentDiagramId ? 'active' : ''}`;
       a.href = `#${item.id}`;
+      a.setAttribute("data-id", item.id);
       a.innerHTML = `
-        <div class="item-header">
-          <span class="item-title">${item.title}</span>
-          <span class="type-badge ${item.badgeClass}">${item.type}</span>
+        <div class="card-top">
+          <span class="card-title">${item.title}</span>
+          <span class="type-pill ${item.pillClass}">${item.type}</span>
         </div>
-        <div class="item-desc">${item.desc}</div>
+        <div class="card-desc">${item.desc}</div>
       `;
       a.addEventListener("click", (e) => {
         e.preventDefault();
         loadDiagram(item.id);
+        // Auto-close drawer on mobile
+        if (window.innerWidth < 768) {
+          sidebarEl.classList.add("collapsed");
+        }
       });
       return a;
     }
@@ -803,15 +1054,18 @@
       currentDiagramId = id;
       window.location.hash = id;
 
-      // Update frame and metadata
+      // Indicator loader
+      stageLoaderEl.classList.add("loading");
+      setTimeout(() => stageLoaderEl.classList.remove("loading"), 250);
+
+      // Frame & Info
       diagramFrameEl.src = target.path;
-      currentTitleEl.textContent = target.title;
-      currentPathEl.textContent = target.path;
+      currentBreadcrumbEl.textContent = target.title;
       openExternalBtn.href = target.path;
 
-      // Update active states
-      document.querySelectorAll(".item-card").forEach(el => {
-        if (el.getAttribute("href") === `#${id}`) {
+      // Active state on cards
+      document.querySelectorAll(".diagram-card").forEach(el => {
+        if (el.getAttribute("data-id") === id) {
           el.classList.add("active");
           el.scrollIntoView({ block: "nearest", behavior: "smooth" });
         } else {
@@ -823,10 +1077,19 @@
     // Search events
     searchInput.addEventListener("input", (e) => {
       searchQuery = e.target.value.trim();
+      searchClearBtn.style.display = searchQuery ? "flex" : "none";
       renderList();
     });
 
-    // Filter tab events
+    searchClearBtn.addEventListener("click", () => {
+      searchInput.value = "";
+      searchQuery = "";
+      searchClearBtn.style.display = "none";
+      searchInput.focus();
+      renderList();
+    });
+
+    // Filter Tab click
     document.querySelectorAll(".tab-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -836,12 +1099,12 @@
       });
     });
 
-    // Toggle sidebar
+    // Toggle Sidebar
     toggleSidebarBtn.addEventListener("click", () => {
       sidebarEl.classList.toggle("collapsed");
     });
 
-    // Fullscreen toggle
+    // Fullscreen
     fullscreenBtn.addEventListener("click", () => {
       const stage = document.getElementById("viewerStage");
       if (!document.fullscreenElement) {
@@ -851,32 +1114,48 @@
       }
     });
 
-    // Copy path
+    // Copy Path
     copyPathBtn.addEventListener("click", () => {
       const target = diagrams.find(d => d.id === currentDiagramId);
       if (!target) return;
       navigator.clipboard.writeText(target.path).then(() => {
-        showToast("Đã copy đường dẫn sơ đồ!");
+        showToast("Đã copy đường dẫn sơ đồ vào bộ nhớ tạm");
+      }).catch(() => {
+        showToast(target.path);
       });
     });
 
     function showToast(text) {
-      toastEl.textContent = text;
+      toastMessageEl.textContent = text;
       toastEl.classList.add("show");
-      setTimeout(() => toastEl.classList.remove("show"), 2500);
+      setTimeout(() => toastEl.classList.remove("show"), 2200);
     }
 
-    // Keyboard shortcuts
+    // Global Keyboard Shortcuts
     window.addEventListener("keydown", (e) => {
-      // Ctrl+K for search
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      // Focus search: Ctrl+K or '/' when not in input
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         searchInput.focus();
+        return;
       }
-      // Ctrl+B for toggle sidebar
-      if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+      if (e.key === "/" && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+        return;
+      }
+      // Toggle sidebar: Ctrl+B
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
         e.preventDefault();
         sidebarEl.classList.toggle("collapsed");
+        return;
+      }
+      // Clear or blur on Escape
+      if (e.key === "Escape") {
+        if (document.activeElement === searchInput) {
+          searchInput.blur();
+        }
+        return;
       }
       // Arrow navigation
       if (document.activeElement !== searchInput) {
@@ -892,7 +1171,8 @@
       }
     });
 
-    // Init from URL hash or default
+    // Startup initialization
+    initTheme();
     const initialHash = window.location.hash.replace("#", "");
     const initialDiagram = diagrams.find(d => d.id === initialHash) || diagrams[0];
 
