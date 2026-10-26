@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Shield,
   Award,
+  Megaphone,
   MessageSquareQuote,
   PanelLeftClose,
   PanelLeftOpen,
@@ -73,6 +74,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Operations',
     items: [
       { label: 'Feedback', href: '/admin/feedback', icon: MessageSquareQuote },
+      { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
       { label: 'Audit Logs', href: '/admin/audit', icon: FileText },
     ],
   },

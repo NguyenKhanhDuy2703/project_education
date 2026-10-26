@@ -67,8 +67,10 @@ export const adminReviewApi = {
     return res.data?.data || res.data;
   },
 
-  reject: async (type: 'series' | 'lab', id: string, feedback?: string): Promise<any> => {
-    const res = await apiClient.post<any>(`/admin/review/${type}/${id}/reject`, { feedback });
+  reject: async (type: 'series' | 'lab', id: string, reason?: string): Promise<any> => {
+    const res = await apiClient.post<any>(`/admin/review/${type}/${id}/reject`, {
+      reason: reason || 'Submission rejected by admin',
+    });
     return res.data?.data || res.data;
   },
 
@@ -82,13 +84,16 @@ export const adminReviewApi = {
     return res.data?.data || res.data;
   },
 
-  archive: async (type: 'series' | 'lab', id: string): Promise<any> => {
-    const res = await apiClient.post<any>(`/admin/review/${type}/${id}/archive`);
+  archive: async (type: 'series' | 'lab', id: string, reason?: string): Promise<any> => {
+    const res = await apiClient.post<any>(`/admin/review/${type}/${id}/archive`, { reason });
     return res.data?.data || res.data;
   },
 
-  transferOwnership: async (type: 'series' | 'lab', id: string, targetUserId: string): Promise<any> => {
-    const res = await apiClient.post<any>(`/admin/review/${type}/${id}/transfer-ownership`, { targetUserId });
+  transferOwnership: async (type: 'series' | 'lab', id: string, newAuthorId: string, reason?: string): Promise<any> => {
+    const res = await apiClient.post<any>(`/admin/review/${type}/${id}/transfer-ownership`, {
+      newAuthorId,
+      reason,
+    });
     return res.data?.data || res.data;
   },
 };
