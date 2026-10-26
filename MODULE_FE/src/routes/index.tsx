@@ -19,6 +19,8 @@ import { UserContentManagementView } from '@/pages/dashboard/views/UserContentMa
 import { UserReviewFeedbackView } from '@/pages/dashboard/views/UserReviewFeedbackView';
 import { UserSavedSeriesView } from '@/pages/dashboard/views/UserSavedSeriesView';
 import { UserLabSubmissionsView } from '@/pages/dashboard/views/UserLabSubmissionsView';
+import { UserMembershipView } from '@/pages/dashboard/views/UserMembershipView';
+import { UserNotificationsView } from '@/pages/dashboard/views/UserNotificationsView';
 
 import { SeriesHubPage } from '@/pages/lab/SeriesHubPage';
 import { SeriesDetailPage } from '@/pages/lab/SeriesDetailPage';
@@ -46,6 +48,8 @@ export const router = createBrowserRouter([
       { path: 'series/:slug', element: <SeriesDetailPage /> },
       { path: 'roadmaps', element: <RoadmapsPage /> },
       { path: 'pricing', element: <PricingPage /> },
+      { path: 'membership', element: <Navigate to="/user/dashboard/membership" replace /> },
+      { path: 'notifications', element: <Navigate to="/user/dashboard/notifications" replace /> },
       { path: 'terms', element: <TermsPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'user', element: <Navigate to="/user/dashboard" replace /> },
@@ -67,6 +71,8 @@ export const router = createBrowserRouter([
           { path: 'profile', element: <UserProfileView /> },
           { path: 'saved', element: <UserSavedSeriesView /> },
           { path: 'submissions', element: <UserLabSubmissionsView /> },
+          { path: 'membership', element: <UserMembershipView /> },
+          { path: 'notifications', element: <UserNotificationsView /> },
 
           // Contributor capability views (Protected by Contributor permission)
           {

@@ -4,5 +4,11 @@ import { RegisterForm } from '@/features/auth/components/RegisterForm';
 export function RegisterPage() {
   const navigate = useNavigate();
 
-  return <RegisterForm onSuccess={() => navigate('/')} />;
+  return (
+    <RegisterForm
+      onSuccess={() => {
+        navigate('/login', { state: { registered: true } });
+      }}
+    />
+  );
 }

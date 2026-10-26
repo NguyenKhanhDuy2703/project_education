@@ -79,6 +79,8 @@ export interface LabSeries {
   title: string;
   description: string;
   category?: string;
+  repoUrl?: string;
+  swaggerUrl?: string;
   formatType?: SandboxType;
   topic?: string;        // e.g. "testing", "backend", "docker"
   level: 'beginner' | 'intermediate' | 'advanced';
@@ -99,6 +101,7 @@ export interface LabSeries {
   labs?: LabSummary[];
   sections?: SeriesSection[];
   userProgress?: SeriesProgress;
+  isSaved?: boolean;
   _count?: { labs: number };
 }
 
@@ -181,12 +184,16 @@ export interface LabDetail extends LabSummary {
   isLocked?: boolean;
   lockReason?: string;
   durationMinutes?: number;
+  repoUrl?: string;
+  swaggerUrl?: string;
   series?: {
     id: string;
     title: string;
     slug: string;
     description?: string;
     isProOnly?: boolean;
+    repoUrl?: string;
+    swaggerUrl?: string;
   };
 }
 

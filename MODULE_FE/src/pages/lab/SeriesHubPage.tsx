@@ -27,7 +27,9 @@ import {
   getTopicTitle,
   getTopicBadgeClass,
 } from '@/services/topicTags.service';
-import { getFormatInfo, getSeriesFormat } from '@/services/formatBadge.service';
+import { getFormatInfo, getSeriesFormat, isAutomationContentHidden, isAutomationSeriesSlug } from '@/services/formatBadge.service';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { Database, HelpCircle, Layers, SlidersHorizontal } from 'lucide-react';
 
 export interface CatalogLabItem {
   id: string;
@@ -80,6 +82,8 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
   const [levelFilter, setLevelFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
   const [formatFilter, setFormatFilter] = useState<'all' | 'sql_worker' | 'quizlet' | 'js_worker' | 'hybrid'>('all');
   const [sortBy, setSortBy] = useState<'popular' | 'latest' | 'duration' | 'difficulty'>('popular');
+  const { user } = useAuth();
+  const hideAutomation = isAutomationContentHidden(user?.role);
 
   // Sync tab if URL changes or defaultTab provided
   useEffect(() => {
@@ -103,10 +107,16 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
     queryFn: () => seriesApi.getAll(),
   });
 
+  const visibleSeriesList = useMemo(() => {
+    if (!seriesList) return [];
+    if (!hideAutomation) return seriesList;
+    return seriesList.filter((s) => !isAutomationSeriesSlug(s.slug) && !isAutomationSeriesSlug(s.id));
+  }, [seriesList, hideAutomation]);
+
   // Extract all labs dynamically from API series data
   const allLabs = useMemo<CatalogLabItem[]>(() => {
-    if (!seriesList) return [];
-    return seriesList.flatMap((series) => {
+    if (!visibleSeriesList) return [];
+    return visibleSeriesList.flatMap((series) => {
       const topicKey = normalizeTopicKey(series.category || series.topic || 'general');
       const categoryName = getTopicTitle(topicKey, series.title);
       return (series.labs || []).map((lab) => ({
@@ -123,8 +133,15 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
         seriesSlug: series.slug,
         seriesTitle: series.title,
       }));
+    }).filter((lab) => {
+      if (!hideAutomation) return true;
+      return (
+        (lab.sandboxType as string) !== 'js_worker' &&
+        (lab.sandboxType as string) !== 'automation_v3' &&
+        !isAutomationSeriesSlug(lab.seriesSlug)
+      );
     });
-  }, [seriesList]);
+  }, [visibleSeriesList, hideAutomation]);
 
   // Generate dynamic topics from system tags and existing series, starting with "All Topics"
   const topics = useMemo(() => {
@@ -133,8 +150,8 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
       topicMap.set(t.key, t.title);
     });
 
-    if (seriesList) {
-      seriesList.forEach((s) => {
+    if (visibleSeriesList) {
+      visibleSeriesList.forEach((s) => {
         const cat = normalizeTopicKey(s.category || s.topic || 'general');
         if (cat && !topicMap.has(cat)) {
           topicMap.set(cat, getTopicTitle(cat, s.title));
@@ -146,12 +163,12 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
       { id: 'all', label: 'All Topics' },
       ...Array.from(topicMap.entries()).map(([id, label]) => ({ id, label })),
     ];
-  }, [seriesList]);
+  }, [visibleSeriesList]);
 
   // Filter series for the "series" view using debouncedSearch
   const filteredSeries = useMemo(() => {
-    if (!seriesList) return [];
-    return seriesList
+    if (!visibleSeriesList) return [];
+    return visibleSeriesList
       .filter((s) => {
         if (debouncedSearch.trim()) {
           const q = debouncedSearch.toLowerCase().trim();
@@ -195,7 +212,7 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
         // Popular: based on lab count
         return (b.labs?.length || b.totalLabs || 0) - (a.labs?.length || a.totalLabs || 0);
       });
-  }, [seriesList, debouncedSearch, activeTopic, tierFilter, levelFilter, formatFilter, sortBy]);
+  }, [visibleSeriesList, debouncedSearch, activeTopic, tierFilter, levelFilter, formatFilter, sortBy]);
 
   // Filter labs for the "labs" view using debouncedSearch
   const filteredLabs = useMemo(() => {
@@ -285,7 +302,7 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
               value="series"
               className="text-xs px-3.5 font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-2xs"
             >
-              Series Catalog ({seriesList?.length || 0})
+              Series Catalog ({visibleSeriesList?.length || 0})
             </TabsTrigger>
             <TabsTrigger
               value="labs"
@@ -348,30 +365,37 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
           )}
         </div>
 
-        {/* Learning Format Filter Pills: All Formats | 🔵 SQL Query | 🟣 Quiz & Thinking | 🟢 Automation Test | 🧪 Auto Test & Quiz */}
+        {/* Learning Format Filter Pills (Clean Lucide icons, no emoji) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           {[
-            { id: 'all', label: 'All Formats', emoji: '' },
-            { id: 'sql_worker', label: 'SQL Query', emoji: '🔵' },
-            { id: 'quizlet', label: 'Quiz & Thinking', emoji: '🟣' },
-            { id: 'js_worker', label: 'Automation Test', emoji: '🟢' },
-            { id: 'hybrid', label: 'Auto Test & Quiz', emoji: '🧪' },
-          ].map((fmt) => (
-            <button
-              key={fmt.id}
-              type="button"
-              onClick={() => setFormatFilter(fmt.id as any)}
-              className={cn(
-                'px-3 py-1 rounded-full text-xs transition-all shrink-0 whitespace-nowrap cursor-pointer flex items-center gap-1.5 border',
-                formatFilter === fmt.id
-                  ? 'bg-foreground text-background font-bold border-foreground shadow-xs'
-                  : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-              )}
-            >
-              {fmt.emoji && <span className="text-[11px]">{fmt.emoji}</span>}
-              <span>{fmt.label}</span>
-            </button>
-          ))}
+            { id: 'all', label: 'All Formats', icon: Layers },
+            { id: 'sql_worker', label: 'SQL Practice', icon: Database },
+            { id: 'quizlet', label: 'Theory Quiz', icon: HelpCircle },
+            ...(!hideAutomation
+              ? [
+                  { id: 'js_worker', label: 'Automation Test', icon: SlidersHorizontal },
+                  { id: 'hybrid', label: 'Auto Test & Quiz', icon: Layers },
+                ]
+              : []),
+          ].map((fmt) => {
+            const Icon = fmt.icon;
+            return (
+              <button
+                key={fmt.id}
+                type="button"
+                onClick={() => setFormatFilter(fmt.id as any)}
+                className={cn(
+                  'px-3 py-1 rounded-full text-xs transition-all shrink-0 whitespace-nowrap cursor-pointer flex items-center gap-1.5 border min-h-[32px]',
+                  formatFilter === fmt.id
+                    ? 'bg-foreground text-background font-bold border-foreground shadow-xs'
+                    : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <Icon className="size-3 text-current shrink-0" />
+                <span>{fmt.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Category Chips (Horizontal scrollable on mobile) */}
@@ -431,7 +455,7 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
         <div className="space-y-4">
           {filteredSeries.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <p className="text-sm font-semibold text-foreground">No matching series found</p>
+              <p className="text-sm font-semibold text-foreground">No active curriculum series match your criteria</p>
               <p className="text-xs text-muted-foreground">Try searching with different keywords or reset your filters.</p>
               <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs">
                 Reset Filters
@@ -454,7 +478,7 @@ export function SeriesHubPage({ defaultTab }: { defaultTab?: 'series' | 'labs' }
         <div className="space-y-4">
           {filteredLabs.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <p className="text-sm font-semibold text-foreground">No matching practice labs found</p>
+              <p className="text-sm font-semibold text-foreground">No active SQL practice or theory quiz labs match your filters</p>
               <p className="text-xs text-muted-foreground">Try adjusting your search query or reset your filters.</p>
               <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs">
                 Reset Filters

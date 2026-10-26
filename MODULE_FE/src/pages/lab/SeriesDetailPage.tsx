@@ -4,7 +4,7 @@
  * Shows curriculum sections and pedagogical learning units within a series;
  * respects dynamic IAM permissions and server-synchronized progress.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { seriesApi } from '@/features/lab/api/series.api';
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UpgradeModal } from '@/features/lab/components/UpgradeModal';
 import { StatusBadge } from '@/components/domain/StatusBadge';
+import { SampleProjectLinks } from '@/components/domain/SampleProjectLinks';
 import {
   Crown,
   BookOpen,
@@ -22,6 +23,9 @@ import {
   CheckSquare,
   Play,
   Layers,
+  Bookmark,
+  BookmarkCheck,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -33,6 +37,8 @@ import {
   getFormatInfo,
   getSeriesFormat,
   getUnitTypeInfo,
+  isAutomationSeriesSlug,
+  isAutomationContentHidden,
 } from '@/services/formatBadge.service';
 import type { LabSummary, SeriesSection } from '@/types/lab.types';
 
@@ -41,12 +47,38 @@ export function SeriesDetailPage() {
   const { user } = useAppSelector((s) => s.auth);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [selectedLabTitle, setSelectedLabTitle] = useState<string>('');
+  const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
+  const [isBookmarkLoading, setIsBookmarkLoading] = useState<boolean>(false);
 
   const { data: series, isLoading, isError } = useQuery({
     queryKey: ['series', slug],
     queryFn: () => seriesApi.getBySlug(slug!),
     enabled: !!slug,
   });
+
+  useEffect(() => {
+    if (series) {
+      setIsBookmarked(Boolean(series.isSaved));
+    }
+  }, [series]);
+
+  const handleToggleBookmark = async () => {
+    if (!series || isBookmarkLoading) return;
+    setIsBookmarkLoading(true);
+    try {
+      if (isBookmarked) {
+        await seriesApi.unsave(series.id);
+        setIsBookmarked(false);
+      } else {
+        await seriesApi.save(series.id);
+        setIsBookmarked(true);
+      }
+    } catch (err) {
+      console.error('Failed to toggle bookmark', err);
+    } finally {
+      setIsBookmarkLoading(false);
+    }
+  };
 
   const hasProAccess = can(user, 'LAB_PRO');
 
@@ -113,6 +145,35 @@ export function SeriesDetailPage() {
     );
   }
 
+    const isHiddenAutomation = isAutomationSeriesSlug(slug) && isAutomationContentHidden(user?.role);
+
+  if (isHiddenAutomation || ((isError || !series) && isAutomationSeriesSlug(slug))) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-16 max-w-xl text-center space-y-6">
+        <div className="size-16 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto shadow-sm">
+          <Clock className="size-8" />
+        </div>
+        <div className="space-y-2">
+          <Badge variant="outline" className="text-xs uppercase font-semibold text-amber-600 dark:text-amber-400 border-amber-500/30">
+            Curriculum Notice
+          </Badge>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            Topic Temporarily Unavailable
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Automation testing series are temporarily unavailable in this release as we curate our new Playwright experience.
+            Please explore our PostgreSQL Business Labs or Testing Theory Quizzes in the active catalog.
+          </p>
+        </div>
+        <div className="pt-2">
+          <Button asChild className="min-h-[44px] px-6 font-semibold shadow-sm">
+            <Link to="/series">Browse Active Catalog</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isError || !series) {
     return (
       <div className="container mx-auto px-4 py-10 max-w-3xl space-y-3">
@@ -167,13 +228,39 @@ export function SeriesDetailPage() {
             )}
           </div>
 
-          {series.status && (
-            <StatusBadge status={series.status} size="sm" />
-          )}
+          <div className="flex items-center gap-2">
+            {series.status && (
+              <StatusBadge status={series.status} size="sm" />
+            )}
+            {user && (
+              <Button
+                variant={isBookmarked ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={handleToggleBookmark}
+                disabled={isBookmarkLoading}
+                className="h-7 text-xs gap-1.5 border-border"
+                aria-label={isBookmarked ? 'Remove from saved series' : 'Save series'}
+                title={isBookmarked ? 'Remove from saved series' : 'Save series'}
+              >
+                {isBookmarked ? (
+                  <BookmarkCheck className="size-3.5 text-primary" />
+                ) : (
+                  <Bookmark className="size-3.5 text-muted-foreground" />
+                )}
+                <span>{isBookmarked ? 'Saved' : 'Save'}</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight text-foreground">{series.title}</h1>
         <p className="text-sm text-muted-foreground leading-relaxed">{series.description}</p>
+
+        {(series.repoUrl || series.swaggerUrl) && (
+          <div className="pt-1">
+            <SampleProjectLinks repoUrl={series.repoUrl} swaggerUrl={series.swaggerUrl} />
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border/50">
           <span className="font-semibold text-foreground">{curriculumSummary}</span>
