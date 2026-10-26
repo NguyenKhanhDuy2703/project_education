@@ -18,6 +18,10 @@ export type PermissionCode =
   | 'LAB_PRO'
   | 'SOLUTION_ACCESS'
   | 'SERIES_PUBLIC'
+  | 'EXECUTE_LAB_ADVANCED'
+  | 'VIEW_SOLUTION'
+  | 'RUN_JS_WORKER'
+  | 'AI_CODE_REVIEW'
   // System Administration
   | 'USER_MANAGE'
   | 'GROUP_MANAGE'
@@ -72,5 +76,11 @@ export interface User {
 export interface AuthResponse {
   accessToken: string;
   refreshToken?: string;
+  user: User;
+}
+
+export interface RegisterResponse {
+  message: string;
+  nextAction: 'login';
   user: User;
 }

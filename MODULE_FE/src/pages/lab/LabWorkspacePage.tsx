@@ -24,7 +24,7 @@ import { CompletionCelebrationDialog } from './_components/CompletionCelebration
 import { WorkspaceSkeleton } from './_components/WorkspaceSkeleton';
 import { UpgradeModal } from '@/features/lab/components/UpgradeModal';
 import { inferLearningUnitType } from '@/features/lab/domain/labContentCodec';
-import { getUnitTypeInfo } from '@/services/formatBadge.service';
+import { getUnitTypeInfo, isAutomationSeriesSlug, isAutomationContentHidden } from '@/services/formatBadge.service';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -198,6 +198,41 @@ export function LabWorkspacePage() {
 
   // ── Guard: Loading Skeleton ────────────────────────────────────────────────
   if (isLoading) return <WorkspaceSkeleton />;
+
+    const isHiddenAutomationLab = Boolean(
+    isAutomationContentHidden(user?.role) &&
+      (isAutomationSeriesSlug(labId) ||
+        isAutomationSeriesSlug(series?.slug) ||
+        (rawLab && (rawLab.sandboxType as string) === 'automation_v3') ||
+        (rawLab && isAutomationSeriesSlug(rawLab.slug)))
+  );
+
+  if (isHiddenAutomationLab || ((error || !rawLab) && isAutomationSeriesSlug(labId))) {
+    return (
+      <div className="container mx-auto px-4 py-16 max-w-xl text-center space-y-6">
+        <div className="size-16 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto shadow-sm">
+          <Clock className="size-8" />
+        </div>
+        <div className="space-y-2">
+          <Badge variant="outline" className="text-xs uppercase font-semibold text-amber-600 dark:text-amber-400 border-amber-500/30">
+            Curriculum Notice
+          </Badge>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            Lab Challenge Temporarily Unavailable
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Automation testing challenges are temporarily unavailable in this release as we curate our new Playwright experience.
+            Please explore our PostgreSQL Business Labs or Testing Theory Quizzes in the active catalog.
+          </p>
+        </div>
+        <div className="pt-2">
+          <Button asChild className="min-h-[44px] px-6 font-semibold shadow-sm">
+            <Link to="/series">Browse Active Catalog</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Guard: Data Load Error ─────────────────────────────────────────────────
   if (error || !rawLab || !normalizedLab) {

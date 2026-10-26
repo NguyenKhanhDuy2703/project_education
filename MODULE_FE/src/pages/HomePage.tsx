@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { DIFFICULTY_LABELS } from '@/constants/ui.constants';
 import { cn } from '@/lib/utils';
+import { isAutomationSeriesSlug, isAutomationContentHidden } from '@/services/formatBadge.service';
 import {
   normalizeTopicKey,
   getTopicTitle,
@@ -40,6 +41,11 @@ export function HomePage() {
     queryKey: ['series'],
     queryFn: () => seriesApi.getAll(),
   });
+
+  const hideAutomation = isAutomationContentHidden(user?.role);
+  const visibleSeries = (seriesList ?? []).filter(
+    (s) => !hideAutomation || !isAutomationSeriesSlug(s.slug)
+  );
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -126,7 +132,7 @@ export function HomePage() {
             </div>
             <Link to="/series">
               <Button variant="ghost" size="sm" className="gap-1.5 text-primary hover:text-primary font-semibold text-xs sm:text-sm">
-                View All Series ({seriesList?.length ?? 0}) <ArrowRight className="size-4" />
+                View All Series ({visibleSeries.length}) <ArrowRight className="size-4" />
               </Button>
             </Link>
           </div>
@@ -140,7 +146,7 @@ export function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {(seriesList ?? []).slice(0, 3).map((series) => {
+              {visibleSeries.slice(0, 3).map((series) => {
                 const totalLabs = series._count?.labs ?? series.labs?.length ?? series.totalLabs ?? 0;
                 const estMinutes =
                   series.estimatedMinutes ??
@@ -390,7 +396,7 @@ export function HomePage() {
                 </div>
                 <div className="flex items-start gap-2">
                   <Check className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <span>Automated testing with GitHub Actions CI/CD</span>
+                  <span>Continuous integration pipelines with GitHub Actions</span>
                 </div>
               </CardContent>
 

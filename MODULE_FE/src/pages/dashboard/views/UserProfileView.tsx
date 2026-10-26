@@ -17,8 +17,13 @@ import {
   Layers,
   Sun,
   Sliders,
+  MapPin,
+  Edit3,
+  KeyRound,
 } from 'lucide-react';
 import { ContributorApplyModal } from '@/features/contributor/components/ContributorApplyModal';
+import { EditProfileModal } from '@/features/auth/components/EditProfileModal';
+import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordModal';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/features/preferences/theme';
 import { useI18n } from '@/features/preferences/i18n';
@@ -33,6 +38,8 @@ function getInitials(name?: string) {
 export function UserProfileView() {
   const { user } = useAppSelector((state) => state.auth);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const { themePreference, setThemePreference } = useTheme();
   const { t } = useI18n();
 
@@ -102,13 +109,37 @@ export function UserProfileView() {
         <Card className="border-border bg-card shadow-xs flex flex-col justify-between">
           <div>
             <CardHeader className="pb-3 border-b border-border/60">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-                <User className="size-4 text-primary" />
-                <span>Contact &amp; Account Details</span>
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Verified identification and security settings
-              </CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+                    <User className="size-4 text-primary" />
+                    <span>Contact &amp; Account Details</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Verified identification and security settings
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditProfileOpen(true)}
+                    className="h-7 text-xs px-2 gap-1"
+                  >
+                    <Edit3 className="size-3" />
+                    <span>Edit Profile</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setChangePasswordOpen(true)}
+                    className="h-7 text-xs px-2 gap-1"
+                  >
+                    <KeyRound className="size-3" />
+                    <span>Password</span>
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="pt-4 space-y-4 text-sm">
               <div className="flex items-center justify-between py-1">
@@ -129,6 +160,14 @@ export function UserProfileView() {
                 <div>
                   <p className="text-[11px] text-muted-foreground font-medium">Phone Number</p>
                   <p className="text-xs font-semibold text-foreground">{user?.phone || 'Not provided'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 py-1 border-t border-border/40">
+                <MapPin className="size-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-[11px] text-muted-foreground font-medium">Default Address</p>
+                  <p className="text-xs font-semibold text-foreground">{user?.defaultAddress || 'Not provided'}</p>
                 </div>
               </div>
 
@@ -266,6 +305,18 @@ export function UserProfileView() {
       <ContributorApplyModal
         open={applyModalOpen}
         onOpenChange={setApplyModalOpen}
+      />
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        open={editProfileOpen}
+        onOpenChange={setEditProfileOpen}
+      />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
       />
     </div>
   );

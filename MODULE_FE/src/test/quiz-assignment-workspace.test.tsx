@@ -123,10 +123,12 @@ describe('QuizAssignmentWorkspace Suite (Subtasks 6.2 - 6.5)', () => {
     });
 
     // Score badge should be visible and announceable to screen readers (Subtask 2.4)
-    const scoreBadge = screen.getByRole('status');
-    expect(scoreBadge).toBeDefined();
-    expect(scoreBadge.getAttribute('aria-live')).toBe('polite');
-    expect(scoreBadge.textContent).toContain('Passed: 100%');
+    await waitFor(() => {
+      const scoreBadge = screen.getByRole('status');
+      expect(scoreBadge).toBeDefined();
+      expect(scoreBadge.getAttribute('aria-live')).toBe('polite');
+      expect(scoreBadge.textContent).toContain('Passed: 100%');
+    });
 
     // Accessible text for correct answer icon
     expect(screen.getAllByText('(Correct answer)').length).toBeGreaterThan(0);

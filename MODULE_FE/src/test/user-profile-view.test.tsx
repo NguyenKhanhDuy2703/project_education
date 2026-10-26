@@ -57,4 +57,27 @@ describe('UserProfileView Plain Language Copy (Subtask 9.2)', () => {
     expect(screen.queryByText('Authentication: Session Active')).toBeNull();
     expect(screen.queryByText('JWT Guarded')).toBeNull();
   });
+
+  it('provides Edit Profile and Password actions in Account Details card', () => {
+    const store = createMockStore();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+
+    render(
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <UserProfileView />
+          </MemoryRouter>
+        </QueryClientProvider>
+      </Provider>,
+    );
+
+    const editBtn = screen.getByRole('button', { name: /Edit Profile/i });
+    const pwdBtn = screen.getByRole('button', { name: /Password/i });
+
+    expect(editBtn).toBeDefined();
+    expect(pwdBtn).toBeDefined();
+  });
 });

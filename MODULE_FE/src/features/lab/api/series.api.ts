@@ -65,4 +65,20 @@ export const seriesApi = {
   deleteSection: async (seriesId: string, sectionId: string): Promise<void> => {
     await apiClient.delete(`/series/${seriesId}/sections/${sectionId}`);
   },
+
+  /** Bookmarks / Saved series (PB-23) */
+  save: async (seriesId: string): Promise<{ saved: boolean }> => {
+    const res = await apiClient.post<any>(`/series/${seriesId}/save`);
+    return res.data?.data ?? res.data;
+  },
+
+  unsave: async (seriesId: string): Promise<{ saved: boolean }> => {
+    const res = await apiClient.delete<any>(`/series/${seriesId}/save`);
+    return res.data?.data ?? res.data;
+  },
+
+  getSavedSeries: async (): Promise<LabSeries[]> => {
+    const res = await apiClient.get<any>('/series/user/saved');
+    return res.data?.data ?? res.data ?? [];
+  },
 };

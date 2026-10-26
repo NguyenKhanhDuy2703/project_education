@@ -18,6 +18,8 @@ import {
   BookOpen,
   LogOut,
   Award,
+  Crown,
+  Bell,
   MessageSquareQuote,
   PanelLeftClose,
   PanelLeftOpen,
@@ -72,6 +74,8 @@ export function UserSidebar({
     { label: 'Profile', href: '/user/dashboard/profile', icon: User },
     { label: 'Dashboard', href: '/user/dashboard', icon: LayoutDashboard },
     { label: 'Lab Submissions', href: '/user/dashboard/submissions', icon: CheckCircle2 },
+    { label: 'Gói Pro & Thanh toán', href: '/user/dashboard/membership', icon: Crown },
+    { label: 'Thông báo', href: '/user/dashboard/notifications', icon: Bell },
     ...(isContributor
       ? [
           { label: 'My Content', href: '/user/dashboard/content', icon: Layers },
