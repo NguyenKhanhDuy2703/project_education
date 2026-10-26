@@ -16,6 +16,8 @@ export interface SubscriptionPlanItem {
   billingCycle: 'FREE' | 'MONTHLY' | 'YEARLY' | 'LIFETIME';
   isDefault: boolean;
   isActive: boolean;
+  isPublic?: boolean;
+  isSaleReady?: boolean;
   planFeatures: PlanFeatureItem[];
   _count?: { subscriptions: number };
 }
@@ -120,6 +122,8 @@ export const entitlementsAdminApi = {
     price: number;
     billingCycle: string;
     isDefault?: boolean;
+    isPublic?: boolean;
+    isSaleReady?: boolean;
   }): Promise<SubscriptionPlanItem> => {
     const res = await apiClient.post<any>('/admin/plans', data);
     return res.data?.data ?? res.data;
@@ -137,6 +141,8 @@ export const entitlementsAdminApi = {
       billingCycle?: string;
       isActive?: boolean;
       isDefault?: boolean;
+      isPublic?: boolean;
+      isSaleReady?: boolean;
     },
   ): Promise<SubscriptionPlanItem> => {
     const res = await apiClient.put<any>(`/admin/plans/${planId}`, data);

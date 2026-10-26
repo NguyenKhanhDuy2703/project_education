@@ -16,11 +16,15 @@ export const PERMISSIONS = {
   TRANSFER_OWNERSHIP: 'CONTENT_TRANSFER_OWNERSHIP',
   ARCHIVE: 'CONTENT_ARCHIVE',
 
-  // Learning Access
+  // Learning Access & Canonical Capabilities
   LAB_BASIC: 'LAB_BASIC',
   LAB_PRO: 'LAB_PRO',
   SOLUTION_ACCESS: 'SOLUTION_ACCESS',
   SERIES_PUBLIC: 'SERIES_PUBLIC',
+  EXECUTE_LAB_ADVANCED: 'EXECUTE_LAB_ADVANCED',
+  VIEW_SOLUTION: 'VIEW_SOLUTION',
+  RUN_JS_WORKER: 'RUN_JS_WORKER',
+  AI_CODE_REVIEW: 'AI_CODE_REVIEW',
 
   // System Administration
   USER_MANAGE: 'USER_MANAGE',
@@ -29,10 +33,26 @@ export const PERMISSIONS = {
   SYSTEM_VIEW: 'SYSTEM_VIEW',
 } as const satisfies Record<string, PermissionCode>;
 
+export const PERMISSION_ALIASES: Partial<Record<PermissionCode, PermissionCode[]>> = {
+  LAB_PRO: ['EXECUTE_LAB_ADVANCED'],
+  EXECUTE_LAB_ADVANCED: ['LAB_PRO'],
+  SOLUTION_ACCESS: ['VIEW_SOLUTION'],
+  VIEW_SOLUTION: ['SOLUTION_ACCESS'],
+};
+
 // Default role permissions (fallback when groups are not initialized)
 const DEFAULT_ROLE_PERMISSIONS: Record<User['role'], PermissionCode[]> = {
   user: ['SERIES_PUBLIC', 'LAB_BASIC'],
-  userPro: ['SERIES_PUBLIC', 'LAB_BASIC', 'LAB_PRO', 'SOLUTION_ACCESS'],
+  userPro: [
+    'SERIES_PUBLIC',
+    'LAB_BASIC',
+    'LAB_PRO',
+    'EXECUTE_LAB_ADVANCED',
+    'SOLUTION_ACCESS',
+    'VIEW_SOLUTION',
+    'RUN_JS_WORKER',
+    'AI_CODE_REVIEW',
+  ],
   contributor: [
     'SERIES_PUBLIC',
     'LAB_BASIC',
@@ -55,7 +75,11 @@ const DEFAULT_ROLE_PERMISSIONS: Record<User['role'], PermissionCode[]> = {
     'CONTENT_ARCHIVE',
     'LAB_BASIC',
     'LAB_PRO',
+    'EXECUTE_LAB_ADVANCED',
     'SOLUTION_ACCESS',
+    'VIEW_SOLUTION',
+    'RUN_JS_WORKER',
+    'AI_CODE_REVIEW',
     'SERIES_PUBLIC',
     'USER_MANAGE',
     'GROUP_MANAGE',
@@ -152,7 +176,12 @@ export function can(
     return true;
   }
 
-  return permissions.has(permission);
+  if (permissions.has(permission)) return true;
+  const aliases = PERMISSION_ALIASES[permission];
+  if (aliases && aliases.some((alias) => permissions.has(alias))) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -167,7 +196,7 @@ export function usePermission(
 }
 
 /**
- * Danh mục toàn bộ 18 Permission codes kèm metadata phục vụ UI Checkbox / Matrix
+ * Danh mục toàn bộ Permission codes kèm metadata phục vụ UI Checkbox / Matrix
  */
 export const ALL_PERMISSIONS = [
   // Content Authoring
@@ -184,11 +213,15 @@ export const ALL_PERMISSIONS = [
   { code: 'CONTENT_TRANSFER_OWNERSHIP', name: 'Transfer Content Ownership', description: 'Reassign author ownership of content to another contributor', module: 'content' },
   { code: 'CONTENT_ARCHIVE', name: 'Archive Content', description: 'Archive or hide published content', module: 'content' },
 
-  // Learning Access
+  // Learning Access & Canonical Capabilities
   { code: 'SERIES_PUBLIC', name: 'Browse Series Catalog', description: 'Access and view public series catalog', module: 'learning' },
   { code: 'LAB_BASIC', name: 'Access Free Labs', description: 'Unlock and practice free/starter labs', module: 'learning' },
   { code: 'LAB_PRO', name: 'Access Pro Labs', description: 'Unlock all advanced Pro-tier labs', module: 'learning' },
   { code: 'SOLUTION_ACCESS', name: 'View Reference Solutions', description: 'View reference code solutions and explanations', module: 'learning' },
+  { code: 'EXECUTE_LAB_ADVANCED', name: 'Execute Advanced Labs', description: 'Execute Pro and advanced sandbox labs', module: 'learning' },
+  { code: 'VIEW_SOLUTION', name: 'View Reference Solutions (Canonical)', description: 'Server-authoritative reference solutions', module: 'learning' },
+  { code: 'RUN_JS_WORKER', name: 'Execute JS Worker', description: 'Run JS browser sandbox execution', module: 'learning' },
+  { code: 'AI_CODE_REVIEW', name: 'AI Code Review', description: 'AI automated hints and review capability', module: 'learning' },
 
   // System Administration
   { code: 'USER_MANAGE', name: 'Manage Users', description: 'Manage user directory, activate, or suspend accounts', module: 'users' },

@@ -38,6 +38,8 @@ export function AdminPlansTab() {
     price: 0,
     billingCycle: 'MONTHLY',
     isDefault: false,
+    isPublic: false,
+    isSaleReady: false,
   });
 
   // Edit Plan State
@@ -49,6 +51,8 @@ export function AdminPlansTab() {
     billingCycle: 'MONTHLY',
     isActive: true,
     isDefault: false,
+    isPublic: false,
+    isSaleReady: false,
   });
 
   // Delete Plan State
@@ -91,6 +95,8 @@ export function AdminPlansTab() {
       billingCycle: plan.billingCycle,
       isActive: plan.isActive ?? true,
       isDefault: plan.isDefault ?? false,
+      isPublic: plan.isPublic ?? false,
+      isSaleReady: plan.isSaleReady ?? false,
     });
   };
 
@@ -139,6 +145,8 @@ export function AdminPlansTab() {
         price: 0,
         billingCycle: 'MONTHLY',
         isDefault: false,
+        isPublic: false,
+        isSaleReady: false,
       });
     },
     onError: (err: any) =>
@@ -247,6 +255,16 @@ export function AdminPlansTab() {
                         {!p.isActive && (
                           <Badge variant="secondary" className="text-[10px] text-rose-500 bg-rose-500/10">
                             Inactive
+                          </Badge>
+                        )}
+                        {p.isPublic && (
+                          <Badge variant="outline" className="text-[10px] text-sky-600 border-sky-500/30 bg-sky-500/10">
+                            Public
+                          </Badge>
+                        )}
+                        {p.isSaleReady && (
+                          <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/30 bg-emerald-500/10">
+                            Sale Ready
                           </Badge>
                         )}
                       </div>
@@ -444,6 +462,29 @@ export function AdminPlansTab() {
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none"
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={newPlan.isPublic}
+                    onChange={(e) => setNewPlan({ ...newPlan, isPublic: e.target.checked })}
+                    className="rounded border-border text-primary focus:ring-primary size-4"
+                  />
+                  Public (Hiển thị trang giá)
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={newPlan.isSaleReady}
+                    onChange={(e) => setNewPlan({ ...newPlan, isSaleReady: e.target.checked })}
+                    disabled={newPlan.price <= 0}
+                    className="rounded border-border text-primary focus:ring-primary size-4 disabled:opacity-50"
+                  />
+                  Sale Ready (Mở bán)
+                </label>
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -530,7 +571,7 @@ export function AdminPlansTab() {
               />
             </div>
 
-            <div className="flex items-center gap-6 pt-1">
+            <div className="grid grid-cols-2 gap-4 pt-1">
               <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground">
                 <input
                   type="checkbox"
@@ -538,7 +579,7 @@ export function AdminPlansTab() {
                   onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
                   className="rounded border-border text-primary focus:ring-primary size-4"
                 />
-                Active (Available for subscription)
+                Active (Kích hoạt)
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground">
@@ -549,6 +590,27 @@ export function AdminPlansTab() {
                   className="rounded border-border text-primary focus:ring-primary size-4"
                 />
                 Default Free Plan
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={editForm.isPublic}
+                  onChange={(e) => setEditForm({ ...editForm, isPublic: e.target.checked })}
+                  className="rounded border-border text-primary focus:ring-primary size-4"
+                />
+                Public (Hiển thị bảng giá)
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={editForm.isSaleReady}
+                  onChange={(e) => setEditForm({ ...editForm, isSaleReady: e.target.checked })}
+                  disabled={editForm.price <= 0}
+                  className="rounded border-border text-primary focus:ring-primary size-4 disabled:opacity-50"
+                />
+                Sale Ready (Mở bán)
               </label>
             </div>
 

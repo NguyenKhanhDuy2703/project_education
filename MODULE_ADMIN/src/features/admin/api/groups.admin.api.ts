@@ -42,7 +42,7 @@ export const adminGroupsApi = {
   },
 
   assignPlans: async (id: string, planIds: string[]): Promise<any> => {
-    const res = await apiClient.post<any>(`/admin/groups/${id}/plans`, { planIds });
+    const res = await apiClient.put<any>(`/admin/groups/${id}/plans`, { planIds });
     return res.data?.data || res.data;
   },
 

@@ -55,6 +55,7 @@ export function AdminUsersTab() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUserItem | null>(null);
   const [deletingUser, setDeletingUser] = useState<AdminUserItem | null>(null);
+  const [pendingRoleChange, setPendingRoleChange] = useState<{ user: AdminUserItem; targetRole: UserRole } | null>(null);
 
   // Forms
   const [createForm, setCreateForm] = useState<CreateUserInput>({
@@ -384,9 +385,9 @@ export function AdminUsersTab() {
                             value={u.role}
                             disabled={roleMutation.isPending || isSelf || isRootAdmin}
                             onChange={(e) =>
-                              roleMutation.mutate({
-                                userId: u.id,
-                                role: e.target.value as UserRole,
+                              setPendingRoleChange({
+                                user: u,
+                                targetRole: e.target.value as UserRole,
                               })
                             }
                             title={
@@ -784,6 +785,64 @@ export function AdminUsersTab() {
               className="text-xs font-bold shadow-xs"
             >
               {deleteMutation.isPending ? 'Deleting…' : 'Confirm Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Change Confirmation Dialog */}
+      <Dialog
+        open={Boolean(pendingRoleChange)}
+        onOpenChange={(open) => !open && setPendingRoleChange(null)}
+      >
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+              <ShieldAlert className="size-5 text-amber-500" />
+              <span>Confirm Role Change</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Are you sure you want to change the role for user{' '}
+              <strong className="text-foreground">{pendingRoleChange?.user.name}</strong> from{' '}
+              <Badge variant="outline" className="capitalize text-[10px] mx-1">
+                {pendingRoleChange?.user.role}
+              </Badge>{' '}
+              to{' '}
+              <Badge variant="default" className="capitalize text-[10px] mx-1">
+                {pendingRoleChange?.targetRole}
+              </Badge>?
+              This operation immediately modifies security entitlements and permissions.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPendingRoleChange(null)}
+              disabled={roleMutation.isPending}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              disabled={roleMutation.isPending}
+              onClick={() => {
+                if (pendingRoleChange) {
+                  roleMutation.mutate({
+                    userId: pendingRoleChange.user.id,
+                    role: pendingRoleChange.targetRole,
+                  });
+                  setPendingRoleChange(null);
+                }
+              }}
+              className="text-xs font-semibold gap-1.5"
+            >
+              {roleMutation.isPending && <RefreshCw className="size-3.5 animate-spin" />}
+              <span>Confirm Change</span>
             </Button>
           </DialogFooter>
         </DialogContent>
